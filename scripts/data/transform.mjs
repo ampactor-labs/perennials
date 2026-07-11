@@ -108,7 +108,7 @@ async function main() {
       name: p.name,
       scientificName: p.scientific_name,
       family: d.Family || null,
-      description: (p.description || "").trim() || null,
+      description: (p.description || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim() || null,
       thumb: p.images?.thumb || null,
       light: light(d["Light requirement"]),
       water: water(d["Water requirement"]),

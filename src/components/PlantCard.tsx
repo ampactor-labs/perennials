@@ -1,45 +1,36 @@
 import { Link } from "react-router-dom";
-import type { LoadedPlant } from "@/data/types";
-import { SUN } from "@/data/vocab";
-import { LayerSpine } from "./LayerSpine";
-import { BloomSwatches, FunctionTags } from "./DataBits";
+import type { Plant } from "@/data/model";
 
-function ft(r: { min: number; max: number }) {
-  return r.min === r.max ? `${r.min}` : `${r.min}–${r.max}`;
+function topTags(p: Plant): string[] {
+  const tags: string[] = [];
+  if (p.layer) tags.push(p.layer);
+  if (p.lifeCycle) tags.push(p.lifeCycle);
+  if (p.edible) tags.push("Edible");
+  for (const f of p.functions.slice(0, 2)) tags.push(f);
+  return tags.slice(0, 4);
 }
 
-export function PlantCard({ plant, index = 0 }: { plant: LoadedPlant; index?: number }) {
-  const sun = plant.sun.map((s) => SUN.meta[s].label).join(" · ");
+export function PlantCard({ plant }: { plant: Plant }) {
+  const warn = plant.warnings[0];
   return (
-    <Link
-      to={`/plant/${plant.id}`}
-      className="specimen"
-      style={{ animationDelay: `${Math.min(index, 12) * 22}ms` }}
-    >
-      <div className="specimen-spine">
-        <LayerSpine layer={plant.layer} />
+    <Link to={`/plant/${plant.slug}`} className="pcard">
+      <div className="pcard-thumb">
+        {plant.thumb ? (
+          <img src={plant.thumb} alt="" loading="lazy" decoding="async" />
+        ) : (
+          <span className="pcard-noimg" aria-hidden="true">✿</span>
+        )}
       </div>
-      <div className="specimen-body">
-        <div className="specimen-name">{plant.commonName}</div>
-        <div className="specimen-binomial binomial">{plant.scientificName}</div>
-        <p className="specimen-summary">{plant.summary}</p>
-        <div className="specimen-tags">
-          <BloomSwatches colors={plant.bloomColors} />
-          <FunctionTags plant={plant} />
-          {plant.enrichment?.invasive && (
-            <span className="flag-invasive" title="USDA-listed invasive somewhere in the US">
-              ⚠ invasive (US)
+      <div className="pcard-body">
+        <div className="pcard-name">{plant.name}</div>
+        <div className="pcard-sci binomial">{plant.scientificName}</div>
+        <div className="pcard-tags">
+          {topTags(plant).map((t) => (
+            <span key={t} className="ptag">
+              {t}
             </span>
-          )}
-        </div>
-        <div className="specimen-meta">
-          <span>
-            <b>{ft(plant.height)}</b> ft tall
-          </span>
-          <span>
-            zones <b>{plant.hardiness.min}–{plant.hardiness.max}</b>
-          </span>
-          <span>{sun}</span>
+          ))}
+          {warn && <span className="ptag ptag--warn">{warn}</span>}
         </div>
       </div>
     </Link>

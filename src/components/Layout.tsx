@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTheme } from "@/lib/settings";
-import { IconBook, IconGarden, IconGuide, IconMoon, IconSun } from "./icons";
+import { useDataState } from "@/data/store";
+import { IconBook, IconGuide, IconMoon, IconSun } from "./icons";
 
 function BrandMark() {
   return (
@@ -30,9 +32,29 @@ function ThemeToggle() {
   );
 }
 
+function DataGate({ children }: { children: ReactNode }) {
+  const state = useDataState();
+  if (state.status === "loading") {
+    return (
+      <div className="loading">
+        <span className="spinner" />
+        <p>Loading the plant database…</p>
+      </div>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <div className="empty">
+        <h3>Couldn't load the plant data</h3>
+        <p>{state.error}. Check your connection and reload.</p>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 const TABS = [
   { to: "/", label: "Guide", icon: IconGuide, end: true },
-  { to: "/garden", label: "Garden", icon: IconGarden, end: false },
   { to: "/about", label: "Field notes", icon: IconBook, end: false },
 ];
 
@@ -50,7 +72,9 @@ export function Layout() {
       </header>
 
       <main>
-        <Outlet />
+        <DataGate>
+          <Outlet />
+        </DataGate>
       </main>
 
       <nav className="app-nav" aria-label="Sections">

@@ -45,9 +45,34 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,woff2,json}"],
+        // Precache the app shell only — the multi-MB dataset is runtime-cached,
+        // not baked into the shell.
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2,webmanifest}"],
+        globIgnores: ["**/data/**"],
+        navigateFallbackDenylist: [/^\/perrenials\/data\//],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
+        runtimeCaching: [
+          {
+            // The dataset: serve fast from cache, refresh in the background.
+            urlPattern: /\/data\/[^/]+\.json$/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "perrenials-data",
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            // Permapeople plant photos.
+            urlPattern: /^https:\/\/cdn\.permapeople\.org\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "perrenials-images",
+              expiration: { maxEntries: 1500, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,

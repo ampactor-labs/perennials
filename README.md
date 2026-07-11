@@ -1,61 +1,62 @@
 # Perrenials
 
-A field guide and yard planner for permaculture perennials. Mobile-first, installs as an offline app, no backend.
+A field guide to ~8,800 useful plants, built to be searched by constraint. Pick the light, moisture, layer, function, or hardiness you have, and the set narrows to what fits. Mobile-first, installs as an offline app, no backend.
 
-Search the way a gardener actually thinks — "show me perennials that bloom yellow, love wet shade, and feed bees" — and get plants you can plant and arrange.
+Live at [ampactor.dev/perrenials](https://ampactor.dev/perrenials/).
 
 ## What it does
 
-- **Search by real aspects.** Bloom color, sun, soil moisture, mature height, hardiness zone, wildlife value, growth rate, ease, self-seeding — and the permaculture functions the book cares about: nitrogen fixer, dynamic accumulator (and which minerals), groundcover, insectary. Filters combine, and each option shows how many plants it would return.
-- **A field-guide entry per plant.** The spec sheet, where it sits in the forest-garden layer cake, the minerals it accumulates with Jacke's confidence rating, who it feeds, what it's good for as food and medicine, what it tells you about the soil when it shows up wild, and the cautions worth knowing.
-- **A garden sketch.** Filter to what you want, then drop those plants onto a plot measured in feet. Each footprint is drawn at the plant's true mature spread, so the spacing you see is the spacing you'd plant. Comes seeded with a west-perimeter windbreak and a wet corner.
+- **Constraint-space search.** One bar for free text (name or Latin), plus facets for layer, light, water, soil, life cycle, growth, edible parts, function/use, cautions, family, and native range. Constraints stack as removable chips, and every facet option shows a live count of what it would still reach. Type-ahead handles the big facets (107 functions, 348 families, 527 native regions).
+- **A page per plant.** Photo, description, the full attribute sheet, hardiness, native range, functions, edibility, and any toxicity or weediness flags, with links out to Wikipedia, Plants For A Future, and Permapeople.
+- **Instant across thousands.** Filtering runs entirely in the browser over the whole dataset, so it stays snappy at 8,800 plants. Results are windowed so the page never renders more than it needs.
 
 ## The data
 
-Two layers, and the app is honest about which is which.
+Every plant, description, photo, and attribute comes from [Permapeople](https://permapeople.org), an open, community-built plant database, licensed CC BY-SA 4.0. It's real data, so it's also uneven: some entries are rich, others sparse. Nothing here is authored to fill a gap.
 
-The permaculture traits (function: nitrogen fixer, dynamic accumulator and its minerals, groundcover, insectary; edible and medicinal use; forest-garden layer; hardiness) are curated by hand across the 43 plants, modeled on the species tables in *Edible Forest Gardens, Vol. 2* (Jacke & Toensmeier) and cross-referenced with Plants For A Future. Uncertain values are left blank and named, never guessed.
+The pipeline is build-time, not runtime:
 
-The botanical facts are fetched by a build-time pipeline and every field records where it came from: accepted names and families from GBIF, native-vs-introduced status and invasive listings from USDA PLANTS, descriptions and photographs from Wikipedia and Wikimedia Commons. The result is committed to `src/data/generated/`, so the shipped app stays a static offline PWA with no runtime fetching. Each plant's page shows which source supplied which field, and flags anything USDA lists as invasive in the US.
+1. `npm run data:pull` fetches the whole Permapeople database via its API (credentials from the environment) and caches the raw dump.
+2. `npm run data:transform` normalizes the casing noise, parses ranges, and writes `public/data/plants.json` (one file the app loads once, ~1.3 MB gzipped) plus a facet vocabulary derived from the real data.
 
-Run `npm run data:build` to refresh. Responses cache under `scripts/data/.cache`, so re-runs are fast and polite to the APIs. It defaults to USDA zone 6 (the book's Holyoke case study) and remembers whatever you set.
-
-Still a seed, not a census: a few dozen well-described plants rather than a thin thousand.
+The app never calls a plant API at runtime — the key can't live in a browser, and it has to work offline. A scheduled GitHub Actions job (`refresh-data.yml`, weekly) re-runs the pull and transform and commits the result if it changed, which redeploys. That keeps the guide current without any live dependency. Enabling it needs `PERMAPEOPLE_KEY_ID` and `PERMAPEOPLE_KEY_SECRET` set as repo Actions secrets.
 
 ## Stack
 
-Vite, React, TypeScript. MiniSearch runs the fuzzy text box in the browser; the facet filtering is plain in-memory JS over the dataset. `vite-plugin-pwa` (Workbox) handles the offline install. There is no server — the plant data ships as a static bundle, so the whole thing is a static site. The look is a hand-rolled CSS design system (no UI kit): a herbarium specimen catalog, where saturated color only ever encodes plant data and the chrome stays ink-on-paper.
+Vite, React, TypeScript. MiniSearch for the text index; faceted filtering and counts are plain in-memory JS. `vite-plugin-pwa` (Workbox) precaches the app shell and runtime-caches the dataset and images for offline. The look is a hand-rolled CSS design system — a herbarium specimen catalog, light and dark.
 
 ## Run
 
 ```sh
 npm install
-npm run dev        # dev server
-npm run build      # typecheck + production build
-npm run preview    # serve the built app
-npm run gen:icons  # regenerate PWA icons from public/favicon.svg
-npm run data:build # re-fetch the open-source enrichment (needs network)
+npm run dev            # dev server
+npm run build          # typecheck + production build
+npm run preview        # serve the build
+npm run data:pull      # re-fetch Permapeople (needs PERMAPEOPLE_KEY_ID + _SECRET)
+npm run data:transform # rebuild public/data from the cached pull
+```
+
+Credentials for the pull come from the environment, never a committed file:
+
+```sh
+PERMAPEOPLE_KEY_ID=… PERMAPEOPLE_KEY_SECRET=… npm run data:pull
 ```
 
 ## Project layout
 
 ```
-src/data/       vocab (the controlled vocabulary every facet draws from),
-                types, plants.ts (curated dataset), index.ts (load + merge),
-                enrichment.ts + generated/ (the fetched, source-cited layer)
-src/lib/        filters (facet registry, predicate, live counts),
-                search (MiniSearch + combined query), settings
-src/state/      catalog context: filters in, results and counts out
-src/components/ SearchBar, QuickAsks, FacetPanel, PlantCard, LayerSpine,
-                PlantEnrichment (photo, origin, receipts), …
-src/pages/      Compendium, Plant, Garden, About
-src/styles/     tokens, base, app, detail
-scripts/data/   the enrichment pipeline: sources/ (GBIF, USDA, Wikipedia),
-                reconcile, build; writes src/data/generated/
+src/data/       model (types), store (fetch + cache + in-memory index)
+src/lib/        query (facet access, filtering, live counts), settings
+src/state/      search (constraints in, results and counts out)
+src/components/ ConstraintBar, FacetRail, ResultGrid, PlantCard, Layout
+src/pages/      Browse, Plant, About
+src/styles/     tokens, base, app, detail, browse
+scripts/data/   pull-permapeople (full DB pull), transform (-> public/data)
+public/data/    the generated snapshot the app fetches
 ```
 
 ## Where it's going
 
-- Grow the dataset past 43. The pipeline makes it cheap: add species, re-run `data:build`. A permaculture-trait source (Practical Plants, Permapeople) would fill function, use and layer for new plants the way GBIF and USDA already fill the botanical facts.
-- The garden view is a working seed. Next: a section / "layer cake" side view, sun and shade across the day, and saved plots.
-- Companion and guild links between entries, a native-only filter, and shareable search URLs.
+- A native-only filter and companion/guild links (Permapeople exposes `/companions` per plant).
+- Cross-check Permapeople's warnings against USDA invasive listings for a firmer honesty layer.
+- Shareable constraint URLs, so a search can be sent as a link.

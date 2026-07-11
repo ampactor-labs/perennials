@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { BrowserRouter, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { CatalogProvider } from "./state/catalog";
+import { DataProvider } from "./data/store";
+import { SearchProvider } from "./state/search";
 import { Layout } from "./components/Layout";
-import { CompendiumPage } from "./pages/CompendiumPage";
+import { BrowsePage } from "./pages/BrowsePage";
 import { PlantPage } from "./pages/PlantPage";
-import { DesignPage } from "./pages/DesignPage";
 import { AboutPage } from "./pages/AboutPage";
 
 function ScrollToTop() {
@@ -17,20 +17,21 @@ function ScrollToTop() {
 
 export function App() {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-      <CatalogProvider>
-        <Routes>
-          <Route element={<ScrollToTop />}>
-            <Route element={<Layout />}>
-              <Route index element={<CompendiumPage />} />
-              <Route path="garden" element={<DesignPage />} />
-              <Route path="about" element={<AboutPage />} />
-              <Route path="plant/:id" element={<PlantPage />} />
-              <Route path="*" element={<CompendiumPage />} />
+    <DataProvider>
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <SearchProvider>
+          <Routes>
+            <Route element={<ScrollToTop />}>
+              <Route element={<Layout />}>
+                <Route index element={<BrowsePage />} />
+                <Route path="plant/:slug" element={<PlantPage />} />
+                <Route path="about" element={<AboutPage />} />
+                <Route path="*" element={<BrowsePage />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </CatalogProvider>
-    </BrowserRouter>
+          </Routes>
+        </SearchProvider>
+      </BrowserRouter>
+    </DataProvider>
   );
 }

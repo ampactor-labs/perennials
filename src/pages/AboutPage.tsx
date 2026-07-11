@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
-import { plantCount } from "@/data";
-import { enrichmentSources } from "@/data/enrichment";
+import { useDataState } from "@/data/store";
 
 export function AboutPage() {
+  const state = useDataState();
+  const count = state.status === "ready" ? state.data.meta.count : null;
+
   return (
     <div className="page wrap detail">
       <section style={{ maxWidth: "60ch" }}>
@@ -11,71 +12,42 @@ export function AboutPage() {
           What this is
         </h1>
         <p className="detail-summary">
-          A field guide to temperate perennials you can actually plant — searchable the way a
-          gardener thinks: by bloom color, by light and moisture, by the work a plant does in the
-          system.
+          A searchable field guide to {count ? count.toLocaleString() : "thousands of"} temperate
+          and useful plants, built to be explored by constraint: pick the light, moisture, layer,
+          function, or hardiness you have, and watch the set narrow to what fits.
         </p>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          Where the data comes from
+          The data
         </h2>
         <p>
-          Two layers, and the app is honest about which is which. The permaculture traits — function
-          (nitrogen fixer, dynamic accumulator and its minerals, groundcover, insectary), edible and
-          medicinal use, forest-garden layer, hardiness — are curated by hand across these{" "}
-          {plantCount} plants, modeled on the species tables in{" "}
-          <em>Edible Forest Gardens, Vol. 2</em> and cross-referenced with Plants For A Future. Where
-          a value isn’t certain it’s left blank and named, not guessed.
-        </p>
-        <p>
-          The botanical facts are fetched from open databases by a build-time pipeline, and every one
-          records its source: accepted names and families from GBIF, native-versus-introduced status
-          and invasive listings from USDA PLANTS, descriptions and photographs from Wikipedia and
-          Wikimedia Commons. Each plant’s page shows exactly which source supplied which field, and
-          flags anything USDA lists as invasive.
+          Every plant, description, and attribute comes from{" "}
+          <a href="https://permapeople.org" target="_blank" rel="noreferrer noopener">
+            Permapeople
+          </a>
+          , an open, community-built plant database, licensed CC BY-SA 4.0. It's real data, so it's
+          also uneven: some entries are richly described, others sparse. Nothing here is invented to
+          fill a gap — where Permapeople is quiet, so is this.
         </p>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          Sources
-        </h2>
-        <ul className="source-credits">
-          {enrichmentSources.map((s) => (
-            <li key={s.name}>
-              <a href={s.url} target="_blank" rel="noreferrer noopener">
-                {s.name}
-              </a>{" "}
-              — {s.use}. <span className="src-license">{s.license}</span>
-            </li>
-          ))}
-        </ul>
-
-        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          Your zone
+          How it stays fast and current
         </h2>
         <p>
-          It defaults to USDA zone 6 — the zone of the book’s Holyoke case study. Change it in the
-          filters and it sticks; the guide then shows only what survives your winters.
+          The whole dataset is pulled and normalized ahead of time into one static file the app loads
+          once and caches for offline use. Nothing is fetched from an API while you search — filtering
+          runs entirely in your browser, which is why it's instant even across thousands of plants. A
+          scheduled job re-pulls Permapeople on a regular cadence and redeploys, so the guide stays
+          current without ever depending on a live service.
         </p>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          The layer mark
+          Cautions
         </h2>
         <p>
-          The small diagram on every card places the plant in the forest-garden “layer cake” —
-          canopy down to root. It’s the same vertical thinking the{" "}
-          <Link to="/garden" className="back-link" style={{ display: "inline" }}>
-            garden sketch
-          </Link>{" "}
-          is built on, and where a proper section view and richer rendering are headed next.
-        </p>
-
-        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          Honest edges
-        </h2>
-        <p>
-          This is a seed, not a census — a few dozen well-described plants rather than a thin
-          thousand. Medicinal notes are traditional uses, not medical advice; where a plant needs
-          care (toxic parts, aggressive spread, cook-before-eating), the entry says so plainly.
+          Edibility and medicinal notes are what contributors recorded, not advice. Anything flagged
+          toxic, invasive, or weedy is surfaced plainly — always check a plant against your own region
+          and a second source before you eat it or put it in the ground.
         </p>
       </section>
     </div>
