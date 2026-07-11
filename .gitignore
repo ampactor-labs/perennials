@@ -3,6 +3,8 @@ dist
 dist-ssr
 *.tsbuildinfo
 *.local
+# secrets — never commit API credentials
+.env
 .DS_Store
 .vite
 coverage

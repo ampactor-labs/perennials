@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "gen:icons": "node scripts/gen-icons.mjs",
+    "data:pull": "node scripts/data/pull-permapeople.mjs",
+    "data:transform": "node scripts/data/transform.mjs",
     "data:build": "node scripts/data/build.mjs"
   },
   "dependencies": {
