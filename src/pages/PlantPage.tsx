@@ -1,7 +1,29 @@
 import { Link, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
-import { useDataState } from "@/data/store";
+import { useDataState, type Dataset } from "@/data/store";
 import { IconAlert, IconChevronLeft } from "@/components/icons";
+
+function Companions({ plant, data }: { plant: Plant; data: Dataset }) {
+  const friends = (plant.companions ?? [])
+    .map((id) => data.byId.get(id))
+    .filter((p): p is Plant => !!p);
+  if (friends.length === 0) return null;
+  return (
+    <section className="panel" style={{ marginTop: "var(--sp-4)" }}>
+      <div className="panel-title">Grows well with</div>
+      <div className="companion-row">
+        {friends.map((f) => (
+          <Link key={f.slug} to={`/plant/${f.slug}`} className="companion">
+            <span className="companion-thumb">
+              {f.thumb ? <img src={f.thumb} alt="" loading="lazy" /> : <span>✿</span>}
+            </span>
+            <span className="companion-name">{f.name}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function ChipRow({ label, values }: { label: string; values: string[] }) {
   if (values.length === 0) return null;
@@ -19,7 +41,7 @@ function ChipRow({ label, values }: { label: string; values: string[] }) {
   );
 }
 
-function Detail({ plant }: { plant: Plant }) {
+function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
   const paras = (plant.description ?? "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   const zone = plant.hardiness ? `${plant.hardiness.min}–${plant.hardiness.max}` : null;
   return (
@@ -94,6 +116,8 @@ function Detail({ plant }: { plant: Plant }) {
         </section>
       )}
 
+      <Companions plant={plant} data={data} />
+
       {paras.length > 0 && (
         <section className="panel" style={{ marginTop: "var(--sp-4)" }}>
           <div className="panel-title">Description</div>
@@ -150,5 +174,5 @@ export function PlantPage() {
       </div>
     );
   }
-  return <Detail plant={plant} />;
+  return <Detail plant={plant} data={state.data} />;
 }

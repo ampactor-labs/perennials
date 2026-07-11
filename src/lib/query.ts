@@ -1,8 +1,9 @@
 import type { Plant } from "@/data/model";
 import type { Dataset } from "@/data/store";
+import { facetsOf, zoneOf, type Atom, type Constraints } from "./constraints";
 
 // How each facet maps onto a plant's fields (all multi-valued for a uniform
-// intersection test). `edible` is a synthetic boolean facet.
+// intersection test).
 export const ACCESS: Record<string, (p: Plant) => string[]> = {
   layer: (p) => (p.layer ? [p.layer] : []),
   light: (p) => p.light,
@@ -17,96 +18,125 @@ export const ACCESS: Record<string, (p: Plant) => string[]> = {
   nativeTo: (p) => p.nativeTo,
 };
 
-export type FacetMeta = { key: string; label: string; searchable: boolean; note?: string };
+export type FacetMeta = {
+  key: string;
+  label: string;
+  searchable: boolean;
+  /** Site facets describe a place; intent facets describe what you want. */
+  group: "site" | "intent";
+  note?: string;
+};
 
-// Order and labels are presentation; the values inside are all data-derived.
+// Site first — the conditions she has — then intent, the things she wants.
 export const FACETS: FacetMeta[] = [
-  { key: "layer", label: "Layer", searchable: false },
-  { key: "light", label: "Light", searchable: false },
-  { key: "water", label: "Water", searchable: false },
-  { key: "soil", label: "Soil", searchable: false },
-  { key: "lifeCycle", label: "Life cycle", searchable: false },
-  { key: "growth", label: "Growth rate", searchable: false },
-  { key: "edibleParts", label: "Edible parts", searchable: false },
-  { key: "functions", label: "Function & use", searchable: true, note: "What it does — food, fiber, nitrogen, dye…" },
-  { key: "warnings", label: "Cautions", searchable: false },
-  { key: "family", label: "Family", searchable: true },
-  { key: "nativeTo", label: "Native to", searchable: true, note: "Where it grows wild" },
+  { key: "light", label: "Light", searchable: false, group: "site" },
+  { key: "water", label: "Water", searchable: false, group: "site" },
+  { key: "soil", label: "Soil", searchable: false, group: "site" },
+  { key: "layer", label: "Layer", searchable: false, group: "intent" },
+  { key: "lifeCycle", label: "Life cycle", searchable: false, group: "intent" },
+  { key: "growth", label: "Growth rate", searchable: false, group: "intent" },
+  { key: "edibleParts", label: "Edible parts", searchable: false, group: "intent" },
+  { key: "functions", label: "Function & use", searchable: true, group: "intent", note: "What it does — food, fiber, nitrogen, dye…" },
+  { key: "warnings", label: "Cautions", searchable: false, group: "intent" },
+  { key: "family", label: "Family", searchable: true, group: "intent" },
+  { key: "nativeTo", label: "Native to", searchable: true, group: "intent", note: "Where it grows wild" },
 ];
 
-export type Constraints = {
-  text: string;
-  zone: number | null;
-  edibleOnly: boolean;
-  facets: Record<string, string[]>;
-};
+const zoneOk = (p: Plant, zone: number | null) =>
+  zone === null || (!!p.hardiness && p.hardiness.min <= zone && zone <= p.hardiness.max);
 
-export const emptyConstraints = (): Constraints => ({
-  text: "",
-  zone: null,
-  edibleOnly: false,
-  facets: {},
-});
-
-export function activeCount(c: Constraints): number {
-  let n = Object.values(c.facets).reduce((a, v) => a + v.length, 0);
-  if (c.zone !== null) n += 1;
-  if (c.edibleOnly) n += 1;
-  return n;
-}
-
-/** Flat list of active facet selections, for rendering removable chips. */
-export function activeChips(c: Constraints): { key: string; label: string; value: string }[] {
-  const out: { key: string; label: string; value: string }[] = [];
-  for (const f of FACETS) {
-    for (const v of c.facets[f.key] ?? []) out.push({ key: f.key, label: f.label, value: v });
-  }
-  return out;
-}
-
-const facetOk = (p: Plant, c: Constraints, key: string) => {
-  const sel = c.facets[key];
-  if (!sel || sel.length === 0) return true;
+function facetOk(p: Plant, key: string, selected: string[]): boolean {
+  if (selected.length === 0) return true;
   const have = ACCESS[key](p);
-  return sel.some((v) => have.includes(v));
-};
+  return selected.some((v) => have.includes(v));
+}
 
-const zoneOk = (p: Plant, c: Constraints) =>
-  c.zone === null || (!!p.hardiness && p.hardiness.min <= c.zone && c.zone <= p.hardiness.max);
+/** Full structured test for one plant against a set of atoms. */
+function passes(p: Plant, facets: Record<string, string[]>, zone: number | null, edible: boolean): boolean {
+  if (!zoneOk(p, zone)) return false;
+  if (edible && !p.edible) return false;
+  for (const key in facets) if (!facetOk(p, key, facets[key])) return false;
+  return true;
+}
 
-const edibleOk = (p: Plant, c: Constraints) => !c.edibleOnly || p.edible;
+function atomsState(atoms: Atom[]) {
+  const facets: Record<string, string[]> = {};
+  let zone: number | null = null;
+  let edible = false;
+  for (const a of atoms) {
+    if (a.kind === "facet") (facets[a.key] ??= []).push(a.value);
+    else if (a.kind === "zone") zone = a.zone;
+    else edible = true;
+  }
+  return { facets, zone, edible };
+}
+
+export type TrailStep = { atom: Atom | null; label: string; count: number };
 
 export type Evaluation = {
   results: Plant[];
   counts: Record<string, Map<string, number>>;
+  /** Cumulative counts as each constraint applies, for the collapse trail. */
+  trail: TrailStep[];
 };
 
 /**
- * One pass produces the filtered results and, for every facet, the option
- * counts holding all *other* constraints fixed — the standard faceted-search
- * affordance, computed in-memory over the full dataset.
+ * One evaluation produces: the ranked results, per-facet option counts holding
+ * every other constraint fixed, and the cumulative collapse trail.
+ * All in-memory over the full dataset — no index needed at this scale.
  */
 export function evaluate(data: Dataset, c: Constraints): Evaluation {
-  const textAllowed =
-    c.text.trim().length > 0
-      ? new Set(data.index.search(c.text).map((r) => r.slug as string))
-      : null;
+  const text = c.text.trim();
+  const ranked = text ? data.index.search(text).map((r) => r.slug as string) : null;
+  const textAllowed = ranked ? new Set(ranked) : null;
 
-  const globalOk = (p: Plant) =>
-    (textAllowed ? textAllowed.has(p.slug) : true) && zoneOk(p, c) && edibleOk(p, c);
+  const { facets, zone, edible } = atomsState(c.atoms);
 
-  const results = data.plants.filter(
-    (p) => globalOk(p) && FACETS.every((f) => facetOk(p, c, f.key)),
-  );
+  const base = (p: Plant) => (textAllowed ? textAllowed.has(p.slug) : true);
 
+  // Results, ranked: text relevance when searching, else richness (the
+  // dataset ships pre-sorted by score).
+  let results: Plant[];
+  if (ranked) {
+    results = [];
+    for (const slug of ranked) {
+      const p = data.bySlug.get(slug);
+      if (p && passes(p, facets, zone, edible)) results.push(p);
+    }
+  } else {
+    results = data.plants.filter((p) => passes(p, facets, zone, edible));
+  }
+
+  // Per-facet option counts (hold all other constraints fixed).
   const counts: Record<string, Map<string, number>> = {};
   for (const f of FACETS) {
-    const base = data.plants.filter(
-      (p) => globalOk(p) && FACETS.every((g) => g.key === f.key || facetOk(p, c, g.key)),
-    );
+    const others: Record<string, string[]> = {};
+    for (const key in facets) if (key !== f.key) others[key] = facets[key];
     const m = new Map<string, number>();
-    for (const p of base) for (const v of ACCESS[f.key](p)) m.set(v, (m.get(v) ?? 0) + 1);
+    for (const p of data.plants) {
+      if (!base(p) || !passes(p, others, zone, edible)) continue;
+      for (const v of ACCESS[f.key](p)) m.set(v, (m.get(v) ?? 0) + 1);
+    }
     counts[f.key] = m;
   }
-  return { results, counts };
+
+  // The collapse trail: total → text → each atom in the order it was added.
+  const trail: TrailStep[] = [];
+  if (text) {
+    let n = 0;
+    for (const p of data.plants) if (base(p)) n += 1;
+    trail.push({ atom: null, label: `“${text}”`, count: n });
+  }
+  const sofar: Atom[] = [];
+  for (const a of c.atoms) {
+    sofar.push(a);
+    const st = atomsState(sofar);
+    let n = 0;
+    for (const p of data.plants) if (base(p) && passes(p, st.facets, st.zone, st.edible)) n += 1;
+    trail.push({ atom: a, label: "", count: n });
+  }
+
+  return { results, counts, trail };
 }
+
+export { facetsOf, zoneOf };

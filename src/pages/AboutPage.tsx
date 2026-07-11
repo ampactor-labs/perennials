@@ -2,7 +2,8 @@ import { useDataState } from "@/data/store";
 
 export function AboutPage() {
   const state = useDataState();
-  const count = state.status === "ready" ? state.data.meta.count : null;
+  const meta = state.status === "ready" ? state.data.meta : null;
+  const count = meta?.count ?? null;
 
   return (
     <div className="page wrap detail">
@@ -12,9 +13,21 @@ export function AboutPage() {
           What this is
         </h1>
         <p className="detail-summary">
-          A searchable field guide to {count ? count.toLocaleString() : "thousands of"} temperate
-          and useful plants, built to be explored by constraint: pick the light, moisture, layer,
-          function, or hardiness you have, and watch the set narrow to what fits.
+          A field guide to {count ? count.toLocaleString() : "thousands of"} useful plants, searched
+          the way a gardener stands in a yard: state your conditions, then your wishes, and watch
+          the field narrow to what fits.
+        </p>
+
+        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
+          How to ask
+        </h2>
+        <p>
+          Type anything into the box — “wet”, “shade”, “nitrogen”, “zone 6”, or a plant name — and
+          pick from what it offers. Each pick becomes a link in the trail, and the trail shows the
+          count falling as each constraint lands. Save a place's conditions as a <em>spot</em>{" "}
+          (“north bed”, “wet corner”) and re-apply it in one tap. Flip to the <em>Guild</em> view to
+          see any result set stacked by forest-garden layer, canopy down to roots. Every search
+          lives in the address bar, so a list you build is a link you can send.
         </p>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
@@ -39,6 +52,12 @@ export function AboutPage() {
           runs entirely in your browser, which is why it's instant even across thousands of plants. A
           scheduled job re-pulls Permapeople on a regular cadence and redeploys, so the guide stays
           current without ever depending on a live service.
+          {meta?.generatedAt && (
+            <>
+              {" "}
+              This copy of the data was generated on <span className="mono">{meta.generatedAt}</span>.
+            </>
+          )}
         </p>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>

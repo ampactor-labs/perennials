@@ -10,6 +10,7 @@ export type Dataset = {
   facets: Facets;
   meta: Meta;
   bySlug: Map<string, Plant>;
+  byId: Map<number, Plant>;
   index: MiniSearch;
 };
 
@@ -42,6 +43,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
 
         const bySlug = new Map(plants.map((p) => [p.slug, p]));
+        const byId = new Map(plants.map((p) => [p.id, p]));
         const index = new MiniSearch({
           fields: ["name", "scientificName", "family"],
           storeFields: ["slug"],
@@ -56,7 +58,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             slug: p.slug,
           })),
         );
-        setState({ status: "ready", data: { plants, facets, meta, bySlug, index } });
+        setState({ status: "ready", data: { plants, facets, meta, bySlug, byId, index } });
       } catch (err) {
         if (!cancelled) setState({ status: "error", error: (err as Error).message });
       }

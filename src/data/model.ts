@@ -27,6 +27,10 @@ export type Plant = {
   warnings: string[];
   height: number | null;
   links: { wikipedia: string | null; pfaf: string | null; permapeople: string };
+  /** Documentation richness 0–100, computed at transform time; drives default rank. */
+  score: number;
+  /** Permapeople companion-planting links (plant ids), when known. */
+  companions?: number[];
 };
 
 export type FacetValue = { value: string; count: number };
@@ -35,6 +39,8 @@ export type Facets = Record<string, FacetValue[]>;
 export type Meta = {
   count: number;
   edibleCount: number;
+  photoCount?: number;
+  companionCount?: number;
   source: string;
   license: string;
   note: string;

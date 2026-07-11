@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearch } from "@/state/search";
 import { FACETS, type FacetMeta } from "@/lib/query";
+import { facetsOf } from "@/lib/constraints";
 
 const ZONES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
@@ -8,21 +9,19 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
   const s = useSearch();
   const [q, setQ] = useState("");
   const counts = s.counts[facet.key] ?? new Map<string, number>();
-  const selected = s.constraints.facets[facet.key] ?? [];
+  const selected = facetsOf(s.constraints)[facet.key] ?? [];
 
   let options = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   if (facet.searchable && q.trim()) {
     const needle = q.toLowerCase();
     options = options.filter(([v]) => v.toLowerCase().includes(needle));
   }
-  // Always surface selected values (even at count 0) so they can be removed.
+  // Selected values always render (even at 0) so they can be unpicked.
   const shown = new Set(selected);
-  const cap = facet.searchable ? 14 : 60;
-  const visible: [string, number][] = [];
-  for (const v of selected) visible.push([v, counts.get(v) ?? 0]);
+  const cap = facet.searchable ? 12 : 60;
+  const visible: [string, number][] = selected.map((v) => [v, counts.get(v) ?? 0]);
   for (const [v, n] of options) {
-    if (shown.has(v)) continue;
-    if (n === 0) continue;
+    if (shown.has(v) || n === 0) continue;
     visible.push([v, n]);
     shown.add(v);
     if (visible.length >= cap) break;
@@ -51,10 +50,10 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
               key={value}
               className={`fopt${on ? " on" : ""}`}
               aria-pressed={on}
-              onClick={() => s.toggle(facet.key, value)}
+              onClick={() => s.toggle({ kind: "facet", key: facet.key, value })}
             >
               <span className="fopt-val">{value}</span>
-              <span className="fopt-n">{n}</span>
+              <span className="fopt-n">{n.toLocaleString()}</span>
             </button>
           );
         })}
@@ -68,18 +67,28 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
 
 export function FacetRail() {
   const s = useSearch();
+  const site = FACETS.filter((f) => f.group === "site");
+  const intent = FACETS.filter((f) => f.group === "intent");
   return (
     <div className="facets">
-      <div className="facet-sec facet-quick">
+      <div className="facet-quick">
         <label className="fq-row">
-          <input type="checkbox" checked={s.constraints.edibleOnly} onChange={s.toggleEdible} />
+          <input
+            type="checkbox"
+            checked={s.has({ kind: "edible" })}
+            onChange={() => s.toggle({ kind: "edible" })}
+          />
           Edible only
         </label>
         <label className="fq-row">
           Hardy in zone
           <select
-            value={s.constraints.zone ?? "any"}
-            onChange={(e) => s.setZone(e.target.value === "any" ? null : Number(e.target.value))}
+            value={s.zone ?? "any"}
+            onChange={(e) => {
+              if (e.target.value === "any") {
+                if (s.zone !== null) s.remove({ kind: "zone", zone: s.zone });
+              } else s.add({ kind: "zone", zone: Number(e.target.value) });
+            }}
           >
             <option value="any">any</option>
             {ZONES.map((z) => (
@@ -90,7 +99,12 @@ export function FacetRail() {
           </select>
         </label>
       </div>
-      {FACETS.map((f) => (
+      <div className="facet-group-label">The site — what you have</div>
+      {site.map((f) => (
+        <FacetSection key={f.key} facet={f} />
+      ))}
+      <div className="facet-group-label">The ask — what you want</div>
+      {intent.map((f) => (
         <FacetSection key={f.key} facet={f} />
       ))}
     </div>
