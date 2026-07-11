@@ -18,6 +18,12 @@ import {
 } from "@/data/vocab";
 import { LayerSpine } from "@/components/LayerSpine";
 import { BloomSwatches, FunctionTags, WildlifeTags } from "@/components/DataBits";
+import {
+  OriginPanel,
+  Receipts,
+  SpecimenPhoto,
+  WildDescription,
+} from "@/components/PlantEnrichment";
 import { IconAlert, IconChevronLeft, IconInfo } from "@/components/icons";
 
 function ft(r: { min: number; max: number }) {
@@ -163,6 +169,9 @@ export function PlantPage() {
 
       <p className="detail-summary">{plant.summary}</p>
 
+      <SpecimenPhoto plant={plant} />
+      <OriginPanel plant={plant} />
+
       <div className="detail-grid">
         <section className="panel">
           <div className="panel-title">At a glance</div>
@@ -246,6 +255,8 @@ export function PlantPage() {
         )}
       </div>
 
+      <WildDescription plant={plant} />
+
       {plant.notes && (
         <div className="callout" style={{ marginTop: "var(--sp-5)" }}>
           <IconInfo />
@@ -261,6 +272,7 @@ export function PlantPage() {
             </span>
           ))}
         </div>
+        <Receipts plant={plant} />
         {plant.unknown && plant.unknown.length > 0 && (
           <div className="unknown-note">
             Not yet recorded: {plant.unknown.join(", ")}. Left blank rather than guessed.

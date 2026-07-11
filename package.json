@@ -10,7 +10,8 @@
     "postbuild": "cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "gen:icons": "node scripts/gen-icons.mjs"
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "data:build": "node scripts/data/build.mjs"
   },
   "dependencies": {
     "minisearch": "^7.1.2",

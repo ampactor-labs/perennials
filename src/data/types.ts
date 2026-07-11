@@ -105,4 +105,7 @@ export type Plant = {
 /** Height buckets from her wishlist: under 2 ft, 2–4 ft, over 4 ft. */
 export type HeightBand = "under-2ft" | "2-4ft" | "over-4ft";
 
-export type LoadedPlant = Plant & { heightBand: HeightBand };
+export type LoadedPlant = Plant & {
+  heightBand: HeightBand;
+  enrichment?: import("./enrichment").Enrichment;
+};

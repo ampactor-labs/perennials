@@ -26,6 +26,11 @@ export function PlantCard({ plant, index = 0 }: { plant: LoadedPlant; index?: nu
         <div className="specimen-tags">
           <BloomSwatches colors={plant.bloomColors} />
           <FunctionTags plant={plant} />
+          {plant.enrichment?.invasive && (
+            <span className="flag-invasive" title="USDA-listed invasive somewhere in the US">
+              ⚠ invasive (US)
+            </span>
+          )}
         </div>
         <div className="specimen-meta">
           <span>

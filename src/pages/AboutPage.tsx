@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { plantCount } from "@/data";
+import { enrichmentSources } from "@/data/enrichment";
 
 export function AboutPage() {
   return (
@@ -19,13 +20,34 @@ export function AboutPage() {
           Where the data comes from
         </h2>
         <p>
-          The {plantCount}-plant starter set is modeled on the species-by-function and
-          species-by-use tables in <em>Edible Forest Gardens, Vol. 2</em> (Dave Jacke &amp; Eric
-          Toensmeier) — dynamic accumulators, best medicinal plants, indicator species — cross-checked
-          against Plants For A Future and USDA PLANTS. Each plant lists its sources, and anything I
-          couldn’t verify is left blank and named rather than guessed. Hardiness, in particular, is
-          never invented.
+          Two layers, and the app is honest about which is which. The permaculture traits — function
+          (nitrogen fixer, dynamic accumulator and its minerals, groundcover, insectary), edible and
+          medicinal use, forest-garden layer, hardiness — are curated by hand across these{" "}
+          {plantCount} plants, modeled on the species tables in{" "}
+          <em>Edible Forest Gardens, Vol. 2</em> and cross-referenced with Plants For A Future. Where
+          a value isn’t certain it’s left blank and named, not guessed.
         </p>
+        <p>
+          The botanical facts are fetched from open databases by a build-time pipeline, and every one
+          records its source: accepted names and families from GBIF, native-versus-introduced status
+          and invasive listings from USDA PLANTS, descriptions and photographs from Wikipedia and
+          Wikimedia Commons. Each plant’s page shows exactly which source supplied which field, and
+          flags anything USDA lists as invasive.
+        </p>
+
+        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
+          Sources
+        </h2>
+        <ul className="source-credits">
+          {enrichmentSources.map((s) => (
+            <li key={s.name}>
+              <a href={s.url} target="_blank" rel="noreferrer noopener">
+                {s.name}
+              </a>{" "}
+              — {s.use}. <span className="src-license">{s.license}</span>
+            </li>
+          ))}
+        </ul>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
           Your zone

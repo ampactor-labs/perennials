@@ -8,3 +8,5 @@ dist-ssr
 coverage
 # generated PWA artifacts
 dev-dist
+# data pipeline fetch cache (the generated dataset itself IS committed)
+scripts/data/.cache

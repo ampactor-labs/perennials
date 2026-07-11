@@ -1,4 +1,5 @@
 import { plants } from "./plants";
+import { enrichmentFor } from "./enrichment";
 import type { HeightBand, LoadedPlant, Plant } from "./types";
 
 /** Primary display band, bucketed by mature max height. */
@@ -9,7 +10,7 @@ export function primaryBand(height: Plant["height"]): HeightBand {
 }
 
 const loaded: LoadedPlant[] = plants
-  .map((p) => ({ ...p, heightBand: primaryBand(p.height) }))
+  .map((p) => ({ ...p, heightBand: primaryBand(p.height), enrichment: enrichmentFor(p.id) }))
   .sort((a, b) => a.commonName.localeCompare(b.commonName));
 
 const byId = new Map(loaded.map((p) => [p.id, p]));

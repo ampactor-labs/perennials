@@ -235,6 +235,129 @@
   margin-bottom: 2px;
 }
 
+/* enrichment: photo, origin, wikipedia, receipts -------------------- */
+.specimen-photo {
+  margin: var(--sp-4) 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-card);
+}
+.specimen-photo img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  display: block;
+}
+.specimen-photo figcaption {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  border-top: 1px solid var(--line);
+}
+.specimen-photo a {
+  color: var(--green);
+}
+
+.origin-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.origin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.24rem 0.6rem;
+  border-radius: var(--r-pill);
+  font-size: var(--text-sm);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+}
+.origin-chip .origin-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--sepia);
+}
+.origin-chip.native {
+  border-color: color-mix(in srgb, var(--green) 45%, var(--line-strong));
+  color: var(--ink);
+}
+.origin-chip.native .origin-dot {
+  background: var(--green-bright);
+}
+
+.wiki-credit {
+  margin-top: var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+.wiki-credit a,
+.callout a {
+  color: var(--green);
+}
+
+.receipts {
+  margin-top: var(--sp-4);
+}
+.receipts-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  margin-bottom: var(--sp-2);
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 4px 0;
+  font-size: var(--text-xs);
+  border-bottom: 1px dotted var(--line);
+}
+.receipt-src {
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+}
+
+.source-credits {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  font-size: var(--text-sm);
+}
+.source-credits li {
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px dotted var(--line);
+}
+.source-credits a {
+  color: var(--green);
+}
+.src-license {
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+}
+
+/* invasive flag on a specimen card */
+.flag-invasive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.16rem 0.5rem;
+  border-radius: var(--r-sm);
+  font-size: var(--text-xs);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
 /* ===================================================================== *
  * Garden / visualizer
  * ===================================================================== */
