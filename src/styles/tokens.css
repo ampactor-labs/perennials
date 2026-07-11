@@ -1,0 +1,100 @@
+/*
+ * Design tokens — a herbarium specimen catalog.
+ * Rule of the house: saturated color only ever encodes plant data (bloom
+ * swatches, function tags). The chrome stays ink-on-paper monochrome so the
+ * plants are the only thing that glows.
+ */
+:root {
+  --paper: #e7e4d3;
+  --paper-raised: #f1eee2;
+  --paper-sunk: #dcd8c6;
+  --ink: #23291f;
+  --ink-soft: #4b5142;
+  --ink-faint: #797b68;
+  --line: #cac6b0;
+  --line-strong: #b1ac92;
+  --green: #33503a;
+  --green-bright: #4f7a44;
+  --sepia: #6f5f45;
+  --danger: #9a3b34;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino,
+    "Book Antiqua", Georgia, serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas,
+    monospace;
+
+  --text-xs: 0.72rem;
+  --text-sm: 0.82rem;
+  --text-base: 0.94rem;
+  --text-md: 1.06rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.55rem;
+  --text-2xl: 2.05rem;
+  --text-3xl: 2.7rem;
+
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-8: 3rem;
+
+  --r-sm: 3px;
+  --r: 5px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(35, 41, 31, 0.06), 0 6px 16px -12px rgba(35, 41, 31, 0.28);
+  --shadow-pop: 0 8px 30px -10px rgba(35, 41, 31, 0.32);
+
+  --header-h: 3.5rem;
+  --nav-h: 3.75rem;
+  --maxw: 68rem;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #171b14;
+  --paper-raised: #1f2519;
+  --paper-sunk: #10130d;
+  --ink: #e7e2d0;
+  --ink-soft: #b6b3a0;
+  --ink-faint: #86846f;
+  --line: #333a2b;
+  --line-strong: #454c39;
+  --green: #7fa86c;
+  --green-bright: #97c079;
+  --sepia: #b39c74;
+  --danger: #d98079;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -12px rgba(0, 0, 0, 0.7);
+  --shadow-pop: 0 10px 34px -10px rgba(0, 0, 0, 0.7);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #171b14;
+    --paper-raised: #1f2519;
+    --paper-sunk: #10130d;
+    --ink: #e7e2d0;
+    --ink-soft: #b6b3a0;
+    --ink-faint: #86846f;
+    --line: #333a2b;
+    --line-strong: #454c39;
+    --green: #7fa86c;
+    --green-bright: #97c079;
+    --sepia: #b39c74;
+    --danger: #d98079;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -12px rgba(0, 0, 0, 0.7);
+    --shadow-pop: 0 10px 34px -10px rgba(0, 0, 0, 0.7);
+
+    color-scheme: dark;
+  }
+}

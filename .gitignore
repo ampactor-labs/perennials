@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.tsbuildinfo
+*.local
+.DS_Store
+.vite
+coverage
+# generated PWA artifacts
+dev-dist
