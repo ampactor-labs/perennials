@@ -54,7 +54,18 @@ export default defineConfig({
         clientsClaim: true,
         runtimeCaching: [
           {
-            // The dataset: serve fast from cache, refresh in the background.
+            // Hosted data API (cross-origin): cache for offline. Workbox applies a
+            // cross-origin RegExp route only when it matches from the start of the URL.
+            urlPattern: /^https:\/\/api-production-25c9\.up\.railway\.app\/data\/[^/]+\.json$/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "perrenials-data",
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Bundled static snapshot (local dev + fallback): serve fast, refresh in background.
             urlPattern: /\/data\/[^/]+\.json$/,
             handler: "StaleWhileRevalidate",
             options: {

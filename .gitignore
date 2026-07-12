@@ -12,3 +12,5 @@ coverage
 dev-dist
 # data pipeline fetch cache (the generated dataset itself IS committed)
 scripts/data/.cache
+# Claude Code personal settings (local guardrails, not shared)
+.claude/settings.local.json

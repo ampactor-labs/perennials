@@ -20,10 +20,13 @@ type State =
   | { status: "ready"; data: Dataset };
 
 const Ctx = createContext<State>({ status: "loading" });
-const BASE = import.meta.env.BASE_URL;
+// The dataset comes from the hosted API (see server/). Set VITE_DATA_API to point
+// at a different backend for local work; keep the URL in sync with the
+// service-worker cache rule in vite.config.ts.
+const DATA_BASE = import.meta.env.VITE_DATA_API || "https://api-production-25c9.up.railway.app/data";
 
 async function getJson(path: string) {
-  const res = await fetch(`${BASE}data/${path}`);
+  const res = await fetch(`${DATA_BASE}/${path}`);
   if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
   return res.json();
 }
