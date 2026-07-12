@@ -12,7 +12,7 @@ export type Spot = {
 };
 
 export const SITE_KEYS = ["light", "water", "soil"] as const;
-const LS_KEY = "perrenials.spots.v1";
+const LS_KEY = "perennials.spots.v1";
 
 let cache: Spot[] | null = null;
 const listeners = new Set<() => void>();

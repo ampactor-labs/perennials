@@ -25,15 +25,35 @@ export function usePersistent<T>(key: string, fallback: T) {
   return [value, set] as const;
 }
 
+// One-time rename of legacy localStorage keys (the project was once "perrenials").
+// Runs before the app reads, so saved zone, theme, and spots survive the rename.
+export function migrateLegacyKeys() {
+  const renames: [string, string][] = [
+    ["perrenials.zone", "perennials.zone"],
+    ["perrenials.theme", "perennials.theme"],
+    ["perrenials.spots.v1", "perennials.spots.v1"],
+  ];
+  try {
+    for (const [oldKey, newKey] of renames) {
+      const value = localStorage.getItem(oldKey);
+      if (value === null) continue;
+      if (localStorage.getItem(newKey) === null) localStorage.setItem(newKey, value);
+      localStorage.removeItem(oldKey);
+    }
+  } catch {
+    /* no storage available (private mode) */
+  }
+}
+
 export type ThemePref = "light" | "dark" | "system";
 
 /** Her home zone drives the default hardiness filter. Book case study = zone 6. */
 export function useZone() {
-  return usePersistent<number>("perrenials.zone", 6);
+  return usePersistent<number>("perennials.zone", 6);
 }
 
 export function useTheme() {
-  const [pref, setPref] = usePersistent<ThemePref>("perrenials.theme", "system");
+  const [pref, setPref] = usePersistent<ThemePref>("perennials.theme", "system");
   useEffect(() => {
     const root = document.documentElement;
     if (pref === "system") root.removeAttribute("data-theme");
