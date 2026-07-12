@@ -1,4 +1,4 @@
-# Perrenials
+# Perennials
 
 Offline-first PWA field guide over about 8,800 useful plants. React + TypeScript + Vite on
 the front end, a Node and Postgres data API on the back end (`server/`), hosted on Railway.

@@ -18,7 +18,7 @@ export async function pullAll() {
     "x-permapeople-key-id": KEY_ID,
     "x-permapeople-key-secret": KEY_SECRET,
     Accept: "application/json",
-    "User-Agent": "perrenials-data-service/1.0 (+https://ampactor.dev/perrenials)",
+    "User-Agent": "perennials-data-service/1.0 (+https://ampactor.dev/perennials)",
   };
   const all = [];
   let lastId = 0;

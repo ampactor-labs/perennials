@@ -25,7 +25,7 @@ const headers = {
   "x-permapeople-key-id": KEY_ID,
   "x-permapeople-key-secret": KEY_SECRET,
   Accept: "application/json",
-  "User-Agent": "perrenials-data-build/0.1 (+https://ampactor.dev/perrenials)",
+  "User-Agent": "perennials-data-build/0.1 (+https://ampactor.dev/perennials)",
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

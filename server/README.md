@@ -1,4 +1,4 @@
-# perrenials data service
+# perennials data service
 
 The API the app fetches its dataset from, replacing the committed `public/data/*.json`
 snapshot. Node + Postgres, deployed on Railway.

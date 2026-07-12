@@ -109,7 +109,7 @@ async function boot() {
   await rebuildCache().catch((e) => console.error("initial cache build failed:", e.message));
   server.listen(PORT, () => {
     const count = cache ? JSON.parse(cache.body["meta.json"]).count : "?";
-    console.log(`perrenials api listening on :${PORT} (${count} plants)`);
+    console.log(`perennials api listening on :${PORT} (${count} plants)`);
   });
 
   // Refresh from source at most once a day if the data is >= 7 days old.

@@ -1,4 +1,4 @@
-// Postgres access + schema for the perrenials data service.
+// Postgres access + schema for the perennials data service.
 // One table, `plants`, mirroring src/data/model.ts (Plant). The API reconstructs
 // the exact JSON shape the app already consumes; facets/meta are derived on read.
 import pg from "pg";

@@ -8,7 +8,7 @@ import { ensureSchema, countPlants, replaceAll, existingCompanions } from "./db.
 import { hasCredentials, pullAll } from "./permapeople.mjs";
 import { rawToPlants } from "./transform.mjs";
 
-const SEED_URL = process.env.SEED_URL || "https://ampactor.dev/perrenials/data/plants.json";
+const SEED_URL = process.env.SEED_URL || "https://ampactor.dev/perennials/data/plants.json";
 
 export async function refreshFromSource() {
   const raw = await pullAll();

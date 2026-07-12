@@ -1,8 +1,8 @@
-# Perrenials
+# Perennials
 
 A field guide to about 8,800 useful plants, searched by constraint. Pick the light, moisture, layer, function, or hardiness you have, and the set narrows to what fits. Mobile-first, installs as an offline app.
 
-Live at [ampactor.dev/perrenials](https://ampactor.dev/perrenials/).
+Live at [ampactor.dev/perennials](https://ampactor.dev/perennials/).
 
 ## What it does
 
