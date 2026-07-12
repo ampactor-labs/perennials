@@ -1,5 +1,5 @@
 // Pull the whole Permapeople plant database via keyset pagination.
-// Ported from scripts/data/pull-permapeople.mjs; credentials from the environment.
+// Credentials from the environment.
 // Permapeople is CC BY-SA 4.0 — attribution to permapeople.org is required.
 const KEY_ID = process.env.PERMAPEOPLE_KEY_ID;
 const KEY_SECRET = process.env.PERMAPEOPLE_KEY_SECRET;

@@ -1,6 +1,6 @@
-// Loads the static snapshot once, caches it (the service worker handles offline),
-// and holds it in memory with a prebuilt text index. No runtime calls to any
-// plant API — the data ships as versioned static files under /data.
+// Loads the dataset once from the hosted API (see server/), holds it in memory
+// with a prebuilt text index; the service worker caches the responses for
+// offline. No third-party plant API is ever called from the browser.
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import MiniSearch from "minisearch";
 import type { Facets, Meta, Plant } from "./model";

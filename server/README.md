@@ -1,7 +1,7 @@
 # perennials data service
 
-The API the app fetches its dataset from, replacing the committed `public/data/*.json`
-snapshot. Node + Postgres, deployed on Railway.
+The API the app fetches its dataset from, replacing the static snapshot the repo used
+to commit. Node + Postgres, deployed on Railway.
 
 ## What it serves
 
@@ -15,8 +15,8 @@ snapshot. Node + Postgres, deployed on Railway.
 `src/ingest.mjs` has two paths:
 
 - **source** — pull the whole Permapeople DB and transform it (needs `PERMAPEOPLE_KEY_ID`
-  and `PERMAPEOPLE_KEY_SECRET`). `src/transform.mjs` is a verbatim port of
-  `scripts/data/transform.mjs`, so records match the old pipeline.
+  and `PERMAPEOPLE_KEY_SECRET`). `src/transform.mjs` is a verbatim port of the old
+  build-time transform (now only in git history), so records match the old pipeline.
 - **seed** — with no key, fetch the already-built dataset from `SEED_URL`
   (the live static file) so the API serves identical data with no empty window.
 

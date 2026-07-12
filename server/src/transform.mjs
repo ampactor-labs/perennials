@@ -1,6 +1,7 @@
 // Normalize a raw Permapeople dump into app-ready Plant records.
-// Ported verbatim from scripts/data/transform.mjs and kept behavior-identical, so
-// the service serves the same records the static pipeline produced. Two known
+// Ported verbatim from the retired build-time pipeline (scripts/data/transform.mjs,
+// in git history) and kept behavior-identical, so the service serves the same
+// records the static pipeline produced. Two known
 // upstream quirks are preserved on purpose for migration fidelity (medicinal
 // arrives as the string "True"; the Utility field is not casing-canonicalized).
 // Fixing those is a deliberate follow-up, not part of the lift-and-shift.

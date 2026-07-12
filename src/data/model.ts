@@ -1,5 +1,5 @@
 // The app's data model — a straight reflection of the Permapeople dataset as
-// normalized by scripts/data/transform.mjs. Nothing here is authored; every
+// normalized by server/src/transform.mjs. Nothing here is authored; every
 // value comes from Permapeople contributors (CC BY-SA 4.0).
 
 export type Hardiness = { min: number; max: number };
