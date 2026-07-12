@@ -56,7 +56,7 @@ export default defineConfig({
           {
             // Hosted data API (cross-origin): cache for offline. Workbox applies a
             // cross-origin RegExp route only when it matches from the start of the URL.
-            urlPattern: /^https:\/\/api-production-25c9\.up\.railway\.app\/data\/[^/]+\.json$/,
+            urlPattern: /^https:\/\/api-production-5338\.up\.railway\.app\/data\/[^/]+\.json$/,
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "perennials-data",
