@@ -49,10 +49,81 @@ export async function ensureSchema() {
       height         real,
       links          jsonb NOT NULL DEFAULT '{}',
       companions     integer[],
+      attracts       text[],
       score          integer NOT NULL DEFAULT 0,
       updated_at     timestamptz NOT NULL DEFAULT now()
     );
   `);
+  // Added after the table shipped; NULL means "not enriched yet", while an empty
+  // array means "enriched, genuinely no flower visitors" (grasses, conifers).
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS attracts text[];`);
+  // Bloom needs its own "checked" flag: a null colour is a real answer (USDA
+  // doesn't cover this plant), so it can't double as "not looked up yet".
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS bloom_color text;`);
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS bloom_period text;`);
+  await pool.query(
+    `ALTER TABLE plants ADD COLUMN IF NOT EXISTS bloom_checked boolean NOT NULL DEFAULT false;`,
+  );
+}
+
+export async function plantsNeedingBloom(limit = 20000) {
+  const { rows } = await pool.query(
+    "SELECT id, scientific_name FROM plants WHERE bloom_checked = false ORDER BY score DESC LIMIT $1",
+    [limit],
+  );
+  return rows.map((r) => ({ id: r.id, scientificName: r.scientific_name }));
+}
+
+export async function setBloom(id, color, period) {
+  await pool.query(
+    "UPDATE plants SET bloom_color = $2, bloom_period = $3, bloom_checked = true WHERE id = $1",
+    [id, color, period],
+  );
+}
+
+// Prior bloom data, so a source refresh (which carries none) keeps it.
+export async function existingBloom() {
+  const { rows } = await pool.query(
+    "SELECT id, bloom_color, bloom_period, bloom_checked FROM plants WHERE bloom_checked = true",
+  );
+  const map = {};
+  for (const r of rows) map[r.id] = { color: r.bloom_color, period: r.bloom_period };
+  return map;
+}
+
+export async function bloomProgress() {
+  const { rows } = await pool.query(
+    "SELECT count(*)::int AS total, count(*) FILTER (WHERE bloom_checked)::int AS done, count(bloom_color)::int AS with_color FROM plants",
+  );
+  return rows[0];
+}
+
+// Plants still awaiting a GloBI lookup (attracts IS NULL, not merely empty).
+export async function plantsNeedingAttracts(limit = 20000) {
+  const { rows } = await pool.query(
+    "SELECT id, scientific_name FROM plants WHERE attracts IS NULL ORDER BY score DESC LIMIT $1",
+    [limit],
+  );
+  return rows.map((r) => ({ id: r.id, scientificName: r.scientific_name }));
+}
+
+export async function setAttracts(id, groups) {
+  await pool.query("UPDATE plants SET attracts = $2 WHERE id = $1", [id, groups]);
+}
+
+// Prior visitor groups, so a source refresh (which carries none) keeps them.
+export async function existingAttracts() {
+  const { rows } = await pool.query("SELECT id, attracts FROM plants WHERE attracts IS NOT NULL");
+  const map = {};
+  for (const r of rows) map[r.id] = r.attracts;
+  return map;
+}
+
+export async function attractsProgress() {
+  const { rows } = await pool.query(
+    "SELECT count(*)::int AS total, count(attracts)::int AS done, count(NULLIF(attracts,'{}'))::int AS with_visitors FROM plants",
+  );
+  return rows[0];
 }
 
 export async function countPlants() {
@@ -79,7 +150,8 @@ const COLS = [
   "id", "slug", "name", "scientific_name", "family", "description", "thumb",
   "light", "water", "soil", "layer", "life_cycle", "growth", "edible", "edible_parts",
   "functions", "medicinal", "hardiness_min", "hardiness_max", "native_to", "warnings",
-  "height", "links", "companions", "score",
+  "height", "links", "companions", "attracts",
+  "bloom_color", "bloom_period", "bloom_checked", "score",
 ];
 
 function toRow(p) {
@@ -88,7 +160,10 @@ function toRow(p) {
     p.light ?? [], p.water ?? [], p.soil ?? [], p.layer ?? null, p.lifeCycle ?? null, p.growth ?? null,
     Boolean(p.edible), p.edibleParts ?? [], p.functions ?? [], p.medicinal ?? null,
     p.hardiness?.min ?? null, p.hardiness?.max ?? null, p.nativeTo ?? [], p.warnings ?? [],
-    p.height ?? null, JSON.stringify(p.links ?? {}), p.companions ?? null, p.score ?? 0,
+    p.height ?? null, JSON.stringify(p.links ?? {}), p.companions ?? null,
+    p.attracts ?? null,
+    p.bloomColor ?? null, p.bloomPeriod ?? null, Boolean(p.bloomChecked),
+    p.score ?? 0,
   ];
 }
 
@@ -155,6 +230,10 @@ function rowToPlant(r) {
     score: r.score,
   };
   if (r.companions && r.companions.length) p.companions = r.companions;
+  if (r.attracts && r.attracts.length) p.attracts = r.attracts;
+  if (r.bloom_color) p.bloomColor = r.bloom_color;
+  if (r.bloom_period) p.bloomPeriod = r.bloom_period;
+  if (r.bloom_checked) p.bloomChecked = true;
   return p;
 }
 

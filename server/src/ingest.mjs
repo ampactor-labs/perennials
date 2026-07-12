@@ -4,18 +4,98 @@
 //             API serves identical data immediately, with no key and no empty window.
 // A source refresh preserves companion links already stored (the source pull
 // carries none), so we don't re-run the expensive per-plant companions sweep.
-import { ensureSchema, countPlants, replaceAll, existingCompanions } from "./db.mjs";
+import {
+  ensureSchema, countPlants, replaceAll, existingCompanions,
+  existingAttracts, plantsNeedingAttracts, setAttracts,
+  existingBloom, plantsNeedingBloom, setBloom,
+} from "./db.mjs";
 import { hasCredentials, pullAll } from "./permapeople.mjs";
 import { rawToPlants } from "./transform.mjs";
+import { attractsFor } from "./globi.mjs";
+import { bloomFor } from "./usda.mjs";
 
 const SEED_URL = process.env.SEED_URL || "https://ampactor.dev/perennials/data/plants.json";
 
 export async function refreshFromSource() {
   const raw = await pullAll();
   const companions = await existingCompanions();
+  const attracts = await existingAttracts();
+  const bloom = await existingBloom();
   const plants = rawToPlants(raw, companions);
+  // The source pull carries neither visitor nor bloom data, so carry forward the
+  // enrichment we already paid for.
+  for (const p of plants) {
+    const groups = attracts[p.id];
+    if (groups) p.attracts = groups;
+    const b = bloom[p.id];
+    if (b) {
+      p.bloomColor = b.color;
+      p.bloomPeriod = b.period;
+      p.bloomChecked = true;
+    }
+  }
   await replaceAll(plants);
   return plants.length;
+}
+
+/** Flower colour and bloom period from USDA, for every plant not yet checked. */
+export async function enrichBloom({ concurrency = 5, onProgress } = {}) {
+  const todo = await plantsNeedingBloom();
+  let next = 0, done = 0, withColor = 0, failed = 0;
+
+  async function worker() {
+    for (;;) {
+      const i = next++;
+      if (i >= todo.length) return;
+      const p = todo[i];
+      try {
+        const { color, period } = await bloomFor(p.scientificName);
+        await setBloom(p.id, color, period);
+        if (color) withColor += 1;
+      } catch {
+        failed += 1; // leave bloom_checked false so the next sweep retries it
+      }
+      done += 1;
+      if (onProgress && done % 250 === 0) {
+        onProgress({ done, total: todo.length, withColor, failed });
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return { total: todo.length, done, withColor, failed };
+}
+
+/**
+ * Fill in flower-visitor groups from GloBI for every plant that has none yet.
+ * Resumable: a plant whose lookup fails keeps attracts NULL and is retried on
+ * the next run, while an enriched-but-empty plant (wind-pollinated) is left be.
+ */
+export async function enrichAttracts({ concurrency = 6, onProgress } = {}) {
+  const todo = await plantsNeedingAttracts();
+  let next = 0, done = 0, withVisitors = 0, failed = 0;
+
+  async function worker() {
+    for (;;) {
+      const i = next++;
+      if (i >= todo.length) return;
+      const p = todo[i];
+      try {
+        const groups = await attractsFor(p.scientificName);
+        await setAttracts(p.id, groups);
+        if (groups.length) withVisitors += 1;
+      } catch {
+        failed += 1; // leave NULL so the next sweep retries it
+      }
+      done += 1;
+      if (onProgress && done % 250 === 0) {
+        onProgress({ done, total: todo.length, withVisitors, failed });
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return { total: todo.length, done, withVisitors, failed };
 }
 
 export async function seedFromUrl(url = SEED_URL) {

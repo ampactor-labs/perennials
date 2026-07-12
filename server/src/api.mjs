@@ -5,9 +5,11 @@
 // credentials are present.
 import http from "node:http";
 import crypto from "node:crypto";
-import { ensureSchema, countPlants, allPlants, maxUpdatedAt } from "./db.mjs";
+import {
+  ensureSchema, countPlants, allPlants, maxUpdatedAt, attractsProgress, bloomProgress,
+} from "./db.mjs";
 import { deriveFacets, deriveMeta } from "./facets.mjs";
-import { ingest, refreshFromSource } from "./ingest.mjs";
+import { ingest, refreshFromSource, enrichAttracts, enrichBloom } from "./ingest.mjs";
 import { hasCredentials } from "./permapeople.mjs";
 
 const PORT = process.env.PORT || 3000;
@@ -55,8 +57,41 @@ const server = http.createServer(async (req, res) => {
   try {
     if (pathname === "/" || pathname === "/health") {
       const n = await countPlants().catch(() => -1);
+      const attracts = await attractsProgress().catch(() => null);
+      const bloom = await bloomProgress().catch(() => null);
       res.writeHead(200, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ ok: n >= 0, plants: n, source: hasCredentials() ? "permapeople" : "seed" }));
+      return res.end(JSON.stringify({
+        ok: n >= 0,
+        plants: n,
+        source: hasCredentials() ? "permapeople" : "seed",
+        attracts, // GloBI visitor sweep:  { total, done, with_visitors }
+        bloom,    // USDA bloom sweep:     { total, done, with_color }
+      }));
+    }
+
+    // Kick off the GloBI visitor sweep. Takes many minutes, so start it and
+    // answer immediately; progress shows up on /health and in the logs.
+    if (pathname === "/admin/enrich" && req.method === "POST") {
+      if (!ADMIN_TOKEN || req.headers.authorization !== `Bearer ${ADMIN_TOKEN}`) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "forbidden" }));
+      }
+      res.writeHead(202, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ started: true }));
+      // Both sweeps are resumable, so a restart mid-run costs nothing but time.
+      (async () => {
+        const a = await enrichAttracts({
+          onProgress: (p) => console.log("attracts:", JSON.stringify(p)),
+        });
+        console.log("attracts complete:", JSON.stringify(a));
+        await rebuildCache();
+        const b = await enrichBloom({
+          onProgress: (p) => console.log("bloom:", JSON.stringify(p)),
+        });
+        console.log("bloom complete:", JSON.stringify(b));
+        await rebuildCache();
+      })().catch((e) => console.error("enrich failed:", e.message));
+      return;
     }
 
     const m = pathname.match(/^\/data\/(plants|facets|meta)\.json$/);

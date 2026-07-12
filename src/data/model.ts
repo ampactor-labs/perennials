@@ -31,6 +31,19 @@ export type Plant = {
   score: number;
   /** Permapeople companion-planting links (plant ids), when known. */
   companions?: number[];
+  /**
+   * Flower-visitor groups (Bees, Butterflies, Hoverflies…) derived from GloBI
+   * interaction records. Absent when nothing is known; genuinely empty for
+   * wind-pollinated plants like grasses and conifers.
+   */
+  attracts?: string[];
+  /**
+   * Flower color from USDA PLANTS. North-American species only, so it's absent
+   * for most Old-World plants rather than wrong.
+   */
+  bloomColor?: string;
+  /** Bloom period from USDA PLANTS, e.g. "Early Summer". */
+  bloomPeriod?: string;
 };
 
 export type FacetValue = { value: string; count: number };
