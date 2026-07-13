@@ -88,6 +88,12 @@ function Section({ layer, plants, inCatalog }: { layer: string; plants: Plant[];
         <h2>{layer}</h2>
         <span className="guild-n mono">{plants.length.toLocaleString()}</span>
       </header>
+      {layer === "Ground cover" && plants.length > 0 && (
+        <p className="guild-empty" style={{ marginBottom: "var(--sp-3)" }}>
+          Includes plants recorded as <em>functioning</em> as ground cover, where nobody recorded a
+          layer for them.
+        </p>
+      )}
       {plants.length === 0 ? (
         // Two very different silences, and they used to sound the same. Ground
         // cover is recorded for 8 plants in the whole catalogue and Roots for 28,
@@ -116,8 +122,17 @@ export function GuildView({ results }: { results: Plant[] }) {
   const byLayer = new Map<string, Plant[]>(LAYER_ORDER.map((l) => [l, []]));
   const unplaced: Plant[] = [];
   for (const p of results) {
-    if (p.layer && byLayer.has(p.layer)) byLayer.get(p.layer)!.push(p);
-    else unplaced.push(p);
+    if (p.layer && byLayer.has(p.layer)) {
+      byLayer.get(p.layer)!.push(p);
+    } else if (!p.layer && p.functions.includes("Ground cover")) {
+      // The guide records a "Ground cover" LAYER for 8 plants and a "Ground cover"
+      // FUNCTION for 496. Keying the stratum off the layer alone meant the section
+      // she most wants to fill was reading the emptier of the two columns, while
+      // the plants she was after sat one facet over.
+      byLayer.get("Ground cover")!.push(p);
+    } else {
+      unplaced.push(p);
+    }
   }
 
   // How many plants carry each layer in the entire catalogue, regardless of what
