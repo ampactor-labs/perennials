@@ -6,10 +6,11 @@
 import http from "node:http";
 import crypto from "node:crypto";
 import {
-  ensureSchema, countPlants, allPlants, maxUpdatedAt, attractsProgress, bloomProgress,
+  ensureSchema, countPlants, allPlants, maxUpdatedAt,
+  attractsProgress, bloomProgress, companionsProgress,
 } from "./db.mjs";
 import { deriveFacets, deriveMeta } from "./facets.mjs";
-import { ingest, refreshFromSource, enrichAttracts, enrichBloom } from "./ingest.mjs";
+import { ingest, refreshFromSource, enrichAll } from "./ingest.mjs";
 import { hasCredentials } from "./permapeople.mjs";
 
 const PORT = process.env.PORT || 3000;
@@ -57,15 +58,18 @@ const server = http.createServer(async (req, res) => {
   try {
     if (pathname === "/" || pathname === "/health") {
       const n = await countPlants().catch(() => -1);
-      const attracts = await attractsProgress().catch(() => null);
-      const bloom = await bloomProgress().catch(() => null);
+      const updatedAt = await maxUpdatedAt().catch(() => null);
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
         ok: n >= 0,
         plants: n,
         source: hasCredentials() ? "permapeople" : "seed",
-        attracts, // GloBI visitor sweep:  { total, done, with_visitors }
-        bloom,    // USDA bloom sweep:     { total, done, with_color }
+        dataAgeDays: updatedAt
+          ? +((Date.now() - new Date(updatedAt).getTime()) / DAY_MS).toFixed(2)
+          : null,
+        attracts: await attractsProgress().catch(() => null),   // GloBI
+        bloom: await bloomProgress().catch(() => null),         // USDA
+        companions: await companionsProgress().catch(() => null), // Permapeople
       }));
     }
 
@@ -78,19 +82,13 @@ const server = http.createServer(async (req, res) => {
       }
       res.writeHead(202, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ started: true }));
-      // Both sweeps are resumable, so a restart mid-run costs nothing but time.
-      (async () => {
-        const a = await enrichAttracts({
-          onProgress: (p) => console.log("attracts:", JSON.stringify(p)),
-        });
-        console.log("attracts complete:", JSON.stringify(a));
-        await rebuildCache();
-        const b = await enrichBloom({
-          onProgress: (p) => console.log("bloom:", JSON.stringify(p)),
-        });
-        console.log("bloom complete:", JSON.stringify(b));
-        await rebuildCache();
-      })().catch((e) => console.error("enrich failed:", e.message));
+      // Every sweep is resumable, so a restart mid-run costs nothing but time.
+      enrichAll({ onProgress: (p) => console.log("enrich:", JSON.stringify(p)) })
+        .then(async (r) => {
+          console.log("enrich complete:", JSON.stringify(r));
+          await rebuildCache();
+        })
+        .catch((e) => console.error("enrich failed:", e.message));
       return;
     }
 
@@ -134,6 +132,41 @@ const server = http.createServer(async (req, res) => {
 });
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const STALE_AFTER_DAYS = 7;
+
+let refreshing = false;
+
+/**
+ * Re-pull the source if the data has aged out, then fill in any enrichment the
+ * new plants are missing.
+ *
+ * The check runs on boot and hourly, NOT on a 24-hour timer. A daily interval
+ * only fires after 24 hours of unbroken uptime, and every deploy or container
+ * recycle resets it to zero, so in practice it would never fire at all.
+ */
+async function refreshIfStale(reason) {
+  if (refreshing || !hasCredentials()) return;
+  const updatedAt = await maxUpdatedAt();
+  const ageDays = updatedAt ? (Date.now() - new Date(updatedAt).getTime()) / DAY_MS : Infinity;
+  if (ageDays < STALE_AFTER_DAYS) return;
+
+  refreshing = true;
+  try {
+    console.log(`data ${ageDays.toFixed(1)}d old (${reason}) — refreshing from source`);
+    const count = await refreshFromSource();
+    await rebuildCache();
+    console.log(`refresh complete: ${count} plants`);
+
+    // Plants Permapeople added since last week arrive with no visitors, no bloom
+    // and no companions. Without this they would stay that way forever.
+    const enriched = await enrichAll({ onProgress: (p) => console.log("enrich:", JSON.stringify(p)) });
+    console.log("newcomer enrichment:", JSON.stringify(enriched));
+    await rebuildCache();
+  } finally {
+    refreshing = false;
+  }
+}
 
 async function boot() {
   await ensureSchema();
@@ -147,22 +180,12 @@ async function boot() {
     console.log(`perennials api listening on :${PORT} (${count} plants)`);
   });
 
-  // Refresh from source at most once a day if the data is >= 7 days old.
-  setInterval(async () => {
-    try {
-      if (!hasCredentials()) return;
-      const updatedAt = await maxUpdatedAt();
-      const ageDays = updatedAt ? (Date.now() - new Date(updatedAt).getTime()) / DAY_MS : Infinity;
-      if (ageDays >= 7) {
-        console.log(`data ${ageDays.toFixed(1)}d old — refreshing from source`);
-        await refreshFromSource();
-        await rebuildCache();
-        console.log("refresh complete");
-      }
-    } catch (e) {
-      console.error("scheduled refresh failed:", e.message);
-    }
-  }, DAY_MS);
+  refreshIfStale("boot").catch((e) => console.error("boot refresh failed:", e.message));
+  setInterval(() => {
+    refreshIfStale("hourly check").catch((e) =>
+      console.error("scheduled refresh failed:", e.message),
+    );
+  }, HOUR_MS);
 }
 
 boot().catch((e) => {

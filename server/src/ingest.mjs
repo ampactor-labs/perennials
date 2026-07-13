@@ -8,11 +8,13 @@ import {
   ensureSchema, countPlants, replaceAll, existingCompanions,
   existingAttracts, plantsNeedingAttracts, setAttracts,
   existingBloom, plantsNeedingBloom, setBloom,
+  plantsNeedingCompanions, setCompanions,
 } from "./db.mjs";
 import { hasCredentials, pullAll } from "./permapeople.mjs";
 import { rawToPlants } from "./transform.mjs";
 import { attractsFor } from "./globi.mjs";
 import { bloomFor } from "./usda.mjs";
+import { companionsFor } from "./companions.mjs";
 
 const SEED_URL = process.env.SEED_URL || "https://ampactor.dev/perennials/data/plants.json";
 
@@ -37,6 +39,8 @@ export async function refreshFromSource() {
   // The source pull carries neither visitor nor bloom data, so carry forward the
   // enrichment we already paid for.
   for (const p of plants) {
+    // A plant already swept for companions stays swept, even if it has none.
+    if (companions[p.id] !== undefined) p.companionsChecked = true;
     const groups = attracts[p.id];
     if (groups) p.attracts = groups;
     const b = bloom[p.id];
@@ -48,6 +52,48 @@ export async function refreshFromSource() {
   }
   await replaceAll(plants);
   return plants.length;
+}
+
+/** Companion links from Permapeople, for every plant not yet swept. */
+export async function enrichCompanions({ concurrency = 4, onProgress } = {}) {
+  if (!hasCredentials()) return { total: 0, done: 0, withLinks: 0, failed: 0 };
+  const todo = await plantsNeedingCompanions();
+  let next = 0, done = 0, withLinks = 0, failed = 0;
+
+  async function worker() {
+    for (;;) {
+      const i = next++;
+      if (i >= todo.length) return;
+      try {
+        const ids = await companionsFor(todo[i]);
+        await setCompanions(todo[i], ids);
+        if (ids.length) withLinks += 1;
+      } catch {
+        failed += 1; // stays unswept, retried next time
+      }
+      done += 1;
+      if (onProgress && done % 250 === 0) {
+        onProgress({ done, total: todo.length, withLinks, failed });
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return { total: todo.length, done, withLinks, failed };
+}
+
+/**
+ * Fill in every enrichment layer that's missing anything. Each sweep only touches
+ * rows it hasn't done, so after the first full run this is cheap: it's what picks
+ * up plants that Permapeople added since last week, which would otherwise sit in
+ * the dataset forever with no visitors, no bloom and no companions.
+ */
+export async function enrichAll({ onProgress } = {}) {
+  const log = (sweep) => (p) => onProgress?.({ sweep, ...p });
+  const attracts = await enrichAttracts({ onProgress: log("attracts") });
+  const bloom = await enrichBloom({ onProgress: log("bloom") });
+  const companions = await enrichCompanions({ onProgress: log("companions") });
+  return { attracts, bloom, companions };
 }
 
 /** Flower colour and bloom period from USDA, for every plant not yet checked. */

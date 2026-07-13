@@ -67,6 +67,44 @@ export async function ensureSchema() {
   // The source's verbatim warning sentence. The coarse `warnings` labels are for
   // filtering; this is what a person actually needs to read.
   await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS cautions text;`);
+  // Companions need their own "checked" flag for the same reason bloom does: an
+  // empty companion list is a real answer, so it can't stand in for "not swept".
+  await pool.query(
+    `ALTER TABLE plants ADD COLUMN IF NOT EXISTS companions_checked boolean NOT NULL DEFAULT false;`,
+  );
+  // One-time backfill. The retired pipeline already swept every plant that existed
+  // at seed time (all 8,799; only 187 came back with links), so mark them checked
+  // rather than fire 8,600 redundant calls at a small community server.
+  //
+  // The NOT EXISTS guard makes this fire exactly once: on later boots some row is
+  // already checked, so it no-ops. Without it, this would keep marking genuinely
+  // new plants as swept and they would never get companions at all.
+  await pool.query(
+    `UPDATE plants SET companions_checked = true
+       WHERE NOT EXISTS (SELECT 1 FROM plants WHERE companions_checked);`,
+  );
+}
+
+export async function plantsNeedingCompanions(limit = 20000) {
+  const { rows } = await pool.query(
+    "SELECT id FROM plants WHERE companions_checked = false ORDER BY score DESC LIMIT $1",
+    [limit],
+  );
+  return rows.map((r) => r.id);
+}
+
+export async function setCompanions(id, ids) {
+  await pool.query(
+    "UPDATE plants SET companions = $2, companions_checked = true WHERE id = $1",
+    [id, ids && ids.length ? ids : null],
+  );
+}
+
+export async function companionsProgress() {
+  const { rows } = await pool.query(
+    "SELECT count(*)::int AS total, count(*) FILTER (WHERE companions_checked)::int AS done, count(companions)::int AS with_links FROM plants",
+  );
+  return rows[0];
 }
 
 export async function plantsNeedingBloom(limit = 20000) {
@@ -140,12 +178,14 @@ export async function maxUpdatedAt() {
 }
 
 // Prior companion links, so a source refresh (which has no companions) keeps them.
+// Companion links plus their swept flag, so a source refresh (which carries
+// neither) keeps both and doesn't re-sweep every plant each week.
 export async function existingCompanions() {
   const { rows } = await pool.query(
-    "SELECT id, companions FROM plants WHERE companions IS NOT NULL AND array_length(companions, 1) > 0",
+    "SELECT id, companions FROM plants WHERE companions_checked = true",
   );
   const map = {};
-  for (const r of rows) map[r.id] = r.companions;
+  for (const r of rows) map[r.id] = r.companions ?? [];
   return map;
 }
 
@@ -153,7 +193,7 @@ const COLS = [
   "id", "slug", "name", "scientific_name", "family", "description", "thumb",
   "light", "water", "soil", "layer", "life_cycle", "growth", "edible", "edible_parts",
   "functions", "medicinal", "hardiness_min", "hardiness_max", "native_to", "warnings",
-  "height", "links", "companions", "attracts",
+  "height", "links", "companions", "companions_checked", "attracts",
   "bloom_color", "bloom_period", "bloom_checked", "cautions", "score",
 ];
 
@@ -164,6 +204,7 @@ function toRow(p) {
     Boolean(p.edible), p.edibleParts ?? [], p.functions ?? [], p.medicinal ?? null,
     p.hardiness?.min ?? null, p.hardiness?.max ?? null, p.nativeTo ?? [], p.warnings ?? [],
     p.height ?? null, JSON.stringify(p.links ?? {}), p.companions ?? null,
+    Boolean(p.companionsChecked),
     p.attracts ?? null,
     p.bloomColor ?? null, p.bloomPeriod ?? null, Boolean(p.bloomChecked),
     p.cautions ?? null, p.score ?? 0,
