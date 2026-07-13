@@ -22,6 +22,18 @@ export async function refreshFromSource() {
   const attracts = await existingAttracts();
   const bloom = await existingBloom();
   const plants = rawToPlants(raw, companions);
+
+  // Trust gate. replaceAll TRUNCATEs before inserting, so a short pull (upstream
+  // outage, truncated page, changed schema) would otherwise quietly destroy the
+  // dataset and serve the wreckage. Refuse instead: the stored data stays put and
+  // the failure is loud.
+  const current = await countPlants();
+  if (current > 0 && plants.length < current * 0.9) {
+    throw new Error(
+      `refusing refresh: source returned ${plants.length} plants, but ${current} are stored ` +
+        `(under the 90% floor). Keeping the existing data.`,
+    );
+  }
   // The source pull carries neither visitor nor bloom data, so carry forward the
   // enrichment we already paid for.
   for (const p of plants) {

@@ -73,11 +73,19 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         </figure>
       )}
 
-      {plant.warnings.length > 0 && (
+      {(plant.cautions || plant.warnings.length > 0) && (
         <div className="callout callout--warn" style={{ marginTop: "var(--sp-4)" }}>
           <IconAlert />
           <span>
-            Noted cautions: <b>{plant.warnings.join(", ")}</b>. Check for your region before planting.
+            <b>Caution:</b> {plant.cautions ?? plant.warnings.join(", ")}
+            {plant.edible && plant.edibleParts.length > 0 && (
+              <>
+                {" "}
+                Parts of this plant are eaten ({plant.edibleParts.join(", ")}), so read which
+                parts the warning names.
+              </>
+            )}{" "}
+            Wording is Permapeople's; verify before eating or planting.
           </span>
         </div>
       )}

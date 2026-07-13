@@ -24,7 +24,11 @@ export type Plant = {
   medicinal: string | null;
   hardiness: Hardiness | null;
   nativeTo: string[];
+  /** Coarse labels, for filtering only. Never show these alone: "Toxic fruits" and
+   *  "Toxic for cats" both land on "Toxic". Show `cautions` to a human. */
   warnings: string[];
+  /** The source's verbatim warning sentence, e.g. "Toxic fruits". */
+  cautions?: string;
   height: number | null;
   links: { wikipedia: string | null; pfaf: string | null; permapeople: string };
   /** Documentation richness 0–100, computed at transform time; drives default rank. */

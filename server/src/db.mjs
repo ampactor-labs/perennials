@@ -64,6 +64,9 @@ export async function ensureSchema() {
   await pool.query(
     `ALTER TABLE plants ADD COLUMN IF NOT EXISTS bloom_checked boolean NOT NULL DEFAULT false;`,
   );
+  // The source's verbatim warning sentence. The coarse `warnings` labels are for
+  // filtering; this is what a person actually needs to read.
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS cautions text;`);
 }
 
 export async function plantsNeedingBloom(limit = 20000) {
@@ -151,7 +154,7 @@ const COLS = [
   "light", "water", "soil", "layer", "life_cycle", "growth", "edible", "edible_parts",
   "functions", "medicinal", "hardiness_min", "hardiness_max", "native_to", "warnings",
   "height", "links", "companions", "attracts",
-  "bloom_color", "bloom_period", "bloom_checked", "score",
+  "bloom_color", "bloom_period", "bloom_checked", "cautions", "score",
 ];
 
 function toRow(p) {
@@ -163,7 +166,7 @@ function toRow(p) {
     p.height ?? null, JSON.stringify(p.links ?? {}), p.companions ?? null,
     p.attracts ?? null,
     p.bloomColor ?? null, p.bloomPeriod ?? null, Boolean(p.bloomChecked),
-    p.score ?? 0,
+    p.cautions ?? null, p.score ?? 0,
   ];
 }
 
@@ -234,6 +237,7 @@ function rowToPlant(r) {
   if (r.bloom_color) p.bloomColor = r.bloom_color;
   if (r.bloom_period) p.bloomPeriod = r.bloom_period;
   if (r.bloom_checked) p.bloomChecked = true;
+  if (r.cautions) p.cautions = r.cautions;
   return p;
 }
 
