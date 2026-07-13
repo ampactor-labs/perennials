@@ -171,11 +171,20 @@
 .catalog {
   margin-top: var(--sp-5);
 }
+/* Sticky. It holds the result count and — below 48rem, where the inline rail is
+   display:none — the only door to the facets. Static, it scrolled away, so
+   changing one constraint after scrolling forty plants deep meant flicking all
+   the way back to the top one-handed. */
 .filter-bar {
+  position: sticky;
+  top: calc(var(--header-h) - 1px);
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding-bottom: var(--sp-3);
+  padding: var(--sp-2) 0 var(--sp-3);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
   margin-bottom: var(--sp-4);
 }

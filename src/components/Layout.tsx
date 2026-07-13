@@ -35,10 +35,17 @@ function ThemeToggle() {
 function DataGate({ children }: { children: ReactNode }) {
   const state = useDataState();
   if (state.status === "loading") {
+    // The one moment she is forced to wait is also the best chance to tell her
+    // why the waiting is worth it. Say what is happening, how big it is, and that
+    // it happens once.
     return (
       <div className="loading">
         <span className="spinner" />
-        <p>Loading the plant database…</p>
+        <p>
+          Downloading the guide — about a megabyte.
+          <br />
+          It only happens once. After this it works with no signal.
+        </p>
       </div>
     );
   }

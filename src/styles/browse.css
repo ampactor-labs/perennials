@@ -463,6 +463,15 @@
 .trail-clear:hover {
   color: var(--ink);
 }
+/* The way back from a wipe. Constraint edits replace the history entry rather
+   than pushing one, so the browser's Back button cannot undo them. */
+.trail-undo {
+  font-size: var(--text-xs);
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* ===================================================================== *
  * Spots
@@ -760,6 +769,7 @@
   }
   /* Text links with no padding of their own: grow the hit box, hold the layout. */
   .trail-clear,
+  .trail-undo,
   .spot-edit,
   .guild-more {
     display: inline-flex;

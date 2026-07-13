@@ -49,6 +49,9 @@ type SearchValue = {
   setView: (v: "list" | "guild") => void;
   applySpot: (s: Spot) => void;
   clearAll: () => void;
+  /** The constraints the last clear or trail-step removal threw away, if any. */
+  undoable: Constraints | null;
+  undo: () => void;
 };
 
 const Ctx = createContext<SearchValue | null>(null);
@@ -98,20 +101,36 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   }
   const showMore = useCallback(() => setLimit((l) => l + PAGE), []);
 
+  // Constraint edits are written with { replace: true } so they don't spam the
+  // history, which means the browser's Back button cannot take one back. That is
+  // fine for adding a filter and not fine for wiping the search: keep the last
+  // thing we destroyed, and offer it back.
+  const [undoable, setUndoable] = useState<Constraints | null>(null);
+
   const add = useCallback((a: Atom) => setConstraints((c) => addAtom(c, a)), []);
   const remove = useCallback((a: Atom) => setConstraints((c) => removeAtom(c, a)), []);
-  const removeAll = useCallback(
-    (as: Atom[]) => setConstraints((c) => as.reduce(removeAtom, c)),
-    [],
-  );
+  const removeAll = useCallback((as: Atom[]) => {
+    setConstraints((c) => {
+      setUndoable(c);
+      return as.reduce(removeAtom, c);
+    });
+  }, []);
   const toggle = useCallback((a: Atom) => setConstraints((c) => toggleAtom(c, a)), []);
   const setText = useCallback((text: string) => setConstraints((c) => ({ ...c, text })), []);
   const setView = useCallback((view: "list" | "guild") => setConstraints((c) => ({ ...c, view })), []);
   const applySpot = useCallback((s: Spot) => setConstraints((c) => applySpotTo(c, s)), []);
-  const clearAll = useCallback(
-    () => setConstraints((c) => ({ ...emptyConstraints(), view: c.view })),
-    [],
-  );
+  const clearAll = useCallback(() => {
+    setConstraints((c) => {
+      setUndoable(c);
+      return { ...emptyConstraints(), view: c.view };
+    });
+  }, []);
+  const undo = useCallback(() => {
+    setUndoable((prev) => {
+      if (prev) setConstraints(prev);
+      return null;
+    });
+  }, []);
 
   // A fresh object literal here re-rendered every useSearch() consumer on every
   // render of this provider — and the URL-sync effect above makes that twice per
@@ -138,10 +157,13 @@ export function SearchProvider({ children }: { children: ReactNode }) {
       setView,
       applySpot,
       clearAll,
+      undoable,
+      undo,
     }),
     [
       data, constraints, evaluation, coverage, limit, showMore,
       add, remove, removeAll, toggle, setText, setView, applySpot, clearAll,
+      undoable, undo,
     ],
   );
 

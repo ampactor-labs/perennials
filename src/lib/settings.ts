@@ -27,10 +27,6 @@ export function usePersistent<T>(key: string, fallback: T) {
 
 export type ThemePref = "light" | "dark" | "system";
 
-/** Her home zone drives the default hardiness filter. Book case study = zone 6. */
-export function useZone() {
-  return usePersistent<number>("perennials.zone", 6);
-}
 
 export function useTheme() {
   const [pref, setPref] = usePersistent<ThemePref>("perennials.theme", "system");

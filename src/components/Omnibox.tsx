@@ -41,8 +41,11 @@ export function Omnibox() {
   function pick(sug: Suggestion) {
     if (sug.type === "constraint") {
       for (const a of sug.atoms) s.add(a);
+      // Clear the draft, not the committed search. Wiping the text here meant
+      // that searching "currant" and then adding Water: Wet dropped the text step
+      // out of the trail and made the results *grow* — an added constraint that
+      // widens the set teaches exactly the wrong model.
       setDraft("");
-      s.setText("");
       inputRef.current?.focus();
     } else {
       setOpen(false);

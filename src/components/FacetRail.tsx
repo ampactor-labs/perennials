@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearch } from "@/state/search";
-import { FACETS, type FacetMeta } from "@/lib/query";
+import { FACETS, ZONE_COVERAGE, type FacetMeta } from "@/lib/query";
 import { facetsOf } from "@/lib/constraints";
 import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 
@@ -83,6 +83,7 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
 
 export function FacetRail() {
   const s = useSearch();
+  const hardinessKnown = s.coverage[ZONE_COVERAGE] ?? 0;
   const site = FACETS.filter((f) => f.group === "site");
   const intent = FACETS.filter((f) => f.group === "intent");
   const caution = FACETS.filter((f) => f.group === "caution");
@@ -115,6 +116,16 @@ export function FacetRail() {
             ))}
           </select>
         </label>
+        {/* Only says this once she has actually set a zone, because that is the
+            moment the number starts standing for something it isn't. */}
+        {s.zone !== null && hardinessKnown < s.total && (
+          <p className="facet-sec-note" style={{ margin: 0 }}>
+            Hardiness is recorded for <b>{hardinessKnown.toLocaleString()}</b> of{" "}
+            {s.total.toLocaleString()} plants. The other{" "}
+            {(s.total - hardinessKnown).toLocaleString()} are set aside here — not because they
+            would die in zone {s.zone}, but because nobody has said.
+          </p>
+        )}
       </div>
       <div className="facet-group-label">The site — what you have</div>
       {site.map((f) => (
