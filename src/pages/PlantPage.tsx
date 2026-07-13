@@ -1,7 +1,28 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
+import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 import { IconAlert, IconChevronLeft } from "@/components/icons";
+import { Thumb } from "@/components/Thumb";
+
+function BackLink() {
+  const navigate = useNavigate();
+  const canPop = window.history.state?.idx > 0;
+  if (!canPop) {
+    return (
+      <Link to="/" className="back-link">
+        <IconChevronLeft width={18} height={18} />
+        All plants
+      </Link>
+    );
+  }
+  return (
+    <button className="back-link" onClick={() => navigate(-1)}>
+      <IconChevronLeft width={18} height={18} />
+      All plants
+    </button>
+  );
+}
 
 function Companions({ plant, data }: { plant: Plant; data: Dataset }) {
   const friends = (plant.companions ?? [])
@@ -15,7 +36,7 @@ function Companions({ plant, data }: { plant: Plant; data: Dataset }) {
         {friends.map((f) => (
           <Link key={f.slug} to={`/plant/${f.slug}`} className="companion">
             <span className="companion-thumb">
-              {f.thumb ? <img src={f.thumb} alt="" loading="lazy" /> : <span>✿</span>}
+              <Thumb src={f.thumb} />
             </span>
             <span className="companion-name">{f.name}</span>
           </Link>
@@ -25,17 +46,45 @@ function Companions({ plant, data }: { plant: Plant; data: Dataset }) {
   );
 }
 
-function ChipRow({ label, values }: { label: string; values: string[] }) {
-  if (values.length === 0) return null;
+/**
+ * A row of values, or — when `absent` is given — a row that says nobody recorded
+ * any. The distinction is the whole point on the three fields below: she filtered
+ * on "Attracts: Bees", and a page that simply omits the row leaves her unable to
+ * tell "nothing visits it" from "nobody has looked".
+ */
+function ChipRow({
+  label,
+  values,
+  absent,
+  swatches,
+}: {
+  label: string;
+  values: string[];
+  absent?: string;
+  swatches?: boolean;
+}) {
+  if (values.length === 0) {
+    if (!absent) return null;
+    return (
+      <div className="attr-row">
+        <span className="attr-label">{label}</span>
+        <span className="attr-absent">{absent}</span>
+      </div>
+    );
+  }
   return (
     <div className="attr-row">
       <span className="attr-label">{label}</span>
       <span className="chip-row">
-        {values.map((v) => (
-          <span key={v} className="ptag">
-            {v}
-          </span>
-        ))}
+        {values.map((v) => {
+          const hex = swatches ? BLOOM_HEX[v] : undefined;
+          return (
+            <span key={v} className="ptag">
+              {hex && <span className="swatch" style={{ background: hex }} aria-hidden="true" />}
+              {v}
+            </span>
+          );
+        })}
       </span>
     </div>
   );
@@ -47,10 +96,9 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
   return (
     <div className="page wrap detail">
       <div className="detail-top">
-        <Link to="/" className="back-link">
-          <IconChevronLeft width={18} height={18} />
-          All plants
-        </Link>
+        {/* A pop, not a push. `<Link to="/">` was a fresh navigation, which scrolled
+            her to the top of a list she had scrolled 200 cards into. */}
+        <BackLink />
       </div>
 
       <header className="detail-head">
@@ -63,7 +111,7 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
 
       {plant.thumb && (
         <figure className="specimen-photo">
-          <img src={plant.thumb} alt={plant.name} loading="lazy" />
+          <Thumb src={plant.thumb} alt={plant.name} />
           <figcaption>
             <a href={plant.links.permapeople} target="_blank" rel="noreferrer noopener">
               Permapeople
@@ -84,6 +132,16 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
                 Parts of this plant are eaten ({plant.edibleParts.join(", ")}), so read which
                 parts the warning names.
               </>
+            )}
+            {/* Castor bean is marked edible with no parts recorded at all, and it
+                is one of about a hundred like that. Saying nothing here let the
+                "Edible" chip stand unqualified next to a poison warning. */}
+            {plant.edible && plant.edibleParts.length === 0 && (
+              <>
+                {" "}
+                This plant is marked edible but <b>no edible parts are recorded</b>, so nothing here
+                tells you which parts the warning is about.
+              </>
             )}{" "}
             Wording is Permapeople's; verify before eating or planting.
           </span>
@@ -100,6 +158,24 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         <ChipRow label="Growth" values={plant.growth ? [plant.growth] : []} />
         {zone && <ChipRow label="Hardiness" values={[`USDA ${zone}`]} />}
         {plant.height != null && <ChipRow label="Height" values={[`${plant.height} m`]} />}
+        {/* The three she can now search by. They belong on the page she searched
+            her way to — otherwise she narrows to "Attracts: Bees", taps a result,
+            and the page says nothing about bees. */}
+        <ChipRow
+          label="Bloom"
+          values={plant.bloomColor ? [plant.bloomColor] : []}
+          swatches
+          absent="Not recorded — USDA covers North-American species"
+        />
+        <ChipRow
+          label="Blooms"
+          values={plant.bloomPeriod ? [bloomPeriodLabel(plant.bloomPeriod)] : []}
+        />
+        <ChipRow
+          label="Flower visitors"
+          values={plant.attracts ?? []}
+          absent="No observations on record — which is not the same as none"
+        />
         <ChipRow label="Edible parts" values={plant.edibleParts} />
         <ChipRow label="Native to" values={plant.nativeTo.slice(0, 12)} />
       </section>

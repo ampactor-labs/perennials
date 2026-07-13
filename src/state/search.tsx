@@ -36,6 +36,9 @@ type SearchValue = {
   trail: Evaluation["trail"];
   /** How many plants have any value at all for each facet, so the UI can say so. */
   coverage: Record<string, number>;
+  /** How many results are revealed. Lives here so Back doesn't lose her place. */
+  limit: number;
+  showMore: () => void;
   zone: number | null;
   add: (a: Atom) => void;
   remove: (a: Atom) => void;
@@ -49,6 +52,9 @@ type SearchValue = {
 };
 
 const Ctx = createContext<SearchValue | null>(null);
+
+/** Results revealed per page, in the grid and in each guild layer. */
+export const PAGE = 48;
 
 export function SearchProvider({ children }: { children: ReactNode }) {
   const state = useDataState();
@@ -76,6 +82,21 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 
   // Depends only on the dataset, so it survives every constraint change.
   const coverage = useMemo(() => (data ? coverageOf(data.plants) : {}), [data]);
+
+  // How far she has scrolled into the results, kept up here so it survives the
+  // trip into a plant page and back. It used to live inside ResultGrid, which
+  // unmounts on navigation — so Back reset her to the first 48 of 300.
+  //
+  // The reset happens during render rather than in an effect. An effect fires
+  // after React has already mounted the new results against the stale limit, so
+  // a tap made 300 cards appear and then immediately unmounted 250 of them.
+  const [limit, setLimit] = useState(PAGE);
+  const [limitFor, setLimitFor] = useState<Plant[] | null>(null);
+  if (limitFor !== evaluation.results) {
+    setLimitFor(evaluation.results);
+    setLimit(PAGE);
+  }
+  const showMore = useCallback(() => setLimit((l) => l + PAGE), []);
 
   const add = useCallback((a: Atom) => setConstraints((c) => addAtom(c, a)), []);
   const remove = useCallback((a: Atom) => setConstraints((c) => removeAtom(c, a)), []);
@@ -105,6 +126,8 @@ export function SearchProvider({ children }: { children: ReactNode }) {
       counts: evaluation.counts,
       trail: evaluation.trail,
       coverage,
+      limit,
+      showMore,
       zone: zoneOf(constraints),
       add,
       remove,
@@ -117,7 +140,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
       clearAll,
     }),
     [
-      data, constraints, evaluation, coverage,
+      data, constraints, evaluation, coverage, limit, showMore,
       add, remove, removeAll, toggle, setText, setView, applySpot, clearAll,
     ],
   );

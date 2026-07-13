@@ -43,10 +43,22 @@ function DataGate({ children }: { children: ReactNode }) {
     );
   }
   if (state.status === "error") {
+    // The old copy printed the raw error ("Failed to fetch") and told her to
+    // reload — inside an installed PWA, which has no address bar and no reload
+    // button. And it said the same thing whether she was offline or the server
+    // was down, because nothing ever asked which.
+    const offline = !navigator.onLine;
     return (
       <div className="empty">
-        <h3>Couldn't load the plant data</h3>
-        <p>{state.error}. Check your connection and reload.</p>
+        <h2>{offline ? "No signal, and no guide saved yet" : "The plant data didn't load"}</h2>
+        <p>
+          {offline
+            ? "This phone hasn't finished downloading the guide. Open it once where there's signal and it will work in the garden from then on."
+            : "Nothing is wrong with your phone — the server didn't answer. Try again in a moment."}
+        </p>
+        <button className="btn btn--primary" onClick={() => location.reload()}>
+          Try again
+        </button>
       </div>
     );
   }

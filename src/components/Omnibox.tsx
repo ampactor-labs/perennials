@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSearch } from "@/state/search";
 import { buildLexicon, suggest, type Suggestion } from "@/lib/suggest";
 import { IconSearch, IconX } from "./icons";
+import { Thumb } from "./Thumb";
 
 // One input that speaks the whole grammar: type "wet shade" and get both
 // constraints; type "mulberry" and jump to the plant; Enter keeps free text.
@@ -180,7 +181,7 @@ export function Omnibox() {
                     onClick={() => pick(sug)}
                   >
                     <span className="omni-thumb">
-                      {p.thumb ? <img src={p.thumb} alt="" loading="lazy" /> : <span>✿</span>}
+                      <Thumb src={p.thumb} />
                     </span>
                     <span className="omni-label">
                       {p.name} <em className="binomial">{p.scientificName}</em>

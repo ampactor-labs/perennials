@@ -768,3 +768,10 @@
     padding-inline: var(--sp-1);
   }
 }
+
+/* Armed for deletion, awaiting a second tap. Deliberately not --danger: red in
+   this app means the plant can hurt you, and a saved spot is not a plant. */
+.spot-del.armed {
+  background: var(--ink);
+  color: var(--paper);
+}

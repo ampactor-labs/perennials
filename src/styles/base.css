@@ -145,11 +145,6 @@ a {
   border: 0;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-}
-
 .wrap {
   width: 100%;
   max-width: var(--maxw);

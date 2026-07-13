@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigationType } from "react-router-dom";
 import { useSearch } from "@/state/search";
 import { Omnibox } from "@/components/Omnibox";
 import { Trail } from "@/components/Trail";
@@ -45,18 +46,38 @@ function Starters() {
   );
 }
 
+// Where she was in the list when she tapped a plant. The browse page is a
+// singleton, so a module-level number is the whole mechanism.
+let savedScroll = 0;
+
 export function BrowsePage() {
   const s = useSearch();
   const [drawer, setDrawer] = useState(false);
+  const navigation = useNavigationType();
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const openedFrom = useRef<HTMLElement | null>(null);
+
+  // Put her back where she was when she came back. `limit` already survives in
+  // SearchProvider, so by the time this runs the list is as long as she left it.
+  useLayoutEffect(() => {
+    if (navigation === "POP" && savedScroll > 0) window.scrollTo(0, savedScroll);
+    return () => {
+      savedScroll = window.scrollY;
+    };
+  }, [navigation]);
 
   useEffect(() => {
     if (!drawer) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setDrawer(false);
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
+    // Move focus into the sheet, and hand it back to the button she opened it with.
+    openedFrom.current = document.activeElement as HTMLElement | null;
+    drawerRef.current?.focus();
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKey);
+      openedFrom.current?.focus();
     };
   }, [drawer]);
 
@@ -65,6 +86,7 @@ export function BrowsePage() {
   return (
     <div className="page wrap">
       <div className="browse-top">
+        <h1 className="sr-only">Find a plant by its conditions</h1>
         <Omnibox />
         <SpotBar />
         <Trail />
@@ -72,15 +94,17 @@ export function BrowsePage() {
       </div>
 
       <div className="filter-bar">
-        <span className="result-count">
+        <span className="result-count" aria-live="polite" aria-atomic="true">
           <b>{s.results.length.toLocaleString()}</b> of {s.total.toLocaleString()} plants
         </span>
         <span className="spacer" style={{ marginLeft: "auto" }} />
-        <div className="seg" role="tablist" aria-label="View">
-          <button role="tab" aria-selected={!guild} className={guild ? "" : "on"} onClick={() => s.setView("list")}>
+        {/* Not a tablist. role="tab" promises arrow-key navigation and a tabpanel,
+            neither of which exists here. These are two buttons, one of them on. */}
+        <div className="seg" role="group" aria-label="View">
+          <button aria-pressed={!guild} className={guild ? "" : "on"} onClick={() => s.setView("list")}>
             List
           </button>
-          <button role="tab" aria-selected={guild} className={guild ? "on" : ""} onClick={() => s.setView("guild")}>
+          <button aria-pressed={guild} className={guild ? "on" : ""} onClick={() => s.setView("guild")}>
             Guild
           </button>
         </div>
@@ -103,7 +127,14 @@ export function BrowsePage() {
       {drawer && (
         <>
           <div className="drawer-backdrop" onClick={() => setDrawer(false)} />
-          <div className="drawer" role="dialog" aria-modal="true" aria-label="Filters">
+          <div
+            className="drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filters"
+            ref={drawerRef}
+            tabIndex={-1}
+          >
             <div className="drawer-grip" />
             <div className="drawer-head">
               <h2>Filters</h2>

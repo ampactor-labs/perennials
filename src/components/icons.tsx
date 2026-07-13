@@ -1,5 +1,8 @@
 import type { SVGProps } from "react";
 
+// Every icon here is decorative — each one sits beside, or inside, a control that
+// already carries its own text or aria-label. Left exposed, a screen reader reads
+// out a stream of unnamed graphics.
 const base: SVGProps<SVGSVGElement> = {
   viewBox: "0 0 24 24",
   fill: "none",
@@ -7,6 +10,8 @@ const base: SVGProps<SVGSVGElement> = {
   strokeWidth: 1.7,
   strokeLinecap: "round",
   strokeLinejoin: "round",
+  "aria-hidden": true,
+  focusable: false,
 };
 
 export const IconSearch = (p: SVGProps<SVGSVGElement>) => (

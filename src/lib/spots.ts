@@ -102,3 +102,19 @@ export function hasSiteConditions(c: Constraints): boolean {
     (a) => a.kind === "zone" || (a.kind === "facet" && (SITE_KEYS as readonly string[]).includes(a.key)),
   );
 }
+
+/**
+ * The site conditions a save would actually keep, in her words — so the button
+ * can name them, and the parts it silently drops are visible before she commits.
+ */
+export function siteSummary(c: Constraints): string {
+  const words: string[] = [];
+  for (const key of SITE_KEYS) {
+    for (const a of c.atoms) {
+      if (a.kind === "facet" && a.key === key) words.push(a.value.toLowerCase());
+    }
+  }
+  const zone = c.atoms.find((a) => a.kind === "zone");
+  if (zone && zone.kind === "zone") words.push(`zone ${zone.zone}`);
+  return words.join(", ");
+}

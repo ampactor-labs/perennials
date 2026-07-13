@@ -31,7 +31,11 @@ export function deriveFacets(plants) {
 }
 
 export function deriveMeta(plants, updatedAt) {
-  const generatedAt = (updatedAt ? new Date(updatedAt) : new Date()).toISOString().slice(0, 10);
+  // No surrender fallback here. Defaulting to today would report the data as
+  // fresh forever, which is precisely the failure the app's stale notice exists
+  // to catch — and it would silence it. If we do not know when this was built,
+  // say we do not know.
+  const generatedAt = updatedAt ? new Date(updatedAt).toISOString().slice(0, 10) : null;
   return {
     count: plants.length,
     edibleCount: plants.filter((p) => p.edible).length,

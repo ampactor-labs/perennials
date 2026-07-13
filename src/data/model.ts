@@ -36,9 +36,14 @@ export type Plant = {
   /** Permapeople companion-planting links (plant ids), when known. */
   companions?: number[];
   /**
-   * Flower-visitor groups (Bees, Butterflies, Hoverflies…) derived from GloBI
-   * interaction records. Absent when nothing is known; genuinely empty for
-   * wind-pollinated plants like grasses and conifers.
+   * Flower-visitor groups (Bees, Butterflies, Hoverflies…) from GloBI's published
+   * interaction records.
+   *
+   * Absent means nobody has recorded a visitor — for about 4,900 of the 8,800
+   * plants. It does not mean nothing visits them. (An earlier note here promised
+   * that a present-but-empty array would distinguish "looked, found nothing" from
+   * "never looked", but no plant in the shipped data has one, so anything relying
+   * on that distinction was reading "unrecorded" as "no visitors".)
    */
   attracts?: string[];
   /**

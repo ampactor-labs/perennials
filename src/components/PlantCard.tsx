@@ -1,6 +1,7 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import type { Plant } from "@/data/model";
+import { Thumb } from "./Thumb";
 
 type Tag = { text: string; fn?: boolean };
 
@@ -52,24 +53,10 @@ function cautionText(p: Plant): string | null {
 
 export const PlantCard = memo(function PlantCard({ plant }: { plant: Plant }) {
   const warn = cautionText(plant);
-  // The ✿ box already reads as "no photo"; it just never got its chance, because
-  // it only rendered when the URL was missing from the data. Offline, or once the
-  // image cache has evicted a plant, the URL is there and the fetch is what fails.
-  const [failed, setFailed] = useState(false);
   return (
     <Link to={`/plant/${plant.slug}`} className="pcard">
       <div className="pcard-thumb">
-        {plant.thumb && !failed ? (
-          <img
-            src={plant.thumb}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <span className="pcard-noimg" aria-hidden="true">✿</span>
-        )}
+        <Thumb src={plant.thumb} fallbackClass="pcard-noimg" />
       </div>
       <div className="pcard-body">
         <div className="pcard-name">{plant.name}</div>

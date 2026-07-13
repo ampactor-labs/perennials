@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearch } from "@/state/search";
-import { hasSiteConditions, spotActive, useSpots } from "@/lib/spots";
+import { hasSiteConditions, siteSummary, spotActive, useSpots } from "@/lib/spots";
 import { IconX } from "./icons";
 
 // Her places. A spot pill applies that place's site conditions in one tap;
@@ -11,6 +11,7 @@ export function SpotBar() {
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
   const [editing, setEditing] = useState(false);
+  const [armed, setArmed] = useState<string | null>(null);
 
   const canSave = hasSiteConditions(s.constraints);
   if (spots.length === 0 && !canSave) return null;
@@ -23,8 +24,14 @@ export function SpotBar() {
     }
   }
 
+  // A spot only stores the site — light, water, soil, zone — because that is what
+  // makes it re-appliable next spring without dragging last spring's wishes along.
+  // But the button used to say "these conditions", and a gardener reads that as
+  // "this search". Name what it will actually keep.
+  const siteWords = siteSummary(s.constraints);
+
   return (
-    <div className="spotbar" aria-label="Saved spots">
+    <div className="spotbar" role="group" aria-label="Saved spots">
       <span className="spotbar-label">Spots</span>
       {spots.map((spot) => {
         const active = spotActive(s.constraints, spot);
@@ -33,12 +40,19 @@ export function SpotBar() {
             <button
               className={`spot${active ? " on" : ""}`}
               onClick={() => s.applySpot(spot)}
-              title={`Apply ${spot.name}`}
             >
               ⌂ {spot.name}
             </button>
             {editing && (
-              <button className="spot-del" onClick={() => remove(spot.id)} aria-label={`Delete ${spot.name}`}>
+              // Two taps. It writes straight to localStorage with no undo, and a
+              // spot is the only thing in this app she made herself.
+              <button
+                className={`spot-del${armed === spot.id ? " armed" : ""}`}
+                onClick={() => (armed === spot.id ? remove(spot.id) : setArmed(spot.id))}
+                aria-label={
+                  armed === spot.id ? `Delete ${spot.name} — tap again` : `Delete ${spot.name}`
+                }
+              >
                 <IconX width={12} height={12} />
               </button>
             )}
@@ -51,6 +65,7 @@ export function SpotBar() {
             <input
               autoFocus
               value={name}
+              aria-label="Name this spot"
               placeholder="Name this spot…"
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
@@ -64,11 +79,19 @@ export function SpotBar() {
           </span>
         ) : (
           <button className="spot spot--new" onClick={() => setNaming(true)}>
-            + Save these conditions
+            + Save this site{siteWords && ` (${siteWords})`}
           </button>
         ))}
       {spots.length > 0 && (
-        <button className="spot-edit" onClick={() => setEditing((e) => !e)}>
+        <button
+          className="spot-edit"
+          onClick={() =>
+            setEditing((e) => {
+              setArmed(null);
+              return !e;
+            })
+          }
+        >
           {editing ? "done" : "edit"}
         </button>
       )}

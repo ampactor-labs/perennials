@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Plant } from "@/data/model";
+import { PAGE, useSearch } from "@/state/search";
 import { PlantCard } from "./PlantCard";
+import { ResultGrid } from "./ResultGrid";
 
 // Results grouped as the forest garden stacks them, canopy down to root — so
 // "fill my guild" reads as: pick your site, then shop each layer.
@@ -49,9 +51,36 @@ function Spine({ layer }: { layer: string }) {
   );
 }
 
-function Section({ layer, plants }: { layer: string; plants: Plant[] }) {
-  const [all, setAll] = useState(false);
-  const shown = all ? plants : plants.slice(0, 6);
+const SEED = 6;
+
+/** Reveals SEED, then a page at a time. "Show all" used to mean exactly that —
+ *  one tap mounted 1,986 cards in a single commit and froze the tab. */
+function Deck({ plants }: { plants: Plant[] }) {
+  const [shown, setShown] = useState(SEED);
+  const visible = plants.slice(0, shown);
+  const left = plants.length - visible.length;
+  return (
+    <>
+      <div className="pgrid">
+        {visible.map((p) => (
+          <PlantCard key={p.slug} plant={p} />
+        ))}
+      </div>
+      {left > 0 && (
+        <button className="guild-more" onClick={() => setShown((n) => n + PAGE)}>
+          Show {Math.min(left, PAGE).toLocaleString()} more of {left.toLocaleString()}
+        </button>
+      )}
+      {shown > SEED && left === 0 && (
+        <button className="guild-more" onClick={() => setShown(SEED)}>
+          Show fewer
+        </button>
+      )}
+    </>
+  );
+}
+
+function Section({ layer, plants, inCatalog }: { layer: string; plants: Plant[]; inCatalog: number }) {
   return (
     <section className="guild-sec">
       <header className="guild-head">
@@ -60,46 +89,66 @@ function Section({ layer, plants }: { layer: string; plants: Plant[] }) {
         <span className="guild-n mono">{plants.length.toLocaleString()}</span>
       </header>
       {plants.length === 0 ? (
-        <p className="guild-empty">Nothing in this layer fits — loosen a constraint to fill it.</p>
+        // Two very different silences, and they used to sound the same. Ground
+        // cover is recorded for 8 plants in the whole catalogue and Roots for 28,
+        // so telling her to loosen a constraint sent her hunting for something no
+        // constraint was hiding.
+        inCatalog <= SEED_FLOOR ? (
+          <p className="guild-empty">
+            Only {inCatalog.toLocaleString()} plant{inCatalog === 1 ? "" : "s"} in the whole guide
+            have a recorded {layer.toLowerCase()} layer. This gap is in the data, not in your search.
+          </p>
+        ) : (
+          <p className="guild-empty">Nothing in this layer fits — take a step off the trail to fill it.</p>
+        )
       ) : (
-        <>
-          <div className="pgrid">
-            {shown.map((p) => (
-              <PlantCard key={p.slug} plant={p} />
-            ))}
-          </div>
-          {plants.length > 6 && (
-            <button className="guild-more" onClick={() => setAll((a) => !a)}>
-              {all ? "Show fewer" : `Show all ${plants.length.toLocaleString()}`}
-            </button>
-          )}
-        </>
+        <Deck plants={plants} />
       )}
     </section>
   );
 }
 
+/** Below this, an empty layer is the catalogue's silence rather than her filters'. */
+const SEED_FLOOR = 50;
+
 export function GuildView({ results }: { results: Plant[] }) {
+  const s = useSearch();
   const byLayer = new Map<string, Plant[]>(LAYER_ORDER.map((l) => [l, []]));
   const unplaced: Plant[] = [];
   for (const p of results) {
     if (p.layer && byLayer.has(p.layer)) byLayer.get(p.layer)!.push(p);
     else unplaced.push(p);
   }
+
+  // How many plants carry each layer in the entire catalogue, regardless of what
+  // she has asked for — the number that tells an empty section which kind it is.
+  const inCatalog = new Map<string, number>(
+    (s.data?.facets.layer ?? []).map((v) => [v.value, v.count]),
+  );
+
+  if (results.length === 0) return <ResultGrid results={results} />;
+
   return (
     <div className="guild">
       {LAYER_ORDER.map((layer) => (
-        <Section key={layer} layer={layer} plants={byLayer.get(layer)!} />
+        <Section
+          key={layer}
+          layer={layer}
+          plants={byLayer.get(layer)!}
+          inCatalog={inCatalog.get(layer) ?? 0}
+        />
       ))}
       {unplaced.length > 0 && (
         <details className="guild-unplaced">
           <summary>
             No layer recorded <span className="mono">{unplaced.length.toLocaleString()}</span>
           </summary>
-          <div className="pgrid" style={{ marginTop: "var(--sp-3)" }}>
-            {unplaced.slice(0, 24).map((p) => (
-              <PlantCard key={p.slug} plant={p} />
-            ))}
+          <div style={{ marginTop: "var(--sp-3)" }}>
+            <p className="guild-empty" style={{ marginBottom: "var(--sp-3)" }}>
+              Nobody has recorded which layer these grow in. They are still in your results — the
+              List view shows every one of them.
+            </p>
+            <Deck plants={unplaced} />
           </div>
         </details>
       )}
