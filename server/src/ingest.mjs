@@ -9,6 +9,7 @@ import {
   existingAttracts, plantsNeedingAttracts, setAttracts,
   existingBloom, plantsNeedingBloom, setBloom,
   plantsNeedingCompanions, setCompanions,
+  existingRecheckedAt, stalestPlants, markRechecked,
 } from "./db.mjs";
 import { hasCredentials, pullAll } from "./permapeople.mjs";
 import { rawToPlants } from "./transform.mjs";
@@ -23,6 +24,7 @@ export async function refreshFromSource() {
   const companions = await existingCompanions();
   const attracts = await existingAttracts();
   const bloom = await existingBloom();
+  const recheckedAt = await existingRecheckedAt();
   const plants = rawToPlants(raw, companions);
 
   // Trust gate. replaceAll TRUNCATEs before inserting, so a short pull (upstream
@@ -41,6 +43,7 @@ export async function refreshFromSource() {
   for (const p of plants) {
     // A plant already swept for companions stays swept, even if it has none.
     if (companions[p.id] !== undefined) p.companionsChecked = true;
+    if (recheckedAt[p.id]) p.recheckedAt = recheckedAt[p.id];
     const groups = attracts[p.id];
     if (groups) p.attracts = groups;
     const b = bloom[p.id];
@@ -94,6 +97,34 @@ export async function enrichAll({ onProgress } = {}) {
   const bloom = await enrichBloom({ onProgress: log("bloom") });
   const companions = await enrichCompanions({ onProgress: log("companions") });
   return { attracts, bloom, companions };
+}
+
+/**
+ * Re-verify enrichment on the few stalest plants. Run hourly, this cycles the
+ * whole dataset in roughly ten weeks: a trickle, not a quarterly flood at a small
+ * academic service. It also quietly heals plants whose lookups once failed, and
+ * picks up coverage that GloBI has ingested since we last asked.
+ */
+export async function recheckStalest(n = 5) {
+  const todo = await stalestPlants(n);
+  for (const p of todo) {
+    try {
+      await setAttracts(p.id, await attractsFor(p.scientificName));
+    } catch { /* leave the previous answer standing */ }
+    try {
+      const b = await bloomFor(p.scientificName);
+      await setBloom(p.id, b.color, b.period);
+    } catch { /* ditto */ }
+    if (hasCredentials()) {
+      try {
+        await setCompanions(p.id, await companionsFor(p.id));
+      } catch { /* ditto */ }
+    }
+    // Stamp even when a lookup failed. Otherwise a permanently broken plant stays
+    // "stalest" forever and wedges the rotation on itself.
+    await markRechecked(p.id);
+  }
+  return { rechecked: todo.length };
 }
 
 /** Flower colour and bloom period from USDA, for every plant not yet checked. */

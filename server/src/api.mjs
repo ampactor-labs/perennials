@@ -7,10 +7,10 @@ import http from "node:http";
 import crypto from "node:crypto";
 import {
   ensureSchema, countPlants, allPlants, maxUpdatedAt,
-  attractsProgress, bloomProgress, companionsProgress,
+  attractsProgress, bloomProgress, companionsProgress, recheckProgress,
 } from "./db.mjs";
 import { deriveFacets, deriveMeta } from "./facets.mjs";
-import { ingest, refreshFromSource, enrichAll } from "./ingest.mjs";
+import { ingest, refreshFromSource, enrichAll, recheckStalest } from "./ingest.mjs";
 import { hasCredentials } from "./permapeople.mjs";
 
 const PORT = process.env.PORT || 3000;
@@ -70,6 +70,7 @@ const server = http.createServer(async (req, res) => {
         attracts: await attractsProgress().catch(() => null),   // GloBI
         bloom: await bloomProgress().catch(() => null),         // USDA
         companions: await companionsProgress().catch(() => null), // Permapeople
+        recheck: await recheckProgress().catch(() => null),     // rolling re-verify
       }));
     }
 
@@ -122,6 +123,20 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Nudge the rolling re-check by hand. It runs hourly on its own; this exists
+    // so the rotation can be proven to work without waiting an hour for it.
+    if (pathname === "/admin/recheck" && req.method === "POST") {
+      if (!ADMIN_TOKEN || req.headers.authorization !== `Bearer ${ADMIN_TOKEN}`) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "forbidden" }));
+      }
+      const n = Number(new URL(req.url, "http://localhost").searchParams.get("n")) || 5;
+      const result = await recheckStalest(n);
+      await rebuildCache();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(result));
+    }
+
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
   } catch (e) {
@@ -134,6 +149,10 @@ const server = http.createServer(async (req, res) => {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const STALE_AFTER_DAYS = 7;
+// A trickle, not a flood. 5 plants an hour cycles all 8,800 in about ten weeks,
+// which keeps every enrichment layer current without ever hitting a small
+// academic service with tens of thousands of calls in one afternoon.
+const RECHECK_PER_HOUR = 5;
 
 let refreshing = false;
 
@@ -181,10 +200,16 @@ async function boot() {
   });
 
   refreshIfStale("boot").catch((e) => console.error("boot refresh failed:", e.message));
-  setInterval(() => {
-    refreshIfStale("hourly check").catch((e) =>
-      console.error("scheduled refresh failed:", e.message),
-    );
+
+  setInterval(async () => {
+    try {
+      await refreshIfStale("hourly check");
+      if (refreshing) return; // a full refresh is already doing the work
+      const { rechecked } = await recheckStalest(RECHECK_PER_HOUR);
+      if (rechecked) await rebuildCache();
+    } catch (e) {
+      console.error("hourly tick failed:", e.message);
+    }
   }, HOUR_MS);
 }
 

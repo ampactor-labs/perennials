@@ -83,6 +83,30 @@ export async function ensureSchema() {
     `UPDATE plants SET companions_checked = true
        WHERE NOT EXISTS (SELECT 1 FROM plants WHERE companions_checked);`,
   );
+  // When each plant's enrichment was last re-verified. Drives the rolling
+  // re-check: a few plants an hour, so the whole dataset cycles in ~10 weeks
+  // without ever hammering a small upstream service in a burst.
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS rechecked_at timestamptz;`);
+}
+
+/** The plants whose enrichment is stalest. Never-rechecked ones come first. */
+export async function stalestPlants(limit = 5) {
+  const { rows } = await pool.query(
+    "SELECT id, scientific_name FROM plants ORDER BY rechecked_at NULLS FIRST, score DESC LIMIT $1",
+    [limit],
+  );
+  return rows.map((r) => ({ id: r.id, scientificName: r.scientific_name }));
+}
+
+export async function markRechecked(id) {
+  await pool.query("UPDATE plants SET rechecked_at = now() WHERE id = $1", [id]);
+}
+
+export async function recheckProgress() {
+  const { rows } = await pool.query(
+    "SELECT count(*)::int AS total, count(rechecked_at)::int AS done, min(rechecked_at) AS oldest FROM plants",
+  );
+  return rows[0];
 }
 
 export async function plantsNeedingCompanions(limit = 20000) {
@@ -125,10 +149,21 @@ export async function setBloom(id, color, period) {
 // Prior bloom data, so a source refresh (which carries none) keeps it.
 export async function existingBloom() {
   const { rows } = await pool.query(
-    "SELECT id, bloom_color, bloom_period, bloom_checked FROM plants WHERE bloom_checked = true",
+    "SELECT id, bloom_color, bloom_period FROM plants WHERE bloom_checked = true",
   );
   const map = {};
   for (const r of rows) map[r.id] = { color: r.bloom_color, period: r.bloom_period };
+  return map;
+}
+
+// A source refresh truncates, so the re-check clock has to survive it too or the
+// whole dataset would look never-rechecked and re-sweep itself every week.
+export async function existingRecheckedAt() {
+  const { rows } = await pool.query(
+    "SELECT id, rechecked_at FROM plants WHERE rechecked_at IS NOT NULL",
+  );
+  const map = {};
+  for (const r of rows) map[r.id] = r.rechecked_at;
   return map;
 }
 
@@ -194,7 +229,7 @@ const COLS = [
   "light", "water", "soil", "layer", "life_cycle", "growth", "edible", "edible_parts",
   "functions", "medicinal", "hardiness_min", "hardiness_max", "native_to", "warnings",
   "height", "links", "companions", "companions_checked", "attracts",
-  "bloom_color", "bloom_period", "bloom_checked", "cautions", "score",
+  "bloom_color", "bloom_period", "bloom_checked", "cautions", "rechecked_at", "score",
 ];
 
 function toRow(p) {
@@ -207,7 +242,7 @@ function toRow(p) {
     Boolean(p.companionsChecked),
     p.attracts ?? null,
     p.bloomColor ?? null, p.bloomPeriod ?? null, Boolean(p.bloomChecked),
-    p.cautions ?? null, p.score ?? 0,
+    p.cautions ?? null, p.recheckedAt ?? null, p.score ?? 0,
   ];
 }
 
