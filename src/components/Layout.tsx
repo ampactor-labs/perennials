@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTheme } from "@/lib/settings";
 import { useDataState } from "@/data/store";
-import { IconBook, IconGuide, IconMoon, IconSun } from "./icons";
+import { IconAlert, IconBook, IconGuide, IconMoon, IconSun } from "./icons";
 
 function BrandMark() {
   return (
@@ -53,6 +53,35 @@ function DataGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// The dataset re-pulls itself every 7 days. If it hasn't in twice that, something
+// upstream is stuck — and nobody would otherwise find out, because the app keeps
+// serving the last good data quietly, forever. So say so, and only then. Silence
+// is the healthy state.
+const STALE_AFTER_DAYS = 14;
+const DAY_MS = 86_400_000;
+
+function StaleNotice() {
+  const state = useDataState();
+  if (state.status !== "ready") return null;
+  const { generatedAt } = state.data.meta;
+  if (!generatedAt) return null;
+
+  const days = Math.floor((Date.now() - new Date(generatedAt).getTime()) / DAY_MS);
+  if (!Number.isFinite(days) || days < STALE_AFTER_DAYS) return null;
+
+  return (
+    <div className="wrap">
+      <div className="callout callout--warn" style={{ marginTop: "var(--sp-3)" }}>
+        <IconAlert />
+        <span>
+          This plant data was last updated <b>{days} days ago</b>. It normally refreshes itself
+          every week, so something upstream is stuck. What you're seeing is still real, just old.
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const TABS = [
   { to: "/", label: "Guide", icon: IconGuide, end: true },
   { to: "/about", label: "Field notes", icon: IconBook, end: false },
@@ -65,7 +94,7 @@ export function Layout() {
         <NavLink to="/" className="brand">
           <BrandMark />
           <span className="brand-name">
-            Perr<b>·</b>enials
+            Per<b>·</b>ennials
           </span>
         </NavLink>
         <ThemeToggle />
@@ -73,6 +102,7 @@ export function Layout() {
 
       <main>
         <DataGate>
+          <StaleNotice />
           <Outlet />
         </DataGate>
       </main>
