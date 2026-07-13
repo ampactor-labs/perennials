@@ -10,13 +10,26 @@
   --paper-sunk: #dcd8c6;
   --ink: #23291f;
   --ink-soft: #4b5142;
-  --ink-faint: #797b68;
+  /* 5.20:1 on paper. The old #797b68 measured 3.39:1 and it coloured every live
+     facet count — the number the whole search is steered by, set at 11.5px, read
+     on a phone in daylight. The quiet tier stays quiet; it just stops vanishing. */
+  --ink-faint: #5c5e4c;
   --line: #cac6b0;
   --line-strong: #b1ac92;
+  /* Hairlines can be faint; the edge of a *control* cannot. 3.15:1 on paper,
+     3.46:1 on raised — WCAG 1.4.11. Used only where something is tappable. */
+  --line-control: #847f69;
   --green: #33503a;
   --green-bright: #4f7a44;
+  /* Ink laid on a green chip. It has to invert with the theme: --green flips from
+     a dark forest to a light sage, and a fixed cream on top of the sage measured
+     2.40:1 (1.83:1 pressed) on the one button that ends every filtering session. */
+  --on-green: #f4f1e4;
   --sepia: #6f5f45;
   --danger: #9a3b34;
+
+  /* The floor for anything a gloved thumb has to hit. */
+  --tap: 2.75rem;
 
   --font-display: "Iowan Old Style", "Palatino Linotype", Palatino,
     "Book Antiqua", Georgia, serif;
@@ -57,17 +70,22 @@
   color-scheme: light;
 }
 
+/* The dark palette lives in two blocks because CSS cannot share one selector
+   across a media query. They must stay identical — a token added to only one of
+   them is a bug that light-mode testing cannot see. */
 :root[data-theme="dark"] {
   --paper: #171b14;
   --paper-raised: #1f2519;
   --paper-sunk: #10130d;
   --ink: #e7e2d0;
   --ink-soft: #b6b3a0;
-  --ink-faint: #86846f;
+  --ink-faint: #9a9781;
   --line: #333a2b;
   --line-strong: #454c39;
+  --line-control: #6d7359;
   --green: #7fa86c;
   --green-bright: #97c079;
+  --on-green: #171b14;
   --sepia: #b39c74;
   --danger: #d98079;
 
@@ -84,11 +102,13 @@
     --paper-sunk: #10130d;
     --ink: #e7e2d0;
     --ink-soft: #b6b3a0;
-    --ink-faint: #86846f;
+    --ink-faint: #9a9781;
     --line: #333a2b;
     --line-strong: #454c39;
+    --line-control: #6d7359;
     --green: #7fa86c;
     --green-bright: #97c079;
+    --on-green: #171b14;
     --sepia: #b39c74;
     --danger: #d98079;
 

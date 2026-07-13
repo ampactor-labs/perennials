@@ -1,12 +1,19 @@
+import { memo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Plant } from "@/data/model";
 
-function topTags(p: Plant): string[] {
-  const tags: string[] = [];
-  if (p.layer) tags.push(p.layer);
-  if (p.lifeCycle) tags.push(p.lifeCycle);
-  if (p.edible) tags.push("Edible");
-  for (const f of p.functions.slice(0, 2)) tags.push(f);
+type Tag = { text: string; fn?: boolean };
+
+// tokens.css: "saturated color only ever encodes plant data (bloom swatches,
+// function tags)". `.ptag--fn` was written for exactly this and then only ever
+// used on the detail page, so on the grid she scans at arm's length "Nitrogen
+// fixer" — the reason you plant the thing — looked identical to "Perennial".
+function topTags(p: Plant): Tag[] {
+  const tags: Tag[] = [];
+  if (p.layer) tags.push({ text: p.layer });
+  if (p.lifeCycle) tags.push({ text: p.lifeCycle });
+  if (p.edible) tags.push({ text: "Edible" });
+  for (const f of p.functions.slice(0, 2)) tags.push({ text: f, fn: true });
   return tags.slice(0, 4);
 }
 
@@ -43,13 +50,23 @@ function cautionText(p: Plant): string | null {
   return rest > 0 ? `${text} +${rest}` : text;
 }
 
-export function PlantCard({ plant }: { plant: Plant }) {
+export const PlantCard = memo(function PlantCard({ plant }: { plant: Plant }) {
   const warn = cautionText(plant);
+  // The ✿ box already reads as "no photo"; it just never got its chance, because
+  // it only rendered when the URL was missing from the data. Offline, or once the
+  // image cache has evicted a plant, the URL is there and the fetch is what fails.
+  const [failed, setFailed] = useState(false);
   return (
     <Link to={`/plant/${plant.slug}`} className="pcard">
       <div className="pcard-thumb">
-        {plant.thumb ? (
-          <img src={plant.thumb} alt="" loading="lazy" decoding="async" />
+        {plant.thumb && !failed ? (
+          <img
+            src={plant.thumb}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+          />
         ) : (
           <span className="pcard-noimg" aria-hidden="true">✿</span>
         )}
@@ -59,8 +76,8 @@ export function PlantCard({ plant }: { plant: Plant }) {
         <div className="pcard-sci binomial">{plant.scientificName}</div>
         <div className="pcard-tags">
           {topTags(plant).map((t) => (
-            <span key={t} className="ptag">
-              {t}
+            <span key={t.text} className={t.fn ? "ptag ptag--fn" : "ptag"}>
+              {t.text}
             </span>
           ))}
           {warn && <span className="ptag ptag--warn">{warn}</span>}
@@ -68,4 +85,4 @@ export function PlantCard({ plant }: { plant: Plant }) {
       </div>
     </Link>
   );
-}
+});

@@ -23,7 +23,7 @@ import {
   type Atom,
   type Constraints,
 } from "@/lib/constraints";
-import { evaluate, type Evaluation } from "@/lib/query";
+import { coverageOf, evaluate, type Evaluation } from "@/lib/query";
 import { applySpot as applySpotTo, type Spot } from "@/lib/spots";
 
 type SearchValue = {
@@ -34,9 +34,12 @@ type SearchValue = {
   results: Plant[];
   counts: Evaluation["counts"];
   trail: Evaluation["trail"];
+  /** How many plants have any value at all for each facet, so the UI can say so. */
+  coverage: Record<string, number>;
   zone: number | null;
   add: (a: Atom) => void;
   remove: (a: Atom) => void;
+  removeAll: (a: Atom[]) => void;
   toggle: (a: Atom) => void;
   has: (a: Atom) => boolean;
   setText: (t: string) => void;
@@ -71,8 +74,15 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     [data, constraints],
   );
 
+  // Depends only on the dataset, so it survives every constraint change.
+  const coverage = useMemo(() => (data ? coverageOf(data.plants) : {}), [data]);
+
   const add = useCallback((a: Atom) => setConstraints((c) => addAtom(c, a)), []);
   const remove = useCallback((a: Atom) => setConstraints((c) => removeAtom(c, a)), []);
+  const removeAll = useCallback(
+    (as: Atom[]) => setConstraints((c) => as.reduce(removeAtom, c)),
+    [],
+  );
   const toggle = useCallback((a: Atom) => setConstraints((c) => toggleAtom(c, a)), []);
   const setText = useCallback((text: string) => setConstraints((c) => ({ ...c, text })), []);
   const setView = useCallback((view: "list" | "guild") => setConstraints((c) => ({ ...c, view })), []);
@@ -82,24 +92,35 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const value: SearchValue = {
-    ready: !!data,
-    data,
-    total: data?.plants.length ?? 0,
-    constraints,
-    results: evaluation.results,
-    counts: evaluation.counts,
-    trail: evaluation.trail,
-    zone: zoneOf(constraints),
-    add,
-    remove,
-    toggle,
-    has: (a) => hasAtom(constraints, a),
-    setText,
-    setView,
-    applySpot,
-    clearAll,
-  };
+  // A fresh object literal here re-rendered every useSearch() consumer on every
+  // render of this provider — and the URL-sync effect above makes that twice per
+  // constraint change.
+  const value = useMemo<SearchValue>(
+    () => ({
+      ready: !!data,
+      data,
+      total: data?.plants.length ?? 0,
+      constraints,
+      results: evaluation.results,
+      counts: evaluation.counts,
+      trail: evaluation.trail,
+      coverage,
+      zone: zoneOf(constraints),
+      add,
+      remove,
+      removeAll,
+      toggle,
+      has: (a) => hasAtom(constraints, a),
+      setText,
+      setView,
+      applySpot,
+      clearAll,
+    }),
+    [
+      data, constraints, evaluation, coverage,
+      add, remove, removeAll, toggle, setText, setView, applySpot, clearAll,
+    ],
+  );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

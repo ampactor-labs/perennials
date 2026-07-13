@@ -24,7 +24,9 @@ body {
   overflow-x: hidden;
 }
 
-/* Faint herbarium-paper tooth so the background reads as a sheet, not a fill. */
+/* Faint herbarium-paper tooth so the background reads as a sheet, not a fill.
+   Mixed from the tokens rather than hardcoded, or the dark sheet stays lit by
+   light-mode pigment — the same bug class as the on-green literal. */
 body::before {
   content: "";
   position: fixed;
@@ -34,10 +36,14 @@ body::before {
   opacity: 0.5;
   background-image: radial-gradient(
       circle at 20% 30%,
-      rgba(111, 95, 69, 0.05) 0,
+      color-mix(in srgb, var(--sepia) 5%, transparent) 0,
       transparent 45%
     ),
-    radial-gradient(circle at 80% 70%, rgba(51, 80, 58, 0.05) 0, transparent 45%);
+    radial-gradient(
+      circle at 80% 70%,
+      color-mix(in srgb, var(--green) 5%, transparent) 0,
+      transparent 45%
+    );
 }
 
 h1,
@@ -62,6 +68,16 @@ button {
   cursor: pointer;
   background: none;
   border: none;
+  /* The grey flash Android paints over a tap; we draw our own below. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A press moment. There was none: every feedback cue in this app was a :hover
+   rule, and hover does not exist on a phone, so a gloved tap landed with no
+   confirmation that it had landed at all. */
+button:active,
+a:active {
+  opacity: 0.72;
 }
 
 input,

@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useSearch } from "@/state/search";
 import { FACETS, type FacetMeta } from "@/lib/query";
 import { facetsOf } from "@/lib/constraints";
+import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 
 const ZONES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 function FacetSection({ facet }: { facet: FacetMeta }) {
   const s = useSearch();
+  const covered = s.coverage[facet.key];
   const [q, setQ] = useState("");
   const counts = s.counts[facet.key] ?? new Map<string, number>();
   const selected = facetsOf(s.constraints)[facet.key] ?? [];
@@ -34,9 +36,18 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
         {selected.length > 0 && <span className="facet-sec-badge">{selected.length}</span>}
       </summary>
       {facet.note && <p className="facet-sec-note">{facet.note}</p>}
+      {/* Filtering excludes any plant with no value, so a partial field quietly
+          turns "never recorded" into "doesn't have it". Print the coverage. */}
+      {covered !== undefined && covered < s.total && (
+        <p className="facet-sec-note">
+          Recorded for <b>{covered.toLocaleString()}</b> of {s.total.toLocaleString()} plants. The
+          rest were never checked, which is not the same as no.
+        </p>
+      )}
       {facet.searchable && (
         <input
           className="facet-search"
+          aria-label={`Filter ${facet.label.toLowerCase()}`}
           placeholder={`Filter ${facet.label.toLowerCase()}…`}
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -45,6 +56,8 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
       <div className="facet-opts">
         {visible.map(([value, n]) => {
           const on = selected.includes(value);
+          const hex = facet.key === "bloomColor" ? BLOOM_HEX[value] : undefined;
+          const label = facet.key === "bloomPeriod" ? bloomPeriodLabel(value) : value;
           return (
             <button
               key={value}
@@ -52,7 +65,10 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
               aria-pressed={on}
               onClick={() => s.toggle({ kind: "facet", key: facet.key, value })}
             >
-              <span className="fopt-val">{value}</span>
+              {hex && (
+                <span className="swatch" style={{ background: hex }} aria-hidden="true" />
+              )}
+              <span className="fopt-val">{label}</span>
               <span className="fopt-n">{n.toLocaleString()}</span>
             </button>
           );
@@ -69,6 +85,7 @@ export function FacetRail() {
   const s = useSearch();
   const site = FACETS.filter((f) => f.group === "site");
   const intent = FACETS.filter((f) => f.group === "intent");
+  const caution = FACETS.filter((f) => f.group === "caution");
   return (
     <div className="facets">
       <div className="facet-quick">
@@ -105,6 +122,10 @@ export function FacetRail() {
       ))}
       <div className="facet-group-label">The ask — what you want</div>
       {intent.map((f) => (
+        <FacetSection key={f.key} facet={f} />
+      ))}
+      <div className="facet-group-label">Cautions — what to watch for</div>
+      {caution.map((f) => (
         <FacetSection key={f.key} facet={f} />
       ))}
     </div>

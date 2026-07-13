@@ -2,6 +2,8 @@
 // the collapse trail renders, and it round-trips through the URL so any
 // constraint set is a shareable link.
 
+import { bloomPeriodLabel } from "./bloom";
+
 export type Atom =
   | { kind: "facet"; key: string; value: string }
   | { kind: "zone"; zone: number }
@@ -22,7 +24,10 @@ export function atomId(a: Atom): string {
 }
 
 export function atomLabel(a: Atom): { key: string; value: string } {
-  if (a.kind === "facet") return { key: FACET_LABEL[a.key] ?? a.key, value: a.value };
+  if (a.kind === "facet") {
+    const value = a.key === "bloomPeriod" ? bloomPeriodLabel(a.value) : a.value;
+    return { key: FACET_LABEL[a.key] ?? a.key, value };
+  }
   if (a.kind === "zone") return { key: "Hardy in", value: `zone ${a.zone}` };
   return { key: "", value: "Edible" };
 }

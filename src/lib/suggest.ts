@@ -1,11 +1,13 @@
 import type { Dataset } from "@/data/store";
 import type { Plant } from "@/data/model";
-import type { Atom } from "./constraints";
-import { FACET_LABEL } from "./constraints";
+import type { Atom, Constraints } from "./constraints";
+import { atomId, hasAtom, FACET_LABEL } from "./constraints";
+import { countWith } from "./query";
 
 export type ConstraintSuggestion = {
   type: "constraint";
-  atom: Atom;
+  /** More than one when a phrase resolves across facets: "wet shade" → both. */
+  atoms: Atom[];
   label: string;
   group: string;
   count: number;
@@ -106,38 +108,8 @@ export function buildLexicon(data: Dataset): Entry[] {
 
 const ZONE_RE = /^(?:z|zone)\s*(\d{1,2})$|^(\d{1,2})$/;
 
-export function suggest(
-  data: Dataset,
-  lexicon: Entry[],
-  input: string,
-  max = 7,
-): Suggestion[] {
-  const q = input.trim().toLowerCase();
-  const out: ConstraintSuggestion[] = [];
-
-  if (!q) return [];
-
-  // Zone: "zone 6", "z6", or a bare small number.
-  const zm = q.match(ZONE_RE);
-  if (zm) {
-    const z = Number(zm[1] ?? zm[2]);
-    if (z >= 1 && z <= 13) {
-      const count = data.plants.reduce(
-        (n, p) => n + (p.hardiness && p.hardiness.min <= z && z <= p.hardiness.max ? 1 : 0),
-        0,
-      );
-      out.push({
-        type: "constraint",
-        atom: { kind: "zone", zone: z },
-        label: `Hardy in zone ${z}`,
-        group: "Hardiness",
-        count,
-      });
-    }
-  }
-
-  // Constraint entries: score by how the query hits label/tokens, weight by
-  // how many plants the value reaches (log-ish, so big facets don't drown).
+/** Best lexicon hits for one word or phrase, strongest first. */
+function score(lexicon: Entry[], q: string): Entry[] {
   const scored: [number, Entry][] = [];
   for (const e of lexicon) {
     const label = e.label.toLowerCase();
@@ -148,18 +120,105 @@ export function suggest(
     if (s > 0) scored.push([s * 10 + Math.min(Math.log10(e.count + 1), 4), e]);
   }
   scored.sort((a, b) => b[0] - a[0]);
-  for (const [, e] of scored) {
-    if (out.length >= max) break;
-    out.push({ type: "constraint", atom: e.atom, label: e.label, group: e.group, count: e.count });
+  return scored.map(([, e]) => e);
+}
+
+export type SuggestContext = {
+  constraints: Constraints;
+  /** The live, constraint-aware counts from the current evaluation. */
+  counts: Record<string, Map<string, number>>;
+};
+
+/**
+ * What the omnibox offers, and how many plants each offer would actually reach.
+ *
+ * Two things this gets right that it previously didn't.
+ *
+ * It splits on whitespace. The whole input used to be matched as one string
+ * against one label at a time, so "wet shade" — the app's own placeholder, and
+ * the first thing anybody types — matched no facet value and produced nothing.
+ * The phrase is tried whole first (plenty of real values are two words: "Full
+ * shade", "Nitrogen fixer"), then word by word, and when the words land on
+ * different facets they are also offered together as one tap.
+ *
+ * And the counts are the live ones. They used to come from the whole-catalog
+ * lexicon while the facet rail showed constraint-aware numbers, so with Water:
+ * Wet applied the omnibox offered "Full shade — 576" and tapping it gave 58.
+ * The same number, in the same slot, meaning two different things. A suggestion
+ * that would reach nothing is now dropped outright rather than offered as a
+ * dead end.
+ */
+export function suggest(
+  data: Dataset,
+  lexicon: Entry[],
+  input: string,
+  ctx: SuggestContext,
+  max = 7,
+): Suggestion[] {
+  const q = input.trim().toLowerCase();
+  if (!q) return [];
+
+  const reach = (a: Atom): number => {
+    if (a.kind === "facet") return ctx.counts[a.key]?.get(a.value) ?? 0;
+    return countWith(data, ctx.constraints, [a]);
+  };
+
+  const out: ConstraintSuggestion[] = [];
+  const seen = new Set<string>();
+  const offer = (atoms: Atom[], label: string, group: string) => {
+    const id = atoms.map(atomId).sort().join("|");
+    if (seen.has(id) || out.length >= max) return;
+    if (atoms.every((a) => hasAtom(ctx.constraints, a))) return;
+    const count = atoms.length === 1 ? reach(atoms[0]) : countWith(data, ctx.constraints, atoms);
+    if (count === 0) return; // a dead end is not a suggestion
+    seen.add(id);
+    out.push({ type: "constraint", atoms, label, group, count });
+  };
+
+  // Zone: "zone 6", "z6", or a bare small number.
+  const zm = q.match(ZONE_RE);
+  if (zm) {
+    const z = Number(zm[1] ?? zm[2]);
+    if (z >= 1 && z <= 13) offer([{ kind: "zone", zone: z }], `Hardy in zone ${z}`, "Hardiness");
   }
 
-  // Top plant-name matches ride along beneath the constraints.
-  const plants: PlantSuggestion[] = data.index
-    .search(input, { prefix: true, fuzzy: 0.15 })
-    .slice(0, 4)
-    .map((r) => data.bySlug.get(r.slug as string))
-    .filter((p): p is Plant => !!p)
-    .map((plant) => ({ type: "plant", plant }));
+  const words = q.split(/\s+/).filter(Boolean);
+
+  // The phrase as she typed it.
+  const whole = score(lexicon, q);
+
+  // Then each word on its own, so a phrase that no single value spells still lands.
+  const perWord = words.length > 1 ? words.map((w) => score(lexicon, w)[0]).filter(Boolean) : [];
+
+  // Two words, two different facets: offer the conjunction the placeholder promises.
+  const distinct = perWord.filter(
+    (e, i, all) =>
+      e.atom.kind === "facet" &&
+      all.findIndex((o) => o.atom.kind === "facet" && o.atom.key === (e.atom as { key: string }).key) === i,
+  );
+  if (whole.length === 0 && distinct.length > 1) {
+    offer(
+      distinct.map((e) => e.atom),
+      distinct.map((e) => e.label).join(" + "),
+      "Both",
+    );
+  }
+
+  for (const e of whole) offer([e.atom], e.label, e.group);
+  for (const e of perWord) offer([e.atom], e.label, e.group);
+
+  // Plant names ride along beneath. AND across terms, so a two-word phrase that
+  // names no plant returns nothing instead of fuzzy-matching a typo in a binomial
+  // — which is how "wet shade" used to surface Ribes petiolare, "Wetern blackcurrant".
+  const plants: PlantSuggestion[] =
+    q.length < 2
+      ? []
+      : data.index
+          .search(input, { prefix: true, fuzzy: 0.15, combineWith: "AND" })
+          .slice(0, 4)
+          .map((r) => data.bySlug.get(r.slug as string))
+          .filter((p): p is Plant => !!p)
+          .map((plant) => ({ type: "plant", plant }));
 
   return [...out, ...plants];
 }

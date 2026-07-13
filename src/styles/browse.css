@@ -27,7 +27,7 @@
 .fq-row select {
   margin-left: auto;
   height: 2rem;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r);
   background: var(--paper-raised);
   font-family: var(--font-mono);
@@ -71,7 +71,7 @@
   padding: 0 0.3rem;
   border-radius: var(--r-pill);
   background: var(--green);
-  color: #f4f1e4;
+  color: var(--on-green);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
@@ -88,7 +88,7 @@
   height: 2rem;
   margin: 0 0 var(--sp-2);
   padding: 0 var(--sp-2);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-control);
   border-radius: var(--r);
   background: var(--paper);
   font-size: var(--text-sm);
@@ -96,7 +96,7 @@
 .facet-opts {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--sp-1);
   padding-bottom: var(--sp-2);
 }
 .fopt {
@@ -107,7 +107,9 @@
   padding: 0.32rem 0.5rem;
   border-radius: var(--r);
   background: transparent;
-  border: 1px solid transparent;
+  /* A resting edge. There is no :hover on a phone, so a borderless option was
+     indistinguishable from static text until she tapped it and something moved. */
+  border: 1px solid var(--line);
   font-size: var(--text-sm);
   color: var(--ink-soft);
   text-align: left;
@@ -120,17 +122,23 @@
   background: color-mix(in srgb, var(--green) 14%, transparent);
   color: var(--ink);
   font-weight: 500;
-  border-color: color-mix(in srgb, var(--green) 30%, transparent);
+  /* The same solid edge the trail chip uses. "This constraint is applied" should
+     look like one thing everywhere, not a crisp outline here and a 1.2:1 wash there. */
+  border-color: var(--green);
 }
 .fopt-val {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The count is the payoff of the whole interaction, not chrome. It has earned
+   readable ink. */
 .fopt-n {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   flex: none;
 }
 .fopt.on .fopt-n {
@@ -343,9 +351,13 @@
   font-size: var(--text-base);
   color: var(--ink);
 }
-.omni-item:hover,
-.omni-item.hot {
+.omni-item:hover {
   background: color-mix(in srgb, var(--green) 12%, transparent);
+}
+/* Enter acts on this row, so it cannot be carried by a 1.2:1 tint alone. */
+.omni-item.hot {
+  background: color-mix(in srgb, var(--green) 18%, transparent);
+  box-shadow: inset 3px 0 0 var(--green);
 }
 .omni-tag {
   flex: none;
@@ -370,7 +382,7 @@
 }
 .omni-n {
   margin-left: auto;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-size: var(--text-xs);
 }
 .omni-thumb {
@@ -471,7 +483,7 @@
 .spot-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--sp-2);
 }
 .spot {
   display: inline-flex;
@@ -497,14 +509,26 @@
 .spot--new {
   border-style: dashed;
 }
+/* Not --danger. Red in this app means the plant can hurt you; spending it on
+   "delete a saved spot" teaches the eye that red is sometimes just furniture. */
 .spot-del {
   display: grid;
   place-items: center;
+  position: relative;
   width: 1.3rem;
   height: 1.3rem;
   border-radius: 50%;
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--ink-faint);
+  background: var(--paper-sunk);
+}
+.spot-del:hover {
+  color: var(--ink);
+}
+/* The circle stays 21px; the thing a thumb has to hit does not. */
+.spot-del::after {
+  content: "";
+  position: absolute;
+  inset: -11px;
 }
 .spot-edit {
   font-size: var(--text-xs);
@@ -588,7 +612,7 @@
 }
 .seg button.on {
   background: var(--green);
-  color: #f4f1e4;
+  color: var(--on-green);
 }
 
 /* ===================================================================== *
@@ -672,12 +696,13 @@
   object-fit: cover;
 }
 
-/* facet rail group labels */
+/* facet rail group labels. Not --sepia: sepia means soil on the guild spine,
+   which is plant data. Here it is a section header, which is chrome. */
 .facet-group-label {
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--sepia);
+  color: var(--ink);
   font-weight: 700;
   padding: var(--sp-3) 0 var(--sp-1);
 }
@@ -690,5 +715,56 @@
 @media (min-width: 64rem) {
   .pgrid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ===================================================================== *
+ * Touch. Her hands are dirty, wet, or gloved, and a contact patch that
+ * size does not land inside a 30px row with a 1px gutter. `pointer: coarse`
+ * gates this to the phone and leaves the dense desktop rail exactly as it was.
+ *
+ * The three inputs below are set to 16px because Mobile Safari zooms the
+ * viewport on any focused control under that, and never zooms back — the
+ * omnibox was already above the line, so the trap was known and simply
+ * never carried to the controls added after it.
+ * ===================================================================== */
+@media (pointer: coarse) {
+  .fopt {
+    min-height: var(--tap);
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .facet-opts {
+    gap: var(--sp-2);
+  }
+  .facet-sec > summary {
+    min-height: var(--tap);
+  }
+  .fq-row {
+    min-height: var(--tap);
+  }
+  .fq-row select,
+  .facet-search,
+  .spot-namer input {
+    font-size: 16px;
+    height: var(--tap);
+  }
+  .fq-row input[type="checkbox"] {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+  .trail-chip,
+  .spot,
+  .quick-ask,
+  .seg button {
+    min-height: var(--tap);
+  }
+  /* Text links with no padding of their own: grow the hit box, hold the layout. */
+  .trail-clear,
+  .spot-edit,
+  .guild-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding-inline: var(--sp-1);
   }
 }
