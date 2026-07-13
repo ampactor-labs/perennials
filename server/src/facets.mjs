@@ -38,8 +38,13 @@ export function deriveMeta(plants, updatedAt) {
     photoCount: plants.filter((p) => p.thumb).length,
     companionCount: plants.filter((p) => p.companions && p.companions.length).length,
     generatedAt,
-    source: "Permapeople (permapeople.org)",
-    license: "CC BY-SA 4.0",
-    note: "Plant data from Permapeople contributors, CC BY-SA 4.0.",
+    // Three sources now, not one. GloBI is CC BY 4.0, which requires attribution,
+    // so naming it here is an obligation and not a courtesy.
+    source: "Permapeople (permapeople.org), GloBI (globalbioticinteractions.org), USDA PLANTS",
+    license: "CC BY-SA 4.0 · CC BY 4.0 · public domain",
+    note:
+      "Plants and their attributes from Permapeople contributors (CC BY-SA 4.0). " +
+      "Flower visitors from the Global Biotic Interactions database (CC BY 4.0). " +
+      "Bloom colour and period from USDA PLANTS (public domain).",
   };
 }

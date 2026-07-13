@@ -153,12 +153,38 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         </a>
       </div>
 
+      {/* Credit only the sources that actually fed this plant. GloBI is CC BY 4.0;
+          the attribution is a licence term, not a nicety. */}
       <p className="provenance">
         Data from{" "}
         <a href="https://permapeople.org" target="_blank" rel="noreferrer noopener">
           Permapeople
         </a>{" "}
         contributors, licensed CC BY-SA 4.0.
+        {plant.attracts && plant.attracts.length > 0 && (
+          <>
+            {" "}
+            Flower visitors from{" "}
+            <a
+              href="https://www.globalbioticinteractions.org"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              GloBI
+            </a>
+            , CC BY 4.0.
+          </>
+        )}
+        {(plant.bloomColor || plant.bloomPeriod) && (
+          <>
+            {" "}
+            Bloom from{" "}
+            <a href="https://plants.usda.gov" target="_blank" rel="noreferrer noopener">
+              USDA PLANTS
+            </a>
+            , public domain.
+          </>
+        )}
       </p>
     </div>
   );
