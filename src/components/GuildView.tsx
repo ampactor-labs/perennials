@@ -102,10 +102,12 @@ function Section({ layer, plants, inCatalog }: { layer: string; plants: Plant[];
         inCatalog <= SEED_FLOOR ? (
           <p className="guild-empty">
             Only {inCatalog.toLocaleString()} plant{inCatalog === 1 ? "" : "s"} in the whole guide
-            have a recorded {layer.toLowerCase()} layer. This gap is in the data, not in your search.
+            have a recorded {layer.toLowerCase()} layer. That gap is in the data, not in your search.
           </p>
         ) : (
-          <p className="guild-empty">Nothing in this layer fits — take a step off the trail to fill it.</p>
+          <p className="guild-empty">
+            Nothing in this layer fits. Take a step off the trail to fill it.
+          </p>
         )
       ) : (
         <Deck plants={plants} />
@@ -160,7 +162,7 @@ export function GuildView({ results }: { results: Plant[] }) {
           </summary>
           <div style={{ marginTop: "var(--sp-3)" }}>
             <p className="guild-empty" style={{ marginBottom: "var(--sp-3)" }}>
-              Nobody has recorded which layer these grow in. They are still in your results — the
+              Nobody has recorded which layer these grow in. They are still in your results; the
               List view shows every one of them.
             </p>
             <Deck plants={unplaced} />

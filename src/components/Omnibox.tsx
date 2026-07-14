@@ -194,7 +194,7 @@ export function Omnibox() {
               })}
             </div>
           )}
-          <div className="omni-hint">Enter adds the top filter · tap a plant to open it</div>
+          <div className="omni-hint">Enter adds the top filter. Tap a plant to open it.</div>
         </div>
       )}
     </div>

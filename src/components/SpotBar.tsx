@@ -50,7 +50,7 @@ export function SpotBar() {
                 className={`spot-del${armed === spot.id ? " armed" : ""}`}
                 onClick={() => (armed === spot.id ? remove(spot.id) : setArmed(spot.id))}
                 aria-label={
-                  armed === spot.id ? `Delete ${spot.name} — tap again` : `Delete ${spot.name}`
+                  armed === spot.id ? `Delete ${spot.name}. Tap again to confirm.` : `Delete ${spot.name}`
                 }
               >
                 <IconX width={12} height={12} />

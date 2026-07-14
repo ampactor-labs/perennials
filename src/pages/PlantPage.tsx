@@ -108,6 +108,11 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         <div>
           <h1 className="detail-title">{plant.name}</h1>
           <div className="detail-binomial binomial">{plant.scientificName}</div>
+          {/* The names she'd actually say out loud. Nearly half the catalogue has
+              them and none of them were searchable until now. */}
+          {plant.altNames.length > 0 && (
+            <div className="detail-altnames">Also called {plant.altNames.join(", ")}</div>
+          )}
           {plant.family && <div className="detail-family eyebrow">{plant.family}</div>}
         </div>
       </header>
@@ -144,8 +149,8 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
             {plant.edible && plant.edibleParts.length === 0 && (
               <>
                 {" "}
-                This plant is marked edible but <b>no edible parts are recorded</b>, so nothing here
-                tells you which parts the warning is about.
+                This plant is marked edible and <b>no edible parts are recorded</b>, so nothing
+                here tells you which parts the warning is about.
               </>
             )}{" "}
             Wording is Permapeople's; verify before eating or planting.
@@ -163,6 +168,8 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         <ChipRow label="Growth" values={plant.growth ? [plant.growth] : []} />
         {zone && <ChipRow label="Hardiness" values={[`USDA ${zone}`]} />}
         {plant.height != null && <ChipRow label="Height" values={[`${plant.height} m`]} />}
+        {/* Spacing, for someone actually laying out a bed. */}
+        {plant.width != null && <ChipRow label="Width" values={[`${plant.width} m`]} />}
         {/* The three she can now search by. They belong on the page she searched
             her way to — otherwise she narrows to "Attracts: Bees", taps a result,
             and the page says nothing about bees. */}
@@ -170,7 +177,7 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
           label="Bloom"
           values={plant.bloomColor ? [plant.bloomColor] : []}
           swatches
-          absent="Not recorded — USDA covers North-American species"
+          absent="Not recorded. USDA covers North-American species."
         />
         <ChipRow
           label="Blooms"
@@ -179,10 +186,16 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         <ChipRow
           label="Flower visitors"
           values={plant.attracts ?? []}
-          absent="No observations on record — which is not the same as none"
+          absent="Nobody has recorded a visitor here, which is not the same as none."
         />
         <ChipRow label="Edible parts" values={plant.edibleParts} />
+        {/* How it's eaten, which is a different question from which part. */}
+        <ChipRow label="Eaten as" values={plant.edibleUses} />
         <ChipRow label="Native to" values={plant.nativeTo.slice(0, 12)} />
+        {/* The invasiveness question, asked in the source's own words. If it has
+            naturalised across half the world, that is worth seeing next to where
+            it is actually from. */}
+        <ChipRow label="Naturalised in" values={plant.introducedTo.slice(0, 12)} />
       </section>
 
       {plant.functions.length > 0 && (
@@ -227,6 +240,11 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         {plant.links.pfaf && (
           <a href={plant.links.pfaf} target="_blank" rel="noreferrer noopener">
             Plants For A Future
+          </a>
+        )}
+        {plant.links.powo && (
+          <a href={plant.links.powo} target="_blank" rel="noreferrer noopener">
+            Kew
           </a>
         )}
         <a href={plant.links.permapeople} target="_blank" rel="noreferrer noopener">

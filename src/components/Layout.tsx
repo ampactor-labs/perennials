@@ -44,9 +44,8 @@ function DataGate({ children }: { children: ReactNode }) {
         <span className="spinner" />
         {state.cold ? (
           <p>
-            Downloading the guide — about a megabyte.
-            <br />
-            It only happens once. After this it works with no signal.
+            Downloading the guide. It's about a megabyte, it happens once, and after
+            this the whole thing works with no signal.
           </p>
         ) : (
           <p>Opening the guide…</p>
@@ -62,11 +61,11 @@ function DataGate({ children }: { children: ReactNode }) {
     const offline = !navigator.onLine;
     return (
       <div className="empty">
-        <h2>{offline ? "No signal, and no guide saved yet" : "The plant data didn't load"}</h2>
+        <h2>{offline ? "No signal, and the guide isn't saved yet" : "The guide didn't load"}</h2>
         <p>
           {offline
-            ? "This phone hasn't finished downloading the guide. Open it once where there's signal and it will work in the garden from then on."
-            : "Nothing is wrong with your phone — the server didn't answer. Try again in a moment."}
+            ? "This phone hasn't finished downloading the guide. Open it once somewhere with signal and it will work in the garden from then on."
+            : "Nothing is wrong with your phone. The server didn't answer. Try again in a moment."}
         </p>
         <button className="btn btn--primary" onClick={() => location.reload()}>
           Try again
@@ -98,8 +97,8 @@ function StaleNotice() {
       <div className="callout callout--warn" style={{ marginTop: "var(--sp-3)" }}>
         <IconAlert />
         <span>
-          This plant data was last updated <b>{days} days ago</b>. It normally refreshes itself
-          every week, so something upstream is stuck. What you're seeing is still real, just old.
+          This guide was last updated <b>{days} days ago</b>. It refreshes itself every week, so
+          something upstream is stuck. What you're looking at is still real, just old.
         </span>
       </div>
     </div>

@@ -53,6 +53,11 @@
 .detail-family {
   margin-top: var(--sp-2);
 }
+.detail-altnames {
+  margin-top: var(--sp-2);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
 
 .detail-summary {
   font-family: var(--font-display);

@@ -32,14 +32,22 @@ function makeDataset(plants: Plant[], facets: Facets, meta: Meta): Dataset {
   const build = () => {
     if (index) return index;
     const mini = new MiniSearch({
-      fields: ["name", "scientificName", "family"],
+      // altNames is why she can type "mouse melon" and find Melothria scabra.
+      // Nearly half the catalogue carries a common-name synonym, and none of them
+      // were searchable until now.
+      fields: ["name", "altNames", "scientificName", "family"],
       storeFields: ["slug"],
-      searchOptions: { prefix: true, fuzzy: 0.2, boost: { name: 3, scientificName: 2 } },
+      searchOptions: {
+        prefix: true,
+        fuzzy: 0.2,
+        boost: { name: 3, altNames: 3, scientificName: 2 },
+      },
     });
     mini.addAll(
       plants.map((p) => ({
         id: p.id,
         name: p.name,
+        altNames: (p.altNames ?? []).join(" "),
         scientificName: p.scientificName,
         family: p.family ?? "",
         slug: p.slug,

@@ -65,7 +65,7 @@ function NoMatch() {
           </button>
         </>
       ) : (
-        <p>Nothing here matches that. Try a different word.</p>
+        <p>Nothing matches that. Try another word.</p>
       )}
     </div>
   );

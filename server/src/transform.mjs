@@ -143,6 +143,16 @@ export function rawToPlants(rawPlants, companions = {}) {
       medicinal: d.Medicinal || null,
       hardiness: hardiness(d["USDA Hardiness zone"]),
       nativeTo: d["Native to"] ? atoms(d["Native to"]) : [],
+      // Where it has naturalised. The honest companion to nativeTo: a plant that
+      // spreads on its own in her region is the invasiveness question, asked in
+      // the source's own words.
+      introducedTo: d["Introduced into"] ? atoms(d["Introduced into"]) : [],
+      // The names she'd actually say. Nearly half the catalogue carries common-name
+      // synonyms, and without them she types "mouse melon" and finds nothing.
+      altNames: d["Alternate name"] ? atoms(d["Alternate name"]) : [],
+      // How it's eaten: Oil, Coffee, Condiment, Gum. Different from which PART.
+      edibleUses: d["Edible uses"] ? atoms(d["Edible uses"]) : [],
+      width: heightM(d.Width),
       warnings: warnings(d.Warning),
       // The source's own words, verbatim and unsplit. This is the difference
       // between "Toxic" and "Toxic fruits" on a plant whose shoots are dinner.
@@ -151,6 +161,8 @@ export function rawToPlants(rawPlants, companions = {}) {
       links: {
         wikipedia: d.Wikipedia || null,
         pfaf: d["Plants For A Future"] || null,
+        // Kew's taxonomic authority. Recorded for 93% of the catalogue.
+        powo: d["Plants of the World Online"] || null,
         permapeople: `https://permapeople.org${p.link || `/plants/${p.slug}`}`,
       },
     };

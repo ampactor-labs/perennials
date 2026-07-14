@@ -88,8 +88,14 @@ export async function ensureSchema() {
   // without ever hammering a small upstream service in a burst.
   await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS rechecked_at timestamptz;`);
 
-  // The 800px original. See transform.mjs — `thumb` is only 300px.
+  // The 800px original. `thumb` is only 300px; see transform.mjs.
   await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS photo text;`);
+
+  // Fields Permapeople has always served and the pipeline never read.
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS alt_names text[] NOT NULL DEFAULT '{}';`);
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS introduced_to text[] NOT NULL DEFAULT '{}';`);
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS edible_uses text[] NOT NULL DEFAULT '{}';`);
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS width real;`);
 }
 
 /** The plants whose enrichment is stalest. Never-rechecked ones come first. */
@@ -251,7 +257,8 @@ const COLS = [
   "id", "slug", "name", "scientific_name", "family", "description", "thumb", "photo",
   "light", "water", "soil", "layer", "life_cycle", "growth", "edible", "edible_parts",
   "functions", "medicinal", "hardiness_min", "hardiness_max", "native_to", "warnings",
-  "height", "links", "companions", "companions_checked", "attracts",
+  "height", "width", "alt_names", "introduced_to", "edible_uses",
+  "links", "companions", "companions_checked", "attracts",
   "bloom_color", "bloom_period", "bloom_checked", "cautions", "rechecked_at", "score",
 ];
 
@@ -261,7 +268,8 @@ function toRow(p) {
     p.light ?? [], p.water ?? [], p.soil ?? [], p.layer ?? null, p.lifeCycle ?? null, p.growth ?? null,
     Boolean(p.edible), p.edibleParts ?? [], p.functions ?? [], p.medicinal ?? null,
     p.hardiness?.min ?? null, p.hardiness?.max ?? null, p.nativeTo ?? [], p.warnings ?? [],
-    p.height ?? null, JSON.stringify(p.links ?? {}), p.companions ?? null,
+    p.height ?? null, p.width ?? null, p.altNames ?? [], p.introducedTo ?? [], p.edibleUses ?? [],
+    JSON.stringify(p.links ?? {}), p.companions ?? null,
     Boolean(p.companionsChecked),
     p.attracts ?? null,
     p.bloomColor ?? null, p.bloomPeriod ?? null, Boolean(p.bloomChecked),
@@ -326,8 +334,12 @@ function rowToPlant(r) {
     medicinal: r.medicinal,
     hardiness: r.hardiness_min != null ? { min: r.hardiness_min, max: r.hardiness_max } : null,
     nativeTo: r.native_to,
+    introducedTo: r.introduced_to ?? [],
+    altNames: r.alt_names ?? [],
+    edibleUses: r.edible_uses ?? [],
     warnings: r.warnings,
     height: r.height,
+    width: r.width,
     links: r.links,
     score: r.score,
   };

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearch } from "@/state/search";
-import { FACETS, ZONE_COVERAGE, type FacetMeta } from "@/lib/query";
+import { FACETS, type FacetMeta } from "@/lib/query";
 import { facetsOf } from "@/lib/constraints";
 import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 
@@ -8,7 +8,7 @@ const ZONES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 function FacetSection({ facet }: { facet: FacetMeta }) {
   const s = useSearch();
-  const covered = s.coverage[facet.key];
+  const cov = s.coverage[facet.key];
   const [q, setQ] = useState("");
   const counts = s.counts[facet.key] ?? new Map<string, number>();
   const selected = facetsOf(s.constraints)[facet.key] ?? [];
@@ -36,12 +36,14 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
         {selected.length > 0 && <span className="facet-sec-badge">{selected.length}</span>}
       </summary>
       {facet.note && <p className="facet-sec-note">{facet.note}</p>}
-      {/* Filtering excludes any plant with no value, so a partial field quietly
-          turns "never recorded" into "doesn't have it". Print the coverage. */}
-      {covered !== undefined && covered < s.total && (
+      {/* Coverage for the set she is looking at, not for the catalogue. USDA
+          records a bloom colour for 12% of all 8,800 plants, which sounds useless.
+          Once she has said zone 6 and North America it covers 41% of them. The
+          catalogue number is true and it misleads. */}
+      {facet.coverage && cov && cov.covered < cov.of && (
         <p className="facet-sec-note">
-          Recorded for <b>{covered.toLocaleString()}</b> of {s.total.toLocaleString()} plants. The
-          rest were never checked, which is not the same as no.
+          Recorded for <b>{cov.covered.toLocaleString()}</b> of the {cov.of.toLocaleString()} plants
+          you're looking at. Nobody checked the rest, which is not the same as no.
         </p>
       )}
       {facet.searchable && (
@@ -74,7 +76,7 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
           );
         })}
         {facet.searchable && !q && counts.size > visible.length && (
-          <p className="facet-more">{counts.size - visible.length} more — type to filter</p>
+          <p className="facet-more">{counts.size - visible.length} more. Type to narrow the list.</p>
         )}
       </div>
     </details>
@@ -83,7 +85,7 @@ function FacetSection({ facet }: { facet: FacetMeta }) {
 
 export function FacetRail() {
   const s = useSearch();
-  const hardinessKnown = s.coverage[ZONE_COVERAGE] ?? 0;
+  const hardinessKnown = s.hardinessKnown;
   const site = FACETS.filter((f) => f.group === "site");
   const intent = FACETS.filter((f) => f.group === "intent");
   const caution = FACETS.filter((f) => f.group === "caution");
@@ -116,26 +118,26 @@ export function FacetRail() {
             ))}
           </select>
         </label>
-        {/* Only says this once she has actually set a zone, because that is the
-            moment the number starts standing for something it isn't. */}
+        {/* Only once she has set a zone, because that is when the number starts
+            standing for something it isn't. */}
         {s.zone !== null && hardinessKnown < s.total && (
           <p className="facet-sec-note" style={{ margin: 0 }}>
             Hardiness is recorded for <b>{hardinessKnown.toLocaleString()}</b> of{" "}
             {s.total.toLocaleString()} plants. The other{" "}
-            {(s.total - hardinessKnown).toLocaleString()} are set aside here — not because they
+            {(s.total - hardinessKnown).toLocaleString()} are set aside here, not because they
             would die in zone {s.zone}, but because nobody has said.
           </p>
         )}
       </div>
-      <div className="facet-group-label">The site — what you have</div>
+      <div className="facet-group-label">The site, what you have</div>
       {site.map((f) => (
         <FacetSection key={f.key} facet={f} />
       ))}
-      <div className="facet-group-label">The ask — what you want</div>
+      <div className="facet-group-label">The ask, what you want</div>
       {intent.map((f) => (
         <FacetSection key={f.key} facet={f} />
       ))}
-      <div className="facet-group-label">Cautions — what to watch for</div>
+      <div className="facet-group-label">Cautions, what to watch for</div>
       {caution.map((f) => (
         <FacetSection key={f.key} facet={f} />
       ))}

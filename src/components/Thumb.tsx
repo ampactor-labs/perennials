@@ -46,7 +46,7 @@ export function Thumb({
     return (
       <span
         className={fallbackClass ? `${fallbackClass} photo-missing` : "photo-missing"}
-        title="Photo not downloaded — open this once with signal"
+        title="Photo not downloaded. Open this plant once with signal."
       >
         ⤓
       </span>

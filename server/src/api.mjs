@@ -19,6 +19,7 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 let cache = null; // { "plants.json": { raw, gzip, br, etag }, ... }
+let lastRefresh = null; // outcome of the last source pull, surfaced on /health
 
 /**
  * Build each payload once, with its compressed forms and a content-addressed ETag.
@@ -92,6 +93,7 @@ const server = http.createServer(async (req, res) => {
         recheck: await recheckProgress().catch(() => null),     // rolling re-verify
         photos: await photoProgress().catch(() => null),        // Permapeople images
         images: imageStats(),                                   // resizer cache
+        lastRefresh,                                            // did the last source pull work?
       }));
     }
 
@@ -192,13 +194,24 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(403, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "forbidden" }));
       }
-      // A source pull can take minutes — start it and respond immediately rather
-      // than holding the connection open. Result lands in the logs.
+      // A pull takes minutes, which is longer than the edge will hold a connection
+      // open, so this cannot answer with its own result. It records the outcome
+      // instead and /health reports it. A fire-and-forget refresh that threw put
+      // its error somewhere I could not reliably read, and a silently failing
+      // refresh looks exactly like a successful one from out here.
       res.writeHead(202, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ started: true }));
+      res.end(JSON.stringify({ started: true, watch: "/health -> lastRefresh" }));
+      lastRefresh = { startedAt: new Date().toISOString(), state: "running" };
       ingest({ force: true })
-        .then((result) => rebuildCache().then(() => console.log("manual refresh:", result)))
-        .catch((e) => console.error("manual refresh failed:", e.message));
+        .then(async (result) => {
+          await rebuildCache();
+          lastRefresh = { ...lastRefresh, state: "ok", ...result, endedAt: new Date().toISOString() };
+          console.log("manual refresh:", result);
+        })
+        .catch((e) => {
+          lastRefresh = { ...lastRefresh, state: "failed", error: e.message, endedAt: new Date().toISOString() };
+          console.error("manual refresh failed:", e.stack ?? e.message);
+        });
       return;
     }
 

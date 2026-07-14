@@ -40,7 +40,7 @@ function Starters() {
         </button>
       </div>
       <p className="starters-hint">
-        …or type anything above — “wet shade”, “nitrogen”, “zone 6”, “mulberry”.
+        Or type it: “wet shade”, “nitrogen”, “zone 6”, “mulberry”.
       </p>
     </div>
   );

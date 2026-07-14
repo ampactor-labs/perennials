@@ -24,13 +24,27 @@ export type Plant = {
   medicinal: string | null;
   hardiness: Hardiness | null;
   nativeTo: string[];
+  /** Where it has naturalised. The honest companion to nativeTo: this is the
+   *  invasiveness question, in the source's own words. */
+  introducedTo: string[];
+  /** The names she'd actually say. "Mouse melon" for Melothria scabra. */
+  altNames: string[];
+  /** How it is eaten (Oil, Coffee, Gum), as distinct from which part. */
+  edibleUses: string[];
   /** Coarse labels, for filtering only. Never show these alone: "Toxic fruits" and
    *  "Toxic for cats" both land on "Toxic". Show `cautions` to a human. */
   warnings: string[];
   /** The source's verbatim warning sentence, e.g. "Toxic fruits". */
   cautions?: string;
   height: number | null;
-  links: { wikipedia: string | null; pfaf: string | null; permapeople: string };
+  /** Metres. Spacing, for someone laying out a bed. */
+  width: number | null;
+  links: {
+    wikipedia: string | null;
+    pfaf: string | null;
+    powo?: string | null;
+    permapeople: string;
+  };
   /** Documentation richness 0–100, computed at transform time; drives default rank. */
   score: number;
   /** Permapeople companion-planting links (plant ids), when known. */

@@ -28,12 +28,12 @@ export function AboutPage() {
           How to ask
         </h2>
         <p>
-          Type anything into the box — “wet”, “shade”, “nitrogen”, “zone 6”, or a plant name — and
-          pick from what it offers. Each pick becomes a link in the trail, and the trail shows the
-          count falling as each constraint lands. Save a place's conditions as a <em>spot</em>{" "}
-          (“north bed”, “wet corner”) and re-apply it in one tap. Flip to the <em>Guild</em> view to
-          see any result set stacked by forest-garden layer, canopy down to roots. Every search
-          lives in the address bar, so a list you build is a link you can send.
+          Type what you have. “Wet shade”, “nitrogen”, “zone 6”, a plant name; it will offer you
+          constraints and you pick from them. Each pick becomes a link in the trail, and the trail
+          shows the count falling as it lands. Save a place's conditions as a <em>spot</em> (“north
+          bed”, “wet corner”) and re-apply it in one tap. The <em>Guild</em> view stacks the same
+          results by forest-garden layer, canopy down to roots. Every search lives in the address
+          bar, so a list you build is a link you can send.
         </p>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
@@ -45,8 +45,8 @@ export function AboutPage() {
             Permapeople
           </a>
           , an open, community-built plant database, licensed CC BY-SA 4.0. Two other sources fill in
-          what Permapeople doesn't record. Flower visitors — who actually turns up at the blooms —
-          come from{" "}
+          what Permapeople doesn't record. Flower visitors, meaning who has actually been seen at
+          the blooms, come from{" "}
           <a
             href="https://www.globalbioticinteractions.org"
             target="_blank"
@@ -62,12 +62,17 @@ export function AboutPage() {
           (public domain).
         </p>
         <p>
-          It's real data, so it's also uneven: some entries are richly described, others sparse. The
-          two newer sources cover part of the catalog and not all of it — there are visitor records
-          for {withVisitors.toLocaleString()} plants and a bloom colour for{" "}
-          {withBloom.toLocaleString()}, weighted toward North-American species. A blank means nobody
-          recorded it, which is not the same as there being nothing there. Nothing here is invented to
-          fill a gap — where the sources are quiet, so is this.
+          It's real data, so it's uneven. Some entries are richly described and others are a name and
+          a family. The two newer sources cover part of the catalogue and not all of it: visitor
+          records for {withVisitors.toLocaleString()} plants, a bloom colour for{" "}
+          {withBloom.toLocaleString()}. Those numbers look thin because they are numbers about the
+          whole world. USDA is a North-American database, so once you have said zone 6 and North
+          America it knows a good deal more; the facets tell you the coverage for the plants you are
+          actually looking at, not for 8,800 taxa you will never plant.
+        </p>
+        <p>
+          A blank is not a no. It means nobody recorded it. Nothing here is invented to fill a gap,
+          so where the sources are quiet, so is this.
         </p>
 
         <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
@@ -75,11 +80,11 @@ export function AboutPage() {
         </h2>
         <p>
           The guide runs off a small data service. It re-pulls Permapeople every week, and every hour
-          it re-checks a few plants against GloBI and USDA, so the whole catalog gets re-verified
-          about every ten weeks. Your phone downloads the result once — roughly a megabyte,
-          compressed — and then filters entirely on the device. Nothing is fetched while you search,
-          which is why it's instant across thousands of plants, and why it keeps working in a garden
-          with no signal.
+          it re-checks a few plants against GloBI and USDA, so the whole catalogue comes round again
+          about every ten weeks. Your phone downloads the result once, roughly a megabyte
+          compressed, and then filters on the device. Nothing is fetched while you search. That is
+          why it stays instant across thousands of plants, and why it keeps working in a garden with
+          no signal.
           {meta?.generatedAt && (
             <>
               {" "}
@@ -92,8 +97,9 @@ export function AboutPage() {
           Cautions
         </h2>
         <p>
-          Edibility and medicinal notes are what contributors recorded, not advice. Anything flagged
-          toxic, invasive, or weedy is surfaced plainly — always check a plant against your own region
+          Edibility and medicinal notes are what contributors recorded. They are not advice. Warnings
+          are shown in the source's own words, because “Toxic” and “Toxic fruits” are not the same
+          sentence to someone standing over an asparagus bed. Check a plant against your own region
           and a second source before you eat it or put it in the ground.
         </p>
       </section>

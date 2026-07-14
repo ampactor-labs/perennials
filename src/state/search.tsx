@@ -23,7 +23,7 @@ import {
   type Atom,
   type Constraints,
 } from "@/lib/constraints";
-import { coverageOf, evaluate, type Evaluation } from "@/lib/query";
+import { coverageOf, evaluate, ZONE_COVERAGE, type Evaluation } from "@/lib/query";
 import { applySpot as applySpotTo, type Spot } from "@/lib/spots";
 
 type SearchValue = {
@@ -34,8 +34,11 @@ type SearchValue = {
   results: Plant[];
   counts: Evaluation["counts"];
   trail: Evaluation["trail"];
-  /** How many plants have any value at all for each facet, so the UI can say so. */
-  coverage: Record<string, number>;
+  /** How much of the set she is LOOKING AT has a value for each facet. Catalogue-wide
+   *  coverage is a number about the world and it understates her search badly. */
+  coverage: Record<string, { covered: number; of: number }>;
+  /** How many plants in the whole catalogue have any hardiness record at all. */
+  hardinessKnown: number;
   /** How many results are revealed. Lives here so Back doesn't lose her place. */
   limit: number;
   showMore: () => void;
@@ -79,12 +82,16 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   }, [constraints, pathname, params, setParams]);
 
   const evaluation = useMemo<Evaluation>(
-    () => (data ? evaluate(data, constraints) : { results: [], counts: {}, trail: [] }),
+    () => (data ? evaluate(data, constraints) : { results: [], counts: {}, trail: [], coverage: {} }),
     [data, constraints],
   );
 
-  // Depends only on the dataset, so it survives every constraint change.
-  const coverage = useMemo(() => (data ? coverageOf(data.plants) : {}), [data]);
+  // Hardiness is not a facet (it has its own control), so its coverage is counted
+  // over the whole catalogue, once per dataset.
+  const hardinessKnown = useMemo(
+    () => (data ? coverageOf(data.plants)[ZONE_COVERAGE] ?? 0 : 0),
+    [data],
+  );
 
   // How far she has scrolled into the results, kept up here so it survives the
   // trip into a plant page and back. It used to live inside ResultGrid, which
@@ -144,7 +151,8 @@ export function SearchProvider({ children }: { children: ReactNode }) {
       results: evaluation.results,
       counts: evaluation.counts,
       trail: evaluation.trail,
-      coverage,
+      coverage: evaluation.coverage,
+      hardinessKnown,
       limit,
       showMore,
       zone: zoneOf(constraints),
@@ -161,7 +169,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
       undo,
     }),
     [
-      data, constraints, evaluation, coverage, limit, showMore,
+      data, constraints, evaluation, hardinessKnown, limit, showMore,
       add, remove, removeAll, toggle, setText, setView, applySpot, clearAll,
       undoable, undo,
     ],
