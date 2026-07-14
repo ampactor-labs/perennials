@@ -8,7 +8,28 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0"
     />
-    <meta name="theme-color" content="#3f6b3f" />
+    <meta name="theme-color" content="#e7e4d3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171b14" media="(prefers-color-scheme: dark)" />
+    <!--
+      Stamp the theme before the first paint.
+
+      settings.ts applies data-theme from a React effect, which lands ~140ms in. For
+      the gardener whose phone is on light or auto but who chose dark inside the app —
+      the daylight-auto-switch case, which is exactly hers — that meant four or five
+      frames of full-screen paper before the dark UI arrived. Outdoors at dusk that is
+      a flash in the eyes, every launch. Six lines, no dependency, runs before body.
+    -->
+    <script>
+      // settings.ts persists with JSON.stringify, so the stored value is quoted.
+      (function () {
+        try {
+          var pref = JSON.parse(localStorage.getItem("perennials.theme"));
+          if (pref === "dark" || pref === "light") {
+            document.documentElement.setAttribute("data-theme", pref);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <!-- The guide and the photos live on other origins, and the first fetch of each
          otherwise pays a full DNS + TCP + TLS round trip before a byte moves. On a
          field signal that is the difference she can feel. -->

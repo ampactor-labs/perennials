@@ -94,8 +94,19 @@ export function BrowsePage() {
       </div>
 
       <div className="filter-bar">
+        {/* "8,800 of 8,800 plants" said the same number twice and wrapped to two
+            lines on a 360px phone (three at 320px), in the one row that has no
+            slack left. Unfiltered, say the total; narrowed, tell the collapse. */}
         <span className="result-count" aria-live="polite" aria-atomic="true">
-          <b>{s.results.length.toLocaleString()}</b> of {s.total.toLocaleString()} plants
+          {s.results.length === s.total ? (
+            <>
+              <b>{s.total.toLocaleString()}</b> plants
+            </>
+          ) : (
+            <>
+              <b>{s.results.length.toLocaleString()}</b> of {s.total.toLocaleString()}
+            </>
+          )}
         </span>
         <span className="spacer" style={{ marginLeft: "auto" }} />
         {/* Not a tablist. role="tab" promises arrow-key navigation and a tabpanel,

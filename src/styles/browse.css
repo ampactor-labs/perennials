@@ -189,6 +189,13 @@
   color: var(--ink-faint);
   font-size: 1.3rem;
 }
+/* Not the same as ✿. ✿ means the guide has no photo of this plant; this means the
+   photo exists and simply isn't on the phone yet — which walking back to signal
+   fixes, and which she is owed the difference of. */
+.photo-missing {
+  color: var(--ink-faint);
+  cursor: help;
+}
 .pcard-body {
   min-width: 0;
 }
@@ -227,8 +234,22 @@
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   color: var(--danger);
 }
+/* Chips on the plant page carry raw source values, and one native-range string is
+   124 characters. Held nowrap it laid out a 691px chip in a 202px column, pushed
+   the document to 832px, and took the fixed bottom nav off the screen entirely.
+   The dense little tags on the browse cards keep their nowrap; these wrap. */
+.chip-row .ptag {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* Mixed into the surface the chip actually SITS on, not into --paper-sunk. The old
+   recipe assumed --green was darker than --paper-sunk; that holds in light and
+   inverts in dark, where 14% of the light sage lifted the chip to within 3 rgb
+   units of the card. Function tags then became the only invisible chip on the card
+   — the one thing tokens.css reserves colour for. Mixing against the card's own
+   ground moves the chip away from it by the same proportion in either theme. */
 .ptag--fn {
-  background: color-mix(in srgb, var(--green) 14%, var(--paper-sunk));
+  background: color-mix(in srgb, var(--green) 30%, var(--paper-raised));
   color: var(--ink);
 }
 .pgrid-sentinel {
@@ -611,6 +632,14 @@
   border-radius: var(--r);
   overflow: hidden;
 }
+/* Neither control may be squeezed. Both are shrinkable flex items in .filter-bar,
+   and the row is over-committed at 360px: .seg was already having 2px of "Guild"
+   eaten by its own overflow:hidden, and restoring the page gutter took that to
+   14px. The count absorbs the squeeze instead — it is text, and it has slack. */
+.filter-bar .seg,
+.filter-bar .filter-toggle {
+  flex: none;
+}
 .seg button {
   padding: 0.3rem 0.8rem;
   font-size: var(--text-sm);
@@ -761,10 +790,30 @@
     width: 1.4rem;
     height: 1.4rem;
   }
+  /* Every other "this constraint is on" signal in the app is green. This one was
+     Chrome's system-accent blue — the loudest, most saturated pixel on the filter
+     screen, in an app whose rule is that only plant data may glow. */
+  .fq-row input[type="checkbox"] {
+    accent-color: var(--green);
+  }
   .trail-chip,
   .spot,
   .quick-ask,
-  .seg button {
+  /* The primary way she adds a constraint, and it was 38px with no gap between
+     rows — a gloved miss lands on the neighbouring constraint and swings the
+     result set by thousands. */
+  .omni-item {
+    min-height: var(--tap);
+  }
+  /* On the container, not the buttons: the border stacked outside the children's
+     min-height and left .seg 46px tall beside a 44px Filters button. */
+  .seg {
+    min-height: var(--tap);
+  }
+  /* The disclosure hiding 44% of the catalogue was a 20px row. */
+  .guild-unplaced summary {
+    display: flex;
+    align-items: center;
     min-height: var(--tap);
   }
   /* Text links with no padding of their own: grow the hit box, hold the layout. */

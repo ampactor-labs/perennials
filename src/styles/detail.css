@@ -139,15 +139,28 @@
   overflow: hidden;
   background: var(--paper-sunk);
   box-shadow: var(--shadow-card);
+  /* The mount exists before the specimen does. Photos are 300px on the long edge
+     but come in either orientation, so no width/height attribute can predict the
+     box — reserve the mount itself. Without this the description, the chips and
+     the Functions panel all jump down when the photo lands (measured CLS 0.17 on
+     a cold load), which on a phone means the text moves under her thumb. */
+  display: grid;
+  grid-template-rows: 300px auto;
 }
 .specimen-photo img {
   display: block;
-  margin-inline: auto;
+  place-self: center;
   /* 300px is the source. Never ask the browser to invent the rest. */
   width: auto;
   max-width: min(100%, 300px);
   height: auto;
   max-height: 300px;
+}
+/* The "not downloaded" mark, on the mount. */
+.specimen-photo .photo-missing {
+  place-self: center;
+  font-size: 2rem;
+  color: var(--ink-faint);
 }
 .specimen-photo figcaption {
   padding: var(--sp-2) var(--sp-3);

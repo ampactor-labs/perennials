@@ -30,13 +30,29 @@ export function Thumb({
   fallbackClass?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  if (!has || failed) {
+
+  // Two different facts, and they used to share a glyph. "This plant has no photo
+  // in the guide" is an absence in the data; "this one never downloaded" is an
+  // absence on this phone, and it is fixed by walking back to signal. She is a
+  // professional identifying plants in the field — she is owed the difference.
+  if (!has) {
     return (
       <span className={fallbackClass} aria-hidden="true">
         ✿
       </span>
     );
   }
+  if (failed) {
+    return (
+      <span
+        className={fallbackClass ? `${fallbackClass} photo-missing` : "photo-missing"}
+        title="Photo not downloaded — open this once with signal"
+      >
+        ⤓
+      </span>
+    );
+  }
+
   const { src, srcSet } = photo ? photoSrc(id) : thumbSrc(id);
   return (
     <img
@@ -44,6 +60,13 @@ export function Thumb({
       srcSet={srcSet}
       sizes={photo ? PHOTO_SIZES : sizes}
       alt={alt}
+      // Without this the browser fetches no-cors and the service worker stores an
+      // OPAQUE response — which Chrome pads by ~7 MB apiece in its storage
+      // accounting. Forty-eight photos reported 400 MB, and the cache eventually
+      // hit the quota wall and stopped accepting writes entirely, silently, while
+      // the photos still rendered online. The API already sends
+      // Access-Control-Allow-Origin: *, so this one attribute is the whole fix.
+      crossOrigin="anonymous"
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}

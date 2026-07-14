@@ -99,8 +99,14 @@
   opacity: 0;
 }
 
+/* padding-BLOCK, not the physical shorthand. `padding: x 0 y` sets padding-left
+   and padding-right to 0, and since app.css is imported after base.css it was
+   silently deleting `.wrap { padding-inline: var(--sp-4) }` on every page in the
+   app — every card, the search field and the plant title sat flush on the bezel,
+   and detail.css's -12px back-link pull-out (written to cancel this very padding)
+   hung 12px off the left edge. */
 .page {
-  padding: var(--sp-4) 0 var(--sp-8);
+  padding-block: var(--sp-4) var(--sp-8);
 }
 
 .searchbar {
@@ -310,6 +316,7 @@
   margin: 0 auto var(--sp-3);
   color: var(--ink-faint);
 }
+.empty h2,
 .empty h3 {
   font-size: var(--text-lg);
   margin-bottom: var(--sp-2);
@@ -433,6 +440,7 @@
    48rem the inline rail is display:none, so a 32px button is the only door to
    every facet in the app. */
 @media (pointer: coarse) {
+  .btn,
   .btn--sm,
   .icon-btn,
   .search-clear {
