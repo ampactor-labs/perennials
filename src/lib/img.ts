@@ -26,10 +26,22 @@ export function thumbSrc(id: number) {
   };
 }
 
-/** The detail-page photo. 300px is the whole source, so this is as good as it gets. */
+/**
+ * The plant-page photo.
+ *
+ * The ladder reaches 800 because that is where the source reaches. Permapeople
+ * serves two images per plant and the pipeline was only reading the 300px one, so
+ * the photo was being stretched across the screen from a third of the pixels it
+ * needed — that, and not the compression, was the softness. On her phone the
+ * figure is ~328 CSS px wide, which at a 3x device ratio wants ~984 real pixels;
+ * 800 gets most of the way there, where 300 never could.
+ */
 export function photoSrc(id: number) {
-  return { src: url(id, 300), srcSet: `${url(id, 192)} 192w, ${url(id, 300)} 300w` };
+  return {
+    src: url(id, 600),
+    srcSet: [300, 400, 600, 800].map((w) => `${url(id, w)} ${w}w`).join(", "),
+  };
 }
 
-/** What the detail photo will actually occupy, so the browser can pick correctly. */
-export const PHOTO_SIZES = "300px";
+/** The figure fills the content column, capped where the source runs out. */
+export const PHOTO_SIZES = "(min-width: 40rem) 480px, 100vw";

@@ -87,6 +87,9 @@ export async function ensureSchema() {
   // re-check: a few plants an hour, so the whole dataset cycles in ~10 weeks
   // without ever hammering a small upstream service in a burst.
   await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS rechecked_at timestamptz;`);
+
+  // The 800px original. See transform.mjs — `thumb` is only 300px.
+  await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS photo text;`);
 }
 
 /** The plants whose enrichment is stalest. Never-rechecked ones come first. */
@@ -98,10 +101,16 @@ export async function stalestPlants(limit = 5) {
   return rows.map((r) => ({ id: r.id, scientificName: r.scientific_name }));
 }
 
-/** The origin photo URL for one plant, or null. Used by the image resizer. */
-export async function thumbFor(id) {
-  const { rows } = await pool.query("SELECT thumb FROM plants WHERE id = $1", [id]);
-  return rows[0]?.thumb ?? null;
+/**
+ * The best origin image for one plant, for the resizer to work from.
+ *
+ * Prefer `photo` (Permapeople's `title`, 800px on the long edge) over `thumb`
+ * (300px). Downscaling 800 -> 192 keeps far more detail than downscaling 300 ->
+ * 192, so the big source is better at EVERY output size, not just the large ones.
+ */
+export async function sourceFor(id) {
+  const { rows } = await pool.query("SELECT photo, thumb FROM plants WHERE id = $1", [id]);
+  return rows[0]?.photo ?? rows[0]?.thumb ?? null;
 }
 
 export async function markRechecked(id) {
@@ -213,6 +222,14 @@ export async function countPlants() {
   return rows[0].n;
 }
 
+/** How much of the catalogue has each image, so /health can prove the pipeline ran. */
+export async function photoProgress() {
+  const { rows } = await pool.query(
+    "SELECT count(*)::int AS total, count(thumb)::int AS with_thumb, count(photo)::int AS with_photo FROM plants",
+  );
+  return rows[0];
+}
+
 export async function maxUpdatedAt() {
   const { rows } = await pool.query("SELECT max(updated_at) AS m FROM plants");
   return rows[0].m;
@@ -231,7 +248,7 @@ export async function existingCompanions() {
 }
 
 const COLS = [
-  "id", "slug", "name", "scientific_name", "family", "description", "thumb",
+  "id", "slug", "name", "scientific_name", "family", "description", "thumb", "photo",
   "light", "water", "soil", "layer", "life_cycle", "growth", "edible", "edible_parts",
   "functions", "medicinal", "hardiness_min", "hardiness_max", "native_to", "warnings",
   "height", "links", "companions", "companions_checked", "attracts",
@@ -240,7 +257,7 @@ const COLS = [
 
 function toRow(p) {
   return [
-    p.id, p.slug, p.name, p.scientificName, p.family ?? null, p.description ?? null, p.thumb ?? null,
+    p.id, p.slug, p.name, p.scientificName, p.family ?? null, p.description ?? null, p.thumb ?? null, p.photo ?? null,
     p.light ?? [], p.water ?? [], p.soil ?? [], p.layer ?? null, p.lifeCycle ?? null, p.growth ?? null,
     Boolean(p.edible), p.edibleParts ?? [], p.functions ?? [], p.medicinal ?? null,
     p.hardiness?.min ?? null, p.hardiness?.max ?? null, p.nativeTo ?? [], p.warnings ?? [],

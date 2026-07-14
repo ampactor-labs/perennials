@@ -8,7 +8,7 @@ import crypto from "node:crypto";
 import zlib from "node:zlib";
 import {
   ensureSchema, countPlants, allPlants, maxUpdatedAt,
-  attractsProgress, bloomProgress, companionsProgress, recheckProgress,
+  attractsProgress, bloomProgress, companionsProgress, recheckProgress, photoProgress,
 } from "./db.mjs";
 import { deriveFacets, deriveMeta } from "./facets.mjs";
 import { ingest, refreshFromSource, enrichAll, recheckStalest } from "./ingest.mjs";
@@ -90,6 +90,7 @@ const server = http.createServer(async (req, res) => {
         bloom: await bloomProgress().catch(() => null),         // USDA
         companions: await companionsProgress().catch(() => null), // Permapeople
         recheck: await recheckProgress().catch(() => null),     // rolling re-verify
+        photos: await photoProgress().catch(() => null),        // Permapeople images
         images: imageStats(),                                   // resizer cache
       }));
     }

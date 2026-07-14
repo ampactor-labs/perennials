@@ -16,6 +16,7 @@ import { rawToPlants } from "./transform.mjs";
 import { attractsFor } from "./globi.mjs";
 import { bloomFor } from "./usda.mjs";
 import { companionsFor } from "./companions.mjs";
+import { clearImages } from "./images.mjs";
 
 const SEED_URL = process.env.SEED_URL || "https://ampactor.dev/perennials/data/plants.json";
 
@@ -54,6 +55,8 @@ export async function refreshFromSource() {
     }
   }
   await replaceAll(plants);
+  // The origin images may have changed under us; stale renders must not survive.
+  clearImages();
   return plants.length;
 }
 
@@ -193,6 +196,8 @@ export async function seedFromUrl(url = SEED_URL) {
   const plants = await res.json(); // already transformed Plant[]
   if (!Array.isArray(plants) || plants.length === 0) throw new Error("seed payload empty");
   await replaceAll(plants);
+  // The origin images may have changed under us; stale renders must not survive.
+  clearImages();
   return plants.length;
 }
 

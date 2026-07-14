@@ -100,15 +100,18 @@ function heightM(raw) {
 export function rawToPlants(rawPlants, companions = {}) {
   const species = rawPlants.filter((p) => p.type === "Plant");
 
-  // Permapeople serves one shared placeholder image for photo-less plants; any
-  // thumb used by many species is that placeholder — null it so we stay honest
-  // about which plants actually have photographs.
-  const thumbUses = new Map();
+  // Permapeople serves one shared placeholder image (blank.jpg) for photo-less
+  // plants; any URL used by many species is that placeholder — null it so we stay
+  // honest about which plants actually have photographs. It travels in both image
+  // fields at once, so the same rule covers them both.
+  const uses = new Map();
   for (const p of species) {
-    const t = p.images?.thumb;
-    if (t) thumbUses.set(t, (thumbUses.get(t) ?? 0) + 1);
+    for (const u of [p.images?.thumb, p.images?.title]) {
+      if (u) uses.set(u, (uses.get(u) ?? 0) + 1);
+    }
   }
-  const placeholders = new Set([...thumbUses].filter(([, n]) => n > 3).map(([t]) => t));
+  const placeholders = new Set([...uses].filter(([, n]) => n > 3).map(([u]) => u));
+  const real = (u) => (u && !placeholders.has(u) ? u : null);
 
   const plants = [];
   for (const p of species) {
@@ -122,7 +125,12 @@ export function rawToPlants(rawPlants, companions = {}) {
       scientificName: p.scientific_name,
       family: d.Family || null,
       description: (p.description || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim() || null,
-      thumb: p.images?.thumb && !placeholders.has(p.images.thumb) ? p.images.thumb : null,
+      thumb: real(p.images?.thumb),
+      // The big one. Permapeople serves `title` at 800px on the long edge — 2.7x
+      // the 300px `thumb` — and the pipeline was throwing it away, which is why
+      // the plant page's photo was soft. It is the better resize source at every
+      // size, so the image service prefers it.
+      photo: real(p.images?.title),
       light: light(d["Light requirement"]),
       water: water(d["Water requirement"]),
       soil: soil(d["Soil type"]),

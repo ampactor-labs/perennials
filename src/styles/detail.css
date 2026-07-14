@@ -123,14 +123,14 @@
 
 /* enrichment: photo, origin, wikipedia, receipts -------------------- */
 /*
- * A specimen mounted on its sheet, not a photo stretched across one.
+ * A specimen on its mount.
  *
- * Every photo Permapeople holds is 300px on its longest edge. This used to be
- * `width: 100%`, so on a desktop the browser blew a 300px image up to 1,088px —
- * which is where the softness came from. It cannot be fixed by fetching better
- * pixels, because there are none. So show the photo at the size it actually is,
- * centred on a tinted mount, and it reads as a deliberate herbarium plate rather
- * than a blurry hero.
+ * The photo used to be capped at 300px because that was all the pipeline fetched.
+ * It now comes from Permapeople's 800px original, so it can fill the column and
+ * still be sharp on a 3x phone. The mount is a fixed 260px band: photos arrive in
+ * either orientation, so no width/height attribute can predict the box, and
+ * without a reserved box the description and chips jump down when the image lands
+ * (measured CLS 0.17 cold) — the text moving under her thumb as she reads.
  */
 .specimen-photo {
   margin: var(--sp-4) 0 0;
@@ -139,22 +139,14 @@
   overflow: hidden;
   background: var(--paper-sunk);
   box-shadow: var(--shadow-card);
-  /* The mount exists before the specimen does. Photos are 300px on the long edge
-     but come in either orientation, so no width/height attribute can predict the
-     box — reserve the mount itself. Without this the description, the chips and
-     the Functions panel all jump down when the photo lands (measured CLS 0.17 on
-     a cold load), which on a phone means the text moves under her thumb. */
   display: grid;
-  grid-template-rows: 300px auto;
+  grid-template-rows: 16rem auto;
 }
 .specimen-photo img {
   display: block;
-  place-self: center;
-  /* 300px is the source. Never ask the browser to invent the rest. */
-  width: auto;
-  max-width: min(100%, 300px);
-  height: auto;
-  max-height: 300px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 /* The "not downloaded" mark, on the mount. */
 .specimen-photo .photo-missing {

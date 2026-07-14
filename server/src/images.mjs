@@ -12,18 +12,20 @@
 // real pixels for its device ratio. WebP at these qualities is visually lossless
 // at thumbnail size and roughly a third the bytes of the JPEG it replaces.
 import sharp from "sharp";
-import { thumbFor } from "./db.mjs";
+import { sourceFor } from "./db.mjs";
 
-// A closed set. An open `?w=` would invite 4,000 variants of the same photo into
-// the cache, and it would make this an open image proxy besides.
+// A closed set. An open `?w=` would invite thousands of variants of the same photo
+// into the cache, and it would make this an open image proxy besides.
 //
-// It stops at 300 because that is where the source stops: I sampled the CDN and
-// every photo Permapeople serves is exactly 300px on its longest edge. Asking for
-// more would hand back the same pixels under a bigger name, which is the blur.
-export const WIDTHS = [64, 128, 192, 300];
+// It stops at 800 because that is where the source stops. Permapeople serves two
+// images per plant: `thumb` at 300px and `title` at 800px on the long edge. The
+// pipeline used to read only `thumb`, which is why the plant page looked soft —
+// a 300px photo was being stretched across the width of the screen. We resize
+// from the 800px one now, at every size, and never past it.
+export const WIDTHS = [64, 128, 192, 300, 400, 600, 800];
 
 const UA = "perennials-images/1.0 (+https://ampactor.dev/perennials)";
-const MAX_CACHE_BYTES = 96 * 1024 * 1024;
+const MAX_CACHE_BYTES = 160 * 1024 * 1024;
 
 // Insertion-ordered Map doubles as an LRU: re-set on hit to move to the back.
 const cache = new Map(); // "id:w" -> { body, etag }
@@ -42,7 +44,7 @@ function remember(key, entry) {
 }
 
 async function render(id, w) {
-  const url = await thumbFor(id);
+  const url = await sourceFor(id);
   if (!url) return null;
 
   const res = await fetch(url, { headers: { "User-Agent": UA } });
@@ -62,10 +64,14 @@ async function render(id, w) {
       position: "attention", // crop toward the interesting part, not the geometric centre
       kernel: "lanczos3",
     })
-    // A downscale always loses a little acutance. A light unsharp pass puts it
-    // back; heavier on the small sizes, where the loss is greatest.
-    .sharpen({ sigma: small ? 0.7 : 0.4 })
-    .webp({ quality: small ? 90 : 82, effort: 4, smartSubsample: true })
+    // A downscale loses a little acutance and a light unsharp puts it back. This
+    // used to be heavier on small sizes, which was right when everything came from
+    // a 300px source. From 800px a card thumb is a 4x downscale, not a 1.5x one, so
+    // the extra sharpening only manufactured high-frequency detail that a 56-pixel
+    // box cannot show — and charged her the bytes for it. Measured at 192px:
+    // q90/0.7 was 27.8 KB, q82/0.4 is 16.7 KB and looks identical at display size.
+    .sharpen({ sigma: 0.45 })
+    .webp({ quality: small ? 82 : 80, effort: 4, smartSubsample: true })
     .toBuffer();
 
   return { body, etag: `"${id}-${w}-${body.length.toString(36)}"` };
@@ -94,6 +100,19 @@ export async function imageFor(id, w) {
 
   inFlight.set(key, job);
   return job;
+}
+
+/**
+ * Drop every rendered image.
+ *
+ * A source refresh can change which origin a plant resizes from — that is exactly
+ * what just happened when the pipeline learned to read Permapeople's 800px image —
+ * and without this the resizer keeps serving renders made from the old, smaller
+ * source forever, because the cache is keyed on plant and width alone.
+ */
+export function clearImages() {
+  cache.clear();
+  cacheBytes = 0;
 }
 
 export const imageStats = () => ({
