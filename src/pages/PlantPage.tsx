@@ -36,7 +36,7 @@ function Companions({ plant, data }: { plant: Plant; data: Dataset }) {
         {friends.map((f) => (
           <Link key={f.slug} to={`/plant/${f.slug}`} className="companion">
             <span className="companion-thumb">
-              <Thumb src={f.thumb} />
+              <Thumb id={f.id} has={!!f.thumb} sizes="28px" />
             </span>
             <span className="companion-name">{f.name}</span>
           </Link>
@@ -111,7 +111,7 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
 
       {plant.thumb && (
         <figure className="specimen-photo">
-          <Thumb src={plant.thumb} alt={plant.name} />
+          <Thumb id={plant.id} has={!!plant.thumb} alt={plant.name} photo />
           <figcaption>
             <a href={plant.links.permapeople} target="_blank" rel="noreferrer noopener">
               Permapeople

@@ -122,19 +122,32 @@
 }
 
 /* enrichment: photo, origin, wikipedia, receipts -------------------- */
+/*
+ * A specimen mounted on its sheet, not a photo stretched across one.
+ *
+ * Every photo Permapeople holds is 300px on its longest edge. This used to be
+ * `width: 100%`, so on a desktop the browser blew a 300px image up to 1,088px —
+ * which is where the softness came from. It cannot be fixed by fetching better
+ * pixels, because there are none. So show the photo at the size it actually is,
+ * centred on a tinted mount, and it reads as a deliberate herbarium plate rather
+ * than a blurry hero.
+ */
 .specimen-photo {
   margin: var(--sp-4) 0 0;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   overflow: hidden;
-  background: var(--paper-raised);
+  background: var(--paper-sunk);
   box-shadow: var(--shadow-card);
 }
 .specimen-photo img {
-  width: 100%;
-  max-height: 360px;
-  object-fit: cover;
   display: block;
+  margin-inline: auto;
+  /* 300px is the source. Never ask the browser to invent the rest. */
+  width: auto;
+  max-width: min(100%, 300px);
+  height: auto;
+  max-height: 300px;
 }
 .specimen-photo figcaption {
   padding: var(--sp-2) var(--sp-3);

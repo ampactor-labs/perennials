@@ -56,7 +56,7 @@ export const PlantCard = memo(function PlantCard({ plant }: { plant: Plant }) {
   return (
     <Link to={`/plant/${plant.slug}`} className="pcard">
       <div className="pcard-thumb">
-        <Thumb src={plant.thumb} fallbackClass="pcard-noimg" />
+        <Thumb id={plant.id} has={!!plant.thumb} sizes="56px" fallbackClass="pcard-noimg" />
       </div>
       <div className="pcard-body">
         <div className="pcard-name">{plant.name}</div>

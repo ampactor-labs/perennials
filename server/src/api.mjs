@@ -111,6 +111,50 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Resized plant photo: /img/<plant id>/<width>.webp
+    //
+    // Keyed on the plant, not on a URL — an `?u=` proxy would be an open one, and
+    // this way the only images we will ever fetch are the ones already in our own
+    // database. The width must be one of the handful the layout actually asks for.
+    const img = pathname.match(/^\/img\/(\d+)\/(\d+)\.webp$/);
+    if (img && (req.method === "GET" || req.method === "HEAD")) {
+      const id = Number(img[1]);
+      const w = Number(img[2]);
+      if (!WIDTHS.includes(w)) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "unsupported width", widths: WIDTHS }));
+      }
+
+      let entry;
+      try {
+        entry = await imageFor(id, w);
+      } catch (e) {
+        // The origin blinked. Say so honestly rather than caching a broken image:
+        // the client falls back to its "no photo" glyph and retries next time.
+        console.error(`image ${id}/${w}:`, e.message);
+        res.writeHead(502, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "origin unavailable" }));
+      }
+      if (!entry) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "no photo for that plant" }));
+      }
+
+      if (req.headers["if-none-match"] === entry.etag) {
+        res.writeHead(304, { ETag: entry.etag });
+        return res.end();
+      }
+      res.writeHead(200, {
+        "Content-Type": "image/webp",
+        // The bytes for a given plant and width never change, so let the phone
+        // keep them for good.
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Length": entry.body.length,
+        ETag: entry.etag,
+      });
+      return res.end(req.method === "HEAD" ? undefined : entry.body);
+    }
+
     const m = pathname.match(/^\/data\/(plants|facets|meta)\.json$/);
     if (m && (req.method === "GET" || req.method === "HEAD")) {
       if (!cache) await rebuildCache();

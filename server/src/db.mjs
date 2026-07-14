@@ -98,6 +98,12 @@ export async function stalestPlants(limit = 5) {
   return rows.map((r) => ({ id: r.id, scientificName: r.scientific_name }));
 }
 
+/** The origin photo URL for one plant, or null. Used by the image resizer. */
+export async function thumbFor(id) {
+  const { rows } = await pool.query("SELECT thumb FROM plants WHERE id = $1", [id]);
+  return rows[0]?.thumb ?? null;
+}
+
 export async function markRechecked(id) {
   await pool.query("UPDATE plants SET rechecked_at = now() WHERE id = $1", [id]);
 }

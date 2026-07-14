@@ -74,12 +74,15 @@ export default defineConfig({
             },
           },
           {
-            // Permapeople plant photos.
-            urlPattern: /^https:\/\/cdn\.permapeople\.org\//,
+            // Plant photos, resized by our own service. They are immutable for a
+            // given plant and width, so cache-first forever and keep a lot of them:
+            // a card thumbnail is now a few KB rather than a 58 KB original, so the
+            // whole catalogue's worth fits where 1,500 originals used to.
+            urlPattern: /^https:\/\/api-production-5338\.up\.railway\.app\/img\//,
             handler: "CacheFirst",
             options: {
               cacheName: "perennials-images",
-              expiration: { maxEntries: 1500, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              expiration: { maxEntries: 8000, maxAgeSeconds: 60 * 60 * 24 * 180 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

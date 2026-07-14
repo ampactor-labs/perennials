@@ -184,7 +184,7 @@ export function Omnibox() {
                     onClick={() => pick(sug)}
                   >
                     <span className="omni-thumb">
-                      <Thumb src={p.thumb} />
+                      <Thumb id={p.id} has={!!p.thumb} sizes="30px" />
                     </span>
                     <span className="omni-label">
                       {p.name} <em className="binomial">{p.scientificName}</em>
