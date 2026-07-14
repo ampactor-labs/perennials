@@ -64,6 +64,10 @@
   --shadow-pop: 0 8px 30px -10px rgba(35, 41, 31, 0.32);
 
   --header-h: 3.5rem;
+  /* The second sticky layer. It exists as a token because --header-h was the
+     single source of truth for "how tall is the fixed chrome", and adding a
+     sticky filter bar silently invalidated every consumer of it. */
+  --filter-h: 3.25rem;
   --nav-h: 3.75rem;
   --maxw: 68rem;
 

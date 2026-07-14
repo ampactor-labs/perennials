@@ -403,7 +403,10 @@
   .facets-inline {
     display: block;
     position: sticky;
-    top: calc(var(--header-h) + var(--sp-4));
+    /* Below BOTH sticky layers. Offset against the header alone, the filter bar
+       covered the top 36px of the rail and its first control ("Edible only") was
+       unclickable -- elementFromPoint returned the bar, not the checkbox. */
+    top: calc(var(--header-h) + var(--filter-h) + var(--sp-3));
     max-height: calc(100dvh - var(--header-h) - var(--sp-6));
     overflow-y: auto;
     padding-right: var(--sp-2);
@@ -446,5 +449,8 @@
   .search-clear {
     min-height: var(--tap);
     min-width: var(--tap);
+  }
+  .brand {
+    min-height: var(--tap);
   }
 }
