@@ -78,6 +78,11 @@ function Companions({ plant, data }: { plant: Plant; data: Dataset }) {
  * on "Attracts: Bees", and a page that simply omits the row leaves her unable to
  * tell "nothing visits it" from "nobody has looked".
  */
+/** Long lists get folded, never quietly cut. Yellow Sorrel has naturalised into 248
+ *  regions; showing twelve of them and saying nothing is the same silent truncation
+ *  the guild view used to do, and the rule here is that absence is always named. */
+const SHOWN_CHIPS = 12;
+
 function ChipRow({
   label,
   values,
@@ -89,6 +94,8 @@ function ChipRow({
   absent?: string;
   swatches?: boolean;
 }) {
+  const [all, setAll] = useState(false);
+
   if (values.length === 0) {
     if (!absent) return null;
     return (
@@ -98,11 +105,14 @@ function ChipRow({
       </div>
     );
   }
+
+  const shown = all ? values : values.slice(0, SHOWN_CHIPS);
+  const rest = values.length - shown.length;
   return (
     <div className="attr-row">
       <span className="attr-label">{label}</span>
       <span className="chip-row">
-        {values.map((v) => {
+        {shown.map((v) => {
           const hex = swatches ? BLOOM_HEX[v] : undefined;
           return (
             <span key={v} className="ptag">
@@ -111,6 +121,11 @@ function ChipRow({
             </span>
           );
         })}
+        {rest > 0 && (
+          <button className="linkish" onClick={() => setAll(true)}>
+            {rest.toLocaleString()} more
+          </button>
+        )}
       </span>
     </div>
   );
@@ -214,11 +229,11 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         <ChipRow label="Edible parts" values={plant.edibleParts} />
         {/* How it's eaten, which is a different question from which part. */}
         <ChipRow label="Eaten as" values={plant.edibleUses} />
-        <ChipRow label="Native to" values={plant.nativeTo.slice(0, 12)} />
+        <ChipRow label="Native to" values={plant.nativeTo} />
         {/* The invasiveness question, asked in the source's own words. If it has
             naturalised across half the world, that is worth seeing next to where
             it is actually from. */}
-        <ChipRow label="Naturalised in" values={plant.introducedTo.slice(0, 12)} />
+        <ChipRow label="Naturalised in" values={plant.introducedTo} />
       </section>
 
       {plant.functions.length > 0 && (

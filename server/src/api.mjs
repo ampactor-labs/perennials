@@ -179,7 +179,10 @@ const server = http.createServer(async (req, res) => {
 
       const headers = {
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=300",
+        // An hour, not five minutes. The ETag is content-addressed, so a stale copy
+        // can only ever be an hour behind a catalogue that changes weekly, and it
+        // buys her an hour of not revalidating 8.9 MB over a field signal.
+        "Cache-Control": "public, max-age=3600",
         "Content-Length": body.length,
         Vary: "Accept-Encoding",
         ETag: file.etag,
