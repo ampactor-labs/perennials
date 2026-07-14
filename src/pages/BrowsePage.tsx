@@ -68,7 +68,33 @@ export function BrowsePage() {
 
   useEffect(() => {
     if (!drawer) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setDrawer(false);
+
+    // aria-modal only tells assistive tech to ignore the background. It does not
+    // stop Tab, so without this the sheet says it is modal and then walks you out
+    // the back of it into the cards behind the backdrop.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return setDrawer(false);
+      if (e.key !== "Tab") return;
+      const sheet = drawerRef.current;
+      if (!sheet) return;
+      const stops = [
+        ...sheet.querySelectorAll<HTMLElement>(
+          'a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((el) => el.offsetParent !== null);
+      if (stops.length === 0) return;
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      const on = document.activeElement;
+      if (e.shiftKey && (on === first || on === sheet)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && on === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
     // Move focus into the sheet, and hand it back to the button she opened it with.

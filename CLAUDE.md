@@ -7,12 +7,15 @@ browser. Full overview in README.md.
 
 ## The data
 
-Three sources, all open horticultural reference data — cultivation needs, uses, native
-range, and the standard attributes any plant field guide carries:
+Three sources, all open horticultural reference data: cultivation needs, uses, native
+range, and the standard attributes any plant field guide carries.
 
-- Permapeople (permapeople.org), CC BY-SA 4.0 — the plants and most attributes.
-- GloBI (globalbioticinteractions.org), CC BY 4.0 — observed flower visitors.
-- USDA PLANTS, public domain — bloom colour and period.
+- Permapeople (permapeople.org), CC BY-SA 4.0. The plants and most attributes.
+  It serves 65 fields and the transform reads 21 of them. Before adding a source,
+  check whether Permapeople already carries the thing: that is how the 800px photos
+  and the alternate names turned up, both of which had been sitting there ignored.
+- GloBI (globalbioticinteractions.org), CC BY 4.0. Observed flower visitors.
+- USDA PLANTS, public domain. Bloom colour and period.
 
 The dataset is not committed to this repo. The API (`server/`) pulls, normalizes and
 enriches it, then serves it as JSON, so there is no large data file here to load into
@@ -37,8 +40,14 @@ the visual design and UX intact unless asked to change them.
 ## Commands
 
 - `npm run dev` dev server
+- `npm run typecheck` the real typecheck
 - `npm run build` typecheck + production build
 - `server/` has its own commands; see `server/README.md`
+
+**Do not run `tsc --noEmit`.** `tsconfig.json` is a solution-style config (`"files": []`
+plus project references), so a bare `tsc --noEmit` compiles nothing and exits 0 no matter
+how broken the code is. It will tell you the app typechecks while it does not. Use
+`npm run typecheck` (`tsc -b --noEmit`), which is what `npm run build` runs.
 
 ## Deploying
 

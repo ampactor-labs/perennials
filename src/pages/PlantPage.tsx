@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
@@ -24,6 +25,28 @@ function BackLink() {
       <IconChevronLeft width={18} height={18} />
       All plants
     </button>
+  );
+}
+
+/** Six names read as "it goes by a few things". Three hundred read as a data dump. */
+const SHOWN_NAMES = 6;
+
+function AltNames({ names }: { names: string[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? names : names.slice(0, SHOWN_NAMES);
+  const rest = names.length - shown.length;
+  return (
+    <div className="detail-altnames">
+      Also called {shown.join(", ")}
+      {rest > 0 && (
+        <>
+          {". "}
+          <button className="linkish" onClick={() => setAll(true)}>
+            {rest.toLocaleString()} more
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -108,11 +131,11 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         <div>
           <h1 className="detail-title">{plant.name}</h1>
           <div className="detail-binomial binomial">{plant.scientificName}</div>
-          {/* The names she'd actually say out loud. Nearly half the catalogue has
-              them and none of them were searchable until now. */}
-          {plant.altNames.length > 0 && (
-            <div className="detail-altnames">Also called {plant.altNames.join(", ")}</div>
-          )}
+          {/* The names she'd actually say out loud. All of them go into the search
+              index; only a few belong on the page. Tamarind carries 310, which are
+              transliterations from every language it grows in, and 547 plants carry
+              more than eight. */}
+          {plant.altNames.length > 0 && <AltNames names={plant.altNames} />}
           {plant.family && <div className="detail-family eyebrow">{plant.family}</div>}
         </div>
       </header>

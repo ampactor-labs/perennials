@@ -58,6 +58,13 @@
   font-size: var(--text-sm);
   color: var(--ink-soft);
 }
+/* A button that reads as a link. Used where the action is "show me the rest". */
+.linkish {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font: inherit;
+}
 
 .detail-summary {
   font-family: var(--font-display);

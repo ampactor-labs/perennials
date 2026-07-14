@@ -5,15 +5,18 @@ to commit. Node + Postgres, deployed on Railway.
 
 ## What it serves
 
-- `GET /data/plants.json` · `GET /data/facets.json` · `GET /data/meta.json` — the same
+- `GET /data/plants.json` · `GET /data/facets.json` · `GET /data/meta.json`. The same
   three payloads the static site shipped, rebuilt from Postgres, compressed (brotli
   takes the catalogue from 8.9 MB to under 1 MB), and ETagged on their own content.
-- `GET /img/<plant id>/<width>.webp` — a plant photo resized to one of 64, 128, 192
-  or 300px. Permapeople's CDN has no image service, so this is where a 56-pixel
-  thumbnail stops being a full-resolution JPEG. 300 is the ceiling because that is
-  the resolution the source actually holds.
-- `GET /health` — plant count, data age, and how far each enrichment sweep has got.
-- `POST /admin/refresh` · `/admin/enrich` · `/admin/recheck` — all require
+- `GET /img/<plant id>/<width>.webp`. A plant photo resized to one of 64, 128, 192,
+  300, 400, 600 or 800px. Permapeople's CDN has no image service, so this is where a
+  56-pixel thumbnail stops being a full-resolution JPEG. 800 is the ceiling because
+  that is the resolution the source actually holds.
+- `GET /health`. Plant count, data age, how far each enrichment sweep has got, and the
+  outcome of the last source pull. A refresh takes about eleven minutes, which is
+  longer than the edge will hold a connection, so `lastRefresh` is the only way to
+  tell a failed pull from a working one.
+- `POST /admin/refresh` · `/admin/enrich` · `/admin/recheck`. All require
   `Authorization: Bearer $ADMIN_TOKEN`.
 
 ## How it fills the DB
@@ -28,12 +31,12 @@ to commit. Node + Postgres, deployed on Railway.
 
 On top of Permapeople it enriches from two more sources: GloBI for flower visitors
 (CC BY 4.0) and USDA PLANTS for bloom colour and period (public domain). Sweeps are
-resumable — a failed lookup leaves the field NULL and is retried next time, while a
+resumable: a failed lookup leaves the field NULL and is retried next time, while a
 plant that was checked and genuinely has nothing keeps its empty result. That
 distinction is the difference between "nobody looked" and "there is nothing there",
 and the app is careful to say which.
 
-The service checks staleness on boot and hourly (not on a daily timer — a daily
+The service checks staleness on boot and hourly (not on a daily timer; a daily
 interval only fires after 24 hours of unbroken uptime, and every deploy resets it).
 A weekly source refresh preserves the enrichment already paid for, and every hour it
 re-verifies the five stalest plants, which cycles the whole catalogue in about ten
