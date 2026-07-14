@@ -112,16 +112,31 @@ async function getJson(path: string) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
 
+  // Read the body ONCE, then cache those bytes and parse those same bytes.
+  //
+  // The obvious version, `cache.put(url, res.clone())` followed by `res.json()`,
+  // does not work here and fails in the worst possible way. Cloning a Response tees
+  // its stream, and with three of these in flight at once Chrome cannot keep the
+  // 8.9 MB branch fed: put() rejects with "Cache.put() encountered a network error"
+  // for plants.json while quietly succeeding for facets.json and meta.json. The
+  // guide then looked cached, and offline still worked, because the browser's own
+  // HTTP cache was covering for it. An hour later that entry goes stale and the
+  // garden gets an empty app. No clone, no tee, no problem.
+  const bytes = await res.arrayBuffer();
+
   if ("caches" in window) {
     try {
       const cache = await caches.open(DATA_CACHE);
-      await cache.put(url, res.clone());
-    } catch {
-      // A full disk or a private window. She still gets the guide this session;
-      // she just doesn't get it offline, which is the state we were already in.
+      await cache.put(url, new Response(bytes, { headers: { "Content-Type": "application/json" } }));
+    } catch (e) {
+      // A full disk, or a private window. She still gets the guide this session;
+      // she just does not get it offline. Say so, rather than swallowing it: a
+      // silent failure here is indistinguishable from success until she is in a
+      // field with no signal.
+      console.error(`could not save ${path} for offline use:`, e);
     }
   }
-  return res.json();
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
 /** Is the guide already on this phone? Must be asked before the fetch — afterwards
