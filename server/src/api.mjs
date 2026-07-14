@@ -13,6 +13,7 @@ import {
 import { deriveFacets, deriveMeta } from "./facets.mjs";
 import { ingest, refreshFromSource, enrichAll, recheckStalest } from "./ingest.mjs";
 import { hasCredentials } from "./permapeople.mjs";
+import { imageFor, imageStats, WIDTHS } from "./images.mjs";
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
@@ -89,6 +90,7 @@ const server = http.createServer(async (req, res) => {
         bloom: await bloomProgress().catch(() => null),         // USDA
         companions: await companionsProgress().catch(() => null), // Permapeople
         recheck: await recheckProgress().catch(() => null),     // rolling re-verify
+        images: imageStats(),                                   // resizer cache
       }));
     }
 

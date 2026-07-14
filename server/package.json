@@ -8,6 +8,7 @@
     "ingest": "node src/ingest.mjs"
   },
   "dependencies": {
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "sharp": "^0.33.5"
   }
 }
