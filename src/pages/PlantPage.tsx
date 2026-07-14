@@ -5,6 +5,9 @@ import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 import { IconAlert, IconChevronLeft } from "@/components/icons";
 import { Thumb } from "@/components/Thumb";
 
+/** Close the source's clause so ours doesn't run into it. Never rewords it. */
+const sentence = (s: string) => (/[.!?]$/.test(s.trim()) ? s.trim() : `${s.trim()}.`);
+
 function BackLink() {
   const navigate = useNavigate();
   const canPop = window.history.state?.idx > 0;
@@ -125,7 +128,9 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         <div className="callout callout--warn" style={{ marginTop: "var(--sp-4)" }}>
           <IconAlert />
           <span>
-            <b>Caution:</b> {plant.cautions ?? plant.warnings.join(", ")}
+            {/* The source's sentence rarely ends in punctuation ("Toxic fruits"),
+                and what follows ran straight onto it. */}
+            <b>Caution:</b> {sentence(plant.cautions ?? plant.warnings.join(", "))}
             {plant.edible && plant.edibleParts.length > 0 && (
               <>
                 {" "}
