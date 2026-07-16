@@ -64,7 +64,6 @@ export function NotePanel({ plant }: { plant: Plant }) {
         aria-label={`Your note on ${plant.name}`}
         placeholder="Third week of May, by the fence…"
       />
-      <p className="note-helper">Stays on this phone. It goes to no server.</p>
       <div className="note-actions">
         <button
           className="btn btn--primary btn--sm"

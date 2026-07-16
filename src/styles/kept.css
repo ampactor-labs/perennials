@@ -71,11 +71,6 @@
   outline: 2px solid var(--green);
   outline-offset: 1px;
 }
-.note-helper {
-  margin-top: var(--sp-2);
-  font-size: var(--text-xs);
-  color: var(--ink-faint);
-}
 .note-actions {
   display: flex;
   align-items: center;
