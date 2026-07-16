@@ -4,6 +4,7 @@ import { useDataState, type Dataset } from "@/data/store";
 import { useKept } from "@/lib/kept";
 import { noteDate, useNotes, type Note } from "@/lib/notes";
 import { useSeen, type Seen } from "@/lib/seen";
+import { shareFiles } from "@/lib/share";
 import { BloomCalendar } from "@/components/BloomCalendar";
 import { PlantCard } from "@/components/PlantCard";
 import { IconKeep, IconX } from "@/components/icons";
@@ -57,21 +58,9 @@ function exportText(data: Dataset, kept: Plant[], notes: Note[], seen: Seen[]): 
 
 async function saveACopy(text: string) {
   const stamp = new Date().toISOString().slice(0, 10);
-  const file = new File([text], `perennials-notebook-${stamp}.txt`, { type: "text/plain" });
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file] });
-      return;
-    } catch {
-      /* she closed the sheet, or the share failed — fall through to download */
-    }
-  }
-  const url = URL.createObjectURL(file);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = file.name;
-  a.click();
-  URL.revokeObjectURL(url);
+  await shareFiles([
+    new File([text], `perennials-notebook-${stamp}.txt`, { type: "text/plain" }),
+  ]);
 }
 
 function KeptEntry({
