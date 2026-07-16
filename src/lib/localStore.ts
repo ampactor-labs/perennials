@@ -30,6 +30,14 @@ export function createLocalStore<T>(
   /** Shape-check a parsed value; return null to fall back to empty. A
    *  hand-edited or half-written entry must not take the page down with it. */
   sanitize: (raw: unknown) => T | null,
+  opts?: {
+    /** Live cross-tab sync (the default). A store that feeds derived structure
+     *  must pass false: the home zone re-sorts the whole dataset, and a zone
+     *  named in one tab would reorder and truncate a list another tab is
+     *  scrolled deep into. Opted out, the other tab reads the new value on its
+     *  next load instead of mid-scroll. */
+    crossTab?: boolean;
+  },
 ): Store<T> {
   let cache: T | null = null;
   const listeners = new Set<() => void>();
@@ -58,7 +66,7 @@ export function createLocalStore<T>(
 
   // Another tab wrote: drop the cache so the next snapshot re-reads, and let
   // subscribers re-render. The event only ever fires in the tabs that didn't.
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && (opts?.crossTab ?? true)) {
     window.addEventListener("storage", (e) => {
       if (e.key !== key) return;
       cache = null;

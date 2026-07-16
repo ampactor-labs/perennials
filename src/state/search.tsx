@@ -23,6 +23,7 @@ import {
   type Atom,
   type Constraints,
 } from "@/lib/constraints";
+import { learnHomeZone } from "@/lib/homeZone";
 import { coverageOf, evaluate, ZONE_COVERAGE, type Evaluation } from "@/lib/query";
 import { applySpot as applySpotTo, type Spot } from "@/lib/spots";
 
@@ -114,7 +115,12 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   // thing we destroyed, and offer it back.
   const [undoable, setUndoable] = useState<Constraints | null>(null);
 
-  const add = useCallback((a: Atom) => setConstraints((c) => addAtom(c, a)), []);
+  // A zone she names is the guide's best evidence of where home is. The default
+  // order follows it (see data/store.tsx); nothing is asked, nothing is filtered.
+  const add = useCallback((a: Atom) => {
+    if (a.kind === "zone") learnHomeZone(a.zone);
+    setConstraints((c) => addAtom(c, a));
+  }, []);
   const remove = useCallback((a: Atom) => setConstraints((c) => removeAtom(c, a)), []);
   const removeAll = useCallback((as: Atom[]) => {
     setConstraints((c) => {
@@ -125,7 +131,10 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback((a: Atom) => setConstraints((c) => toggleAtom(c, a)), []);
   const setText = useCallback((text: string) => setConstraints((c) => ({ ...c, text })), []);
   const setView = useCallback((view: "list" | "guild") => setConstraints((c) => ({ ...c, view })), []);
-  const applySpot = useCallback((s: Spot) => setConstraints((c) => applySpotTo(c, s)), []);
+  const applySpot = useCallback((s: Spot) => {
+    if (s.zone !== null) learnHomeZone(s.zone);
+    setConstraints((c) => applySpotTo(c, s));
+  }, []);
   const clearAll = useCallback(() => {
     setConstraints((c) => {
       setUndoable(c);

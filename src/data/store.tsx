@@ -1,8 +1,9 @@
 // Loads the dataset once from the hosted API (see server/), holds it in memory
 // with a prebuilt text index; the service worker caches the responses for
 // offline. No third-party plant API is ever called from the browser.
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import MiniSearch from "minisearch";
+import { hardyBand, useHomeZone } from "@/lib/homeZone";
 import type { Facets, Meta, Plant } from "./model";
 
 export type Dataset = {
@@ -15,8 +16,10 @@ export type Dataset = {
   readonly index: MiniSearch;
 };
 
+type Raw = { plants: Plant[]; facets: Facets; meta: Meta };
+
 /**
- * Assemble the dataset, and do NOT build the text index yet.
+ * The lazy text index, built once per payload and NOT on load.
  *
  * The index takes an 8,800-document pass, which is half a second of frozen main
  * thread on a phone — paid on every cold launch, including a fully offline one in
@@ -25,8 +28,12 @@ export type Dataset = {
  *
  * So: build it when the browser next goes idle, and if she somehow types before
  * that, the getter builds it on the spot. Either way the guide is on screen first.
+ *
+ * It lives outside makeDataset because the dataset is now re-assembled when her
+ * home zone changes (a re-sort) and the index does not care about order — losing
+ * it to a re-sort would charge her the half second again for nothing.
  */
-function makeDataset(plants: Plant[], facets: Facets, meta: Meta): Dataset {
+function makeIndexBuilder(plants: Plant[]): () => MiniSearch {
   let index: MiniSearch | null = null;
 
   const build = () => {
@@ -59,15 +66,31 @@ function makeDataset(plants: Plant[], facets: Facets, meta: Meta): Dataset {
 
   const idle = window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 200));
   idle(() => build());
+  return build;
+}
 
+/**
+ * Assemble the dataset in the order the guide opens in.
+ *
+ * The server ships plants sorted by documentation richness, which is a global
+ * signal with no regional pull — a tropical that dies in her winter outranked a
+ * serviceberry whenever contributors wrote more about it. Banding by her home
+ * zone puts plants that can live where she gardens first, the unmeasured in the
+ * middle, and the recorded misfits last; the sort is stable, so within each band
+ * the richness order still decides. Nothing is hidden — it is an order, not a
+ * filter — and evaluate() inherits it for free, since results are pushed in
+ * dataset order whenever no text search outranks it.
+ */
+function makeDataset(raw: Raw, zone: number, buildIndex: () => MiniSearch): Dataset {
+  const plants = [...raw.plants].sort((a, b) => hardyBand(a, zone) - hardyBand(b, zone));
   return {
     plants,
-    facets,
-    meta,
+    facets: raw.facets,
+    meta: raw.meta,
     bySlug: new Map(plants.map((p) => [p.slug, p])),
     byId: new Map(plants.map((p) => [p.id, p])),
     get index() {
-      return build();
+      return buildIndex();
     },
   };
 }
@@ -78,6 +101,12 @@ type State =
   | { status: "loading"; cold: boolean }
   | { status: "error"; error: string }
   | { status: "ready"; data: Dataset };
+
+/** What the fetch produced, before the home zone has had its say on the order. */
+type Phase =
+  | { status: "loading"; cold: boolean }
+  | { status: "error"; error: string }
+  | { status: "ready"; raw: Raw };
 
 const Ctx = createContext<State>({ status: "loading", cold: false });
 // The dataset comes from the hosted API (see server/). Set VITE_DATA_API to point
@@ -152,14 +181,15 @@ async function alreadySaved() {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<State>({ status: "loading", cold: false });
+  const [phase, setPhase] = useState<Phase>({ status: "loading", cold: false });
+  const zone = useHomeZone();
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const cold = !(await alreadySaved());
       if (cancelled) return;
-      if (cold) setState({ status: "loading", cold: true });
+      if (cold) setPhase({ status: "loading", cold: true });
 
       try {
         const [plants, facets, meta] = (await Promise.all([
@@ -168,7 +198,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           getJson("meta.json"),
         ])) as [Plant[], Facets, Meta];
         if (cancelled) return;
-        setState({ status: "ready", data: makeDataset(plants, facets, meta) });
+        setPhase({ status: "ready", raw: { plants, facets, meta } });
 
         // Now there is something worth keeping, ask the browser to keep it.
         // Without this, the app shell and the guide sit in the evictable bucket and
@@ -177,13 +207,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // is granted this silently, so it costs her no prompt.
         void navigator.storage?.persist?.().catch(() => {});
       } catch (err) {
-        if (!cancelled) setState({ status: "error", error: (err as Error).message });
+        if (!cancelled) setPhase({ status: "error", error: (err as Error).message });
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // One index per payload; one dataset per (payload, home zone). A zone change
+  // re-sorts and rebuilds two Maps — rare and cheap — but never re-indexes.
+  const buildIndex = useMemo(
+    () => (phase.status === "ready" ? makeIndexBuilder(phase.raw.plants) : null),
+    [phase],
+  );
+  const state = useMemo<State>(() => {
+    if (phase.status !== "ready" || !buildIndex) {
+      return phase.status === "ready"
+        ? { status: "loading", cold: false } // unreachable: buildIndex exists whenever phase is ready
+        : phase;
+    }
+    return { status: "ready", data: makeDataset(phase.raw, zone, buildIndex) };
+  }, [phase, zone, buildIndex]);
 
   return <Ctx.Provider value={state}>{children}</Ctx.Provider>;
 }

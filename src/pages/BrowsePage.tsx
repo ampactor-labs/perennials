@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigationType } from "react-router-dom";
+import { useHomeZone } from "@/lib/homeZone";
 import { useSearch } from "@/state/search";
 import { Omnibox } from "@/components/Omnibox";
 import { Trail } from "@/components/Trail";
@@ -21,6 +22,7 @@ const STARTERS: { label: string; key: string; value: string }[] = [
 
 function Starters() {
   const s = useSearch();
+  const zone = useHomeZone();
   if (s.constraints.atoms.length > 0 || s.constraints.text) return null;
   return (
     <div className="starters">
@@ -41,6 +43,12 @@ function Starters() {
       </div>
       <p className="starters-hint">
         Or type it: “wet shade”, “nitrogen”, “zone 6”, “mulberry”.
+      </p>
+      {/* The order is not mysterious: name it. It reads the same store the
+          dataset sorts by, so the two can never disagree. */}
+      <p className="starters-hint">
+        Plants recorded hardy in zone {zone} come first. Name another zone and the
+        order follows.
       </p>
     </div>
   );
