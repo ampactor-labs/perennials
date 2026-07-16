@@ -3,14 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "A field guide and yard visualizer for permaculture perennials — search plants by bloom, light, moisture, function, and use.",
+  "description": "A field guide and yard visualizer for permaculture perennials \u2014 search plants by bloom, light, moisture, function, and use.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "postbuild": "cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "gen:icons": "node scripts/gen-icons.mjs"
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "minisearch": "^7.1.2",
@@ -26,6 +27,7 @@
     "sharp": "^0.33.5",
     "typescript": "^5.6.3",
     "vite": "^6.0.3",
-    "vite-plugin-pwa": "^0.21.1"
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^2.1.9"
   }
 }

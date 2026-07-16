@@ -42,7 +42,16 @@ the visual design and UX intact unless asked to change them.
 - `npm run dev` dev server
 - `npm run typecheck` the real typecheck
 - `npm run build` typecheck + production build
+- `npm test` the rules in `src/lib/rules.test.ts`
 - `server/` has its own commands; see `server/README.md`
+
+The tests cover the rules the guide turns on and nothing else: what a hardiness
+record means, that a plant nobody measured never sorts below one the record rules
+out, that a month lands on exactly one of USDA's nine season words, that a stroke
+cannot grow past its cap. They exist because "a lone hardiness number is a floor,
+not a one-zone window" was wrong for months and dropped Red mulberry and hardy
+kiwi out of a zone-6 search, and nothing was watching. Put a rule here the day you
+rely on it.
 
 **Do not run `tsc --noEmit`.** `tsconfig.json` is a solution-style config (`"files": []`
 plus project references), so a bare `tsc --noEmit` compiles nothing and exits 0 no matter
