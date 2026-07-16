@@ -290,14 +290,7 @@
   margin-top: var(--sp-6);
 }
 
-/* the yards shelf on the Kept page */
-.yard-shelf-hint {
-  font-size: var(--text-sm);
-  color: var(--ink-faint);
-}
-.yard-list:not(:empty) {
-  margin-top: var(--sp-2);
-}
+/* the yards list */
 .yard-row {
   display: flex;
   align-items: center;

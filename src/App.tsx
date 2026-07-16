@@ -14,6 +14,7 @@ import { BrowsePage } from "./pages/BrowsePage";
 import { PlantPage } from "./pages/PlantPage";
 import { KeptPage } from "./pages/KeptPage";
 import { YardPage } from "./pages/YardPage";
+import { YardsPage } from "./pages/YardsPage";
 import { AboutPage } from "./pages/AboutPage";
 
 // A new page starts at the top. Going BACK does not: `pathname` changes on a pop
@@ -41,6 +42,7 @@ export function App() {
                 <Route index element={<BrowsePage />} />
                 <Route path="plant/:slug" element={<PlantPage />} />
                 <Route path="kept" element={<KeptPage />} />
+                <Route path="yards" element={<YardsPage />} />
                 <Route path="yard/:id" element={<YardPage />} />
                 <Route path="about" element={<AboutPage />} />
                 <Route path="*" element={<BrowsePage />} />

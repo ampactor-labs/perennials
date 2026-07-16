@@ -3,7 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useTheme } from "@/lib/settings";
 import { useDataState } from "@/data/store";
 import { useKept } from "@/lib/kept";
-import { IconAlert, IconBook, IconGuide, IconKeep, IconMoon, IconSun } from "./icons";
+import { IconAlert, IconBook, IconGarden, IconGuide, IconKeep, IconMoon, IconSun } from "./icons";
 
 /* A herbarium sheet in miniature: a paper tile, a sprig pressed to sepia (the
    colour specimens actually dry to, and the ink of her notes), and the one dot
@@ -136,12 +136,14 @@ type Tab = {
 };
 
 // The nav grid grows one implicit column per tab (grid-auto-flow: column), so
-// adding or cutting a tab here needs no CSS change. It used to be a fixed
-// repeat(), and a stale two-column copy in browse.css wrapped this third tab
-// into a hidden row on phones.
+// adding this fourth one needs no CSS change. It used to be a fixed repeat(),
+// and a stale two-column copy in browse.css wrapped the third tab into a hidden
+// row on phones. IconGarden has been unused since the 43-plant garden view was
+// cut; the yard sketch is that view's successor, so it takes the icon back.
 const TABS: Tab[] = [
   { to: "/", label: "Guide", icon: IconGuide, end: true },
   { to: "/kept", label: "Kept", icon: IconKeep, end: false, badge: true },
+  { to: "/yards", label: "Yards", icon: IconGarden, end: false },
   { to: "/about", label: "Field notes", icon: IconBook, end: false },
 ];
 

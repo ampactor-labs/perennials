@@ -426,6 +426,9 @@
   .app-nav {
     grid-template-columns: none;
     grid-auto-flow: column;
+    /* Auto, not the 1fr the phone uses: 1fr columns fill the bar, and then
+       justify-content has nothing left to centre. */
+    grid-auto-columns: auto;
     justify-content: center;
     gap: var(--sp-6);
   }

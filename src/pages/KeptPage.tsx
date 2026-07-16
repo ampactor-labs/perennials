@@ -1,8 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
 import { useKept } from "@/lib/kept";
-import { useYards } from "@/lib/yards";
 import { noteDate, useNotes, type Note } from "@/lib/notes";
 import { useSeen, type Seen } from "@/lib/seen";
 import { shareFiles } from "@/lib/share";
@@ -92,59 +91,6 @@ function KeptEntry({
   );
 }
 
-/** The first free "Yard N". Counting the list instead handed a second yard the
- *  name of one still on the shelf: delete Yard 1 of two, and the next New yard
- *  was a second Yard 2. */
-function untitled(names: string[]): string {
-  const taken = new Set(names);
-  let n = 1;
-  while (taken.has(`Yard ${n}`)) n += 1;
-  return `Yard ${n}`;
-}
-
-/**
- * The yards shelf: where a kept list turns into a plan for a place.
- *
- * It sits at the top of Kept, above the calendar, because a yard is the thing
- * the kept list is *for*. It spent its first day at the bottom of the page,
- * under the calendar and every card, where nobody found it.
- */
-function YardShelf() {
-  const { yards, create } = useYards();
-  const navigate = useNavigate();
-  const sorted = [...yards].sort((a, b) => b.at - a.at);
-  return (
-    <section className="panel yard-shelf">
-      <div className="panel-title">Yard sketches</div>
-      <div className="yard-list">
-        {sorted.map((y) => (
-          <div key={y.id} className="yard-row">
-            <Link to={`/yard/${y.id}`} className="yard-row-name">
-              {y.name}
-            </Link>
-            <span className="yard-row-meta">
-              {y.plants.length} {y.plants.length === 1 ? "plant" : "plants"}
-            </span>
-          </div>
-        ))}
-      </div>
-      {sorted.length === 0 && (
-        <p className="yard-shelf-hint">
-          Draw a bed, a fence, the house. Your kept plants place onto it, and the year
-          scrubber shows what is in flower when.
-        </p>
-      )}
-      <button
-        className="btn btn--sm"
-        style={{ marginTop: "var(--sp-3)" }}
-        onClick={() => navigate(`/yard/${create(untitled(yards.map((y) => y.name))).id}`)}
-      >
-        New yard
-      </button>
-    </section>
-  );
-}
-
 export function KeptPage() {
   const state = useDataState();
   const { kept, remove } = useKept();
@@ -165,14 +111,10 @@ export function KeptPage() {
   // out of the bloom year.
   const notedOnly = writtenPlants(data, notes, seen).filter((p) => !keptIds.has(p.id));
 
-  // The empty state carries the shelf too. It used to return early, above the
-  // only door to the yard editor, so a phone with nothing kept on it could not
-  // reach the editor at all — and the editor needs no plants to be useful: the
-  // beds, the fence, the house and the compass are all her own hand.
   if (plants.length === 0 && notedOnly.length === 0) {
     return (
-      <div className="page wrap detail">
-        <div className="empty" style={{ paddingBottom: "var(--sp-4)" }}>
+      <div className="page wrap">
+        <div className="empty">
           <IconKeep />
           <h2>Nothing kept yet</h2>
           <p>Open a plant and press Keep. They gather here, and so does their bloom calendar.</p>
@@ -180,7 +122,6 @@ export function KeptPage() {
             Find some plants
           </Link>
         </div>
-        <YardShelf />
       </div>
     );
   }
@@ -207,12 +148,8 @@ export function KeptPage() {
         </button>
       </header>
 
-      <div style={{ marginTop: "var(--sp-5)" }}>
-        <YardShelf />
-      </div>
-
       {plants.length > 0 && (
-        <div style={{ marginTop: "var(--sp-4)" }}>
+        <div style={{ marginTop: "var(--sp-5)" }}>
           <BloomCalendar plants={plants} />
         </div>
       )}

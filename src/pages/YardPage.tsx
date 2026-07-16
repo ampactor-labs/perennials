@@ -58,8 +58,8 @@ export function YardPage() {
       <div className="page wrap">
         <div className="empty">
           <h3>{state.status !== "ready" ? "Loading…" : "No such yard"}</h3>
-          <Link className="btn btn--ghost" to="/kept" style={{ marginTop: "var(--sp-3)" }}>
-            Back to Kept
+          <Link className="btn btn--ghost" to="/yards" style={{ marginTop: "var(--sp-3)" }}>
+            Back to Yards
           </Link>
         </div>
       </div>
@@ -232,9 +232,9 @@ export function YardPage() {
   return (
     <div className="page wrap yard">
       <div className="detail-top">
-        <Link to="/kept" className="back-link">
+        <Link to="/yards" className="back-link">
           <IconChevronLeft width={18} height={18} />
-          Kept
+          Yards
         </Link>
       </div>
 
@@ -504,7 +504,7 @@ export function YardPage() {
               style={{ color: "var(--danger)" }}
               onClick={() => {
                 remove(yard.id);
-                navigate("/kept");
+                navigate("/yards");
               }}
             >
               Delete
