@@ -82,6 +82,33 @@
   color: var(--danger);
 }
 
+/* her bloom marks — data points, not prose ---------------------------- */
+.seen-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-3);
+  margin-top: var(--sp-3);
+}
+.seen-dates {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+.seen-date {
+  display: inline-flex;
+  align-items: center;
+}
+.seen-remove {
+  color: var(--ink-faint);
+}
+.seen-remove:hover {
+  color: var(--danger);
+}
+
 .nav-icon {
   position: relative;
   display: inline-flex;
@@ -197,9 +224,14 @@
   );
 }
 
+/* A column, not a grid: when both records land in one slot, her dot stacks
+   above the printed band — DOM order is the stacking order. */
 .bcal-cell {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   min-height: 1.15rem;
   border-radius: var(--r-sm);
   background: color-mix(in srgb, var(--ink) 4%, transparent);
@@ -207,11 +239,37 @@
 /* The bar carries the bloom's own colour when the source recorded one. With no
    recorded colour it stays ink: still "in bloom", making no claim about which. */
 .bcal-bar {
+  flex: none;
   width: 100%;
   height: 0.62rem;
   border-radius: var(--r-sm);
   background: var(--ink-faint);
   border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+}
+/* Her mark: a day she tapped "Blooming today", coarsened onto the axis. It is
+   set in the sepia her notes already write in, and in a different shape at a
+   different height, so the two records stay tellable apart without colour. */
+.bcal-dot {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--sepia);
+  border: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.bcal-legend {
+  margin-top: var(--sp-3);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+.bcal-legend .bcal-dot,
+.bcal-legend .bcal-bar {
+  display: inline-block;
+  vertical-align: -1px;
+}
+.bcal-legend .bcal-bar {
+  width: 1.4rem;
 }
 
 .bcal-verdict {

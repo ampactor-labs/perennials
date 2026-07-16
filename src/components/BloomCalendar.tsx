@@ -8,10 +8,23 @@ import {
   SLOT_TICK,
   bloomPeriodLabel,
   bloomSlots,
+  slotForDate,
   type BloomSlot,
 } from "@/lib/bloom";
+import { useSeen } from "@/lib/seen";
 
-type Row = { plant: Plant; period: string; slots: readonly BloomSlot[] };
+type Row = {
+  plant: Plant;
+  period: string;
+  /** the printed record — USDA's period, spread over its slots */
+  slots: readonly BloomSlot[];
+  /** her record — days she tapped "Blooming today", coarsened onto the axis */
+  hand: readonly BloomSlot[];
+};
+
+/** The first slot either record covers; the grid sorts by it. */
+const firstSlot = (r: Row) =>
+  BLOOM_SLOTS.findIndex((s) => r.slots.includes(s) || r.hand.includes(s));
 
 /** "late winter, fall" — her words, not an array printed at her. */
 function joinLower(slots: readonly BloomSlot[]): string {
@@ -29,30 +42,44 @@ function joinLower(slots: readonly BloomSlot[]): string {
  * runs over her kept list — across all 8,800 plants the axis would be almost
  * entirely holes, because USDA records a bloom period for about one in eight.
  *
- * The honesty rule bites hardest here. A plant with no recorded period is NOT a
- * row of empty cells — that reads as "never flowers", which is a claim the data
- * never made. It is named below the grid instead, and an empty slot is only ever
+ * The honesty rule bites hardest here. A plant with no record at all is NOT a
+ * row of empty cells — that reads as "never flowers", which is a claim nobody
+ * made. It is named below the grid instead, and an empty slot is only ever
  * "nothing recorded", never "nothing blooms".
+ *
+ * Two records draw here and never mix. The bar is the printed one, USDA's
+ * continent-average period. The sepia dot above it is hers — her hand above
+ * the printed record — and it earns a plant its row even when the printed
+ * period is blank, which on her kept list is most of them.
  */
 export function BloomCalendar({ plants }: { plants: Plant[] }) {
+  const { seen } = useSeen();
   if (plants.length === 0) return null;
+
+  const handSlots = (id: number): readonly BloomSlot[] => {
+    const hit = new Set(seen.filter((s) => s.id === id).map((s) => slotForDate(s.at)));
+    return BLOOM_SLOTS.filter((slot) => hit.has(slot));
+  };
 
   const rows: Row[] = plants
     .map((plant) => ({
       plant,
       period: plant.bloomPeriod ?? "",
       slots: bloomSlots(plant.bloomPeriod),
+      hand: handSlots(plant.id),
     }))
-    .filter((r): r is Row => r.slots.length > 0)
-    .sort(
-      (a, b) =>
-        BLOOM_SLOTS.indexOf(a.slots[0]) - BLOOM_SLOTS.indexOf(b.slots[0]) ||
-        a.plant.name.localeCompare(b.plant.name),
-    );
+    .filter((r) => r.slots.length > 0 || r.hand.length > 0)
+    .sort((a, b) => firstSlot(a) - firstSlot(b) || a.plant.name.localeCompare(b.plant.name));
 
-  const unrecorded = plants.filter((p) => bloomSlots(p.bloomPeriod).length === 0);
-  const counts = BLOOM_SLOTS.map((slot) => rows.filter((r) => r.slots.includes(slot)).length);
+  const unrecorded = plants.filter(
+    (p) => bloomSlots(p.bloomPeriod).length === 0 && handSlots(p.id).length === 0,
+  );
+  const counts = BLOOM_SLOTS.map(
+    (slot) => rows.filter((r) => r.slots.includes(slot) || r.hand.includes(slot)).length,
+  );
   const gaps = BLOOM_SLOTS.filter((_, i) => counts[i] === 0);
+  const printed = rows.filter((r) => r.slots.length > 0).length;
+  const marked = rows.filter((r) => r.hand.length > 0).length;
 
   return (
     <section className="panel bcal">
@@ -86,19 +113,22 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
               </div>
             ))}
 
-            {rows.map(({ plant, period, slots }) => (
+            {rows.map(({ plant, period, slots, hand }) => (
               <Fragment key={plant.slug}>
                 <div className="bcal-head">
                   <Link to={`/plant/${plant.slug}`} className="bcal-name">
                     {plant.name}
                   </Link>
-                  {/* The word the source actually recorded. The bars show the
-                      shape; this is the datum, and it is what a screen reader
-                      gets, since the cells themselves are decoration. */}
-                  <span className="bcal-period">{bloomPeriodLabel(period)}</span>
+                  {/* The datum in words, per record, since the cells themselves
+                      are decoration and this is what a screen reader gets. */}
+                  <span className="bcal-period">
+                    {period ? bloomPeriodLabel(period) : "Seen by you"}
+                    {period && hand.length > 0 && " · seen by you"}
+                  </span>
                 </div>
                 {BLOOM_SLOTS.map((slot) => (
                   <div key={slot} className="bcal-cell" aria-hidden="true">
+                    {hand.includes(slot) && <span className="bcal-dot" />}
                     {slots.includes(slot) && (
                       <span
                         className="bcal-bar"
@@ -115,6 +145,13 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
             ))}
           </div>
 
+          {marked > 0 && (
+            <p className="bcal-legend">
+              <span className="bcal-dot" aria-hidden="true" /> seen by you ·{" "}
+              <span className="bcal-bar" aria-hidden="true" /> the printed record
+            </p>
+          )}
+
           <p className="bcal-verdict">
             {gaps.length === 0
               ? "Something you've kept is recorded in bloom in every part of the year."
@@ -125,9 +162,11 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
 
       {/* Coverage, always — a partial facet has to say how partial. */}
       <p className="bcal-coverage">
-        {rows.length === 0
+        {printed === 0
           ? `No bloom period is recorded for any of the ${plants.length === 1 ? "plant" : `${plants.length} plants`} you've kept.`
-          : `${rows.length} of ${plants.length} kept ${plants.length === 1 ? "plant has" : "plants have"} a bloom period recorded.`}{" "}
+          : `${printed} of ${plants.length} kept ${plants.length === 1 ? "plant has" : "plants have"} a bloom period recorded.`}{" "}
+        {marked > 0 &&
+          `You've marked ${marked} ${marked === 1 ? "plant" : "plants"} in bloom yourself. `}
         Bloom comes from USDA PLANTS, which covers North-American species, so a blank is a
         gap in the record rather than a plant that doesn't flower.
       </p>

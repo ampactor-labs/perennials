@@ -93,7 +93,7 @@ export function AboutPage() {
         </div>
         <div className="attr-row">
           <span className="attr-label">You</span>
-          <span>The kept list and every note.</span>
+          <span>The kept list, every note, and every bloom you've marked.</span>
         </div>
       </section>
 

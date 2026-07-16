@@ -82,6 +82,33 @@ const PERIOD_SLOTS: Record<string, readonly BloomSlot[]> = {
 export const bloomSlots = (period: string | null | undefined): readonly BloomSlot[] =>
   period ? PERIOD_SLOTS[period] ?? [] : [];
 
+/**
+ * Her date onto the nine-word axis.
+ *
+ * This looks like the sin described above — pinning the season words to a
+ * calendar — but it runs in the honest direction. USDA's "Late Spring" is a
+ * continent average we refuse to place on months; a tap on "Blooming today" is
+ * one real date in one yard, and coarsening it onto this axis loses precision
+ * instead of inventing it. The reading is zone 6, northern hemisphere — hers.
+ * The dates themselves are never discarded; only the calendar coarsens.
+ */
+const MONTH_SLOT: readonly BloomSlot[] = [
+  "Winter", // Jan
+  "Late Winter", // Feb
+  "Early Spring", // Mar
+  "Mid Spring", // Apr
+  "Late Spring", // May
+  "Early Summer", // Jun
+  "Mid Summer", // Jul
+  "Late Summer", // Aug
+  "Fall", // Sep
+  "Fall", // Oct
+  "Fall", // Nov
+  "Winter", // Dec
+];
+
+export const slotForDate = (at: number): BloomSlot => MONTH_SLOT[new Date(at).getMonth()];
+
 /** The calendar's header: seasons over the slots they span. */
 export const BLOOM_SEASONS: { name: string; span: number }[] = [
   { name: "Winter", span: 2 },

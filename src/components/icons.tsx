@@ -107,3 +107,19 @@ export const IconKeep = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: 
     <path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.2L5.5 21V4.5a1 1 0 0 1 1-1Z" />
   </svg>
 );
+
+/* Five petals. Like IconKeep, `filled` reports something she did — today's
+   "Blooming today" tap — never a fact about the plant. Thinner stroke than the
+   set: five petals at 1.7 smudge into a blot at button size. */
+export const IconBloom = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: boolean }) => (
+  <svg {...base} {...p} strokeWidth={1.4} fill={filled ? "currentColor" : "none"}>
+    <circle cx="12" cy="12" r="2.3" />
+    {[0, 72, 144, 216, 288].map((r) => (
+      <path
+        key={r}
+        transform={`rotate(${r} 12 12)`}
+        d="M12 9.6C10.4 8.8 9.8 6.8 10.6 5.2 11 4.4 13 4.4 13.4 5.2 14.2 6.8 13.6 8.8 12 9.6Z"
+      />
+    ))}
+  </svg>
+);
