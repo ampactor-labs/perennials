@@ -12,7 +12,7 @@
 // real pixels for its device ratio. WebP at these qualities is visually lossless
 // at thumbnail size and roughly a third the bytes of the JPEG it replaces.
 import sharp from "sharp";
-import { sourceFor } from "./db.mjs";
+import { sourcesFor } from "./db.mjs";
 
 // A closed set. An open `?w=` would invite thousands of variants of the same photo
 // into the cache, and it would make this an open image proxy besides.
@@ -43,10 +43,36 @@ function remember(key, entry) {
   }
 }
 
+/**
+ * The first origin that actually answers, resized.
+ *
+ * Not just the best one. Permapeople's CDN 403s about one in seventeen of the
+ * 800px originals while the 300px thumb beside it serves fine, and asking for
+ * only the big one meant Red mulberry and blackcurrant showed the no-photo glyph
+ * while holding a photo. A source that will not fetch, or will not decode, is a
+ * source we do not have; try the next. Only when every one of them fails does
+ * this throw, and then the 502 is telling the truth.
+ *
+ * Falling back costs resolution, never honesty: `withoutEnlargement` already
+ * refuses to invent pixels, so a 300px thumb asked for 800 hands back 300 real
+ * ones rather than a blurred upscale.
+ */
 async function render(id, w) {
-  const url = await sourceFor(id);
-  if (!url) return null;
+  const urls = await sourcesFor(id);
+  if (urls.length === 0) return null;
 
+  let last = null;
+  for (const url of urls) {
+    try {
+      return await fetchAndEncode(url, id, w);
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
+}
+
+async function fetchAndEncode(url, id, w) {
   const res = await fetch(url, { headers: { "User-Agent": UA } });
   if (!res.ok) throw new Error(`origin ${url}: HTTP ${res.status}`);
   const origin = Buffer.from(await res.arrayBuffer());

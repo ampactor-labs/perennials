@@ -108,15 +108,25 @@ export async function stalestPlants(limit = 5) {
 }
 
 /**
- * The best origin image for one plant, for the resizer to work from.
+ * Every origin we could resize this plant from, best first.
  *
- * Prefer `photo` (Permapeople's `title`, 800px on the long edge) over `thumb`
- * (300px). Downscaling 800 -> 192 keeps far more detail than downscaling 300 ->
- * 192, so the big source is better at EVERY output size, not just the large ones.
+ * `photo` (Permapeople's `title`, 800px on the long edge) leads `thumb` (300px):
+ * downscaling 800 -> 192 keeps far more detail than 300 -> 192, so the big source
+ * is better at EVERY output size, not just the large ones.
+ *
+ * Both, though, and not the best one only. About one in seventeen of the 800px
+ * originals answers 403 from Permapeople's CDN while the 300px thumb beside it
+ * serves fine. Returning a single URL meant the resizer threw and the app showed
+ * its no-photo glyph for roughly 276 plants that have a photo -- Red mulberry,
+ * blackcurrant, hardy kiwi, highbush blueberry, the ones she actually plants.
+ * `photo ?? thumb` only ever guarded against photo being NULL, never against it
+ * being unfetchable.
  */
-export async function sourceFor(id) {
+export async function sourcesFor(id) {
   const { rows } = await pool.query("SELECT photo, thumb FROM plants WHERE id = $1", [id]);
-  return rows[0]?.photo ?? rows[0]?.thumb ?? null;
+  const r = rows[0];
+  if (!r) return [];
+  return [...new Set([r.photo, r.thumb].filter(Boolean))];
 }
 
 export async function markRechecked(id) {

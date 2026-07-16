@@ -608,21 +608,9 @@
   font-size: var(--text-xs);
   color: var(--ink-faint);
 }
-.quick-ask {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  background: transparent;
-  font-size: var(--text-sm);
-  color: var(--ink-soft);
-}
-.quick-ask:hover {
-  border-color: var(--green);
-  color: var(--ink);
-}
+/* .quick-ask lives in app.css. A second copy sat here, identical but for the
+   transition, quietly winning the cascade on load order — the same shape as the
+   two-column .app-nav copy that buried a whole tab. One home per selector. */
 
 /* ===================================================================== *
  * Segmented view toggle
