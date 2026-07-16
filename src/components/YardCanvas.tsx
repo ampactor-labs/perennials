@@ -184,7 +184,13 @@ export function YardCanvas({
     }
   };
 
+  // A second finger must not end the first one's stroke. down() and move()
+  // already ignore non-primary pointers, but this did not: a client leaning in
+  // and steadying the phone put a thumb on the sheet, and its pointerup
+  // committed the half-drawn bed she was still drawing, then deadened the rest
+  // of the stroke because the gesture was already gone.
   const up = (e: React.PointerEvent) => {
+    if (!e.isPrimary) return;
     const g = gesture.current;
     gesture.current = null;
     if (!g) return;
@@ -219,7 +225,14 @@ export function YardCanvas({
       setLive({});
       if (g.r) onRing(g.uid, g.r);
     }
-    void e;
+  };
+
+  // Cancelled is not finished: the system took the gesture away, so throw the
+  // stroke out rather than committing whatever half of it had arrived.
+  const cancel = (e: React.PointerEvent) => {
+    if (!e.isPrimary) return;
+    gesture.current = null;
+    setLive({});
   };
 
   const north = live.north ?? yard.north;
@@ -232,7 +245,7 @@ export function YardCanvas({
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
-      onPointerCancel={up}
+      onPointerCancel={cancel}
       role="img"
       aria-label={`Sketch of ${yard.name}`}
     >

@@ -92,6 +92,16 @@ function KeptEntry({
   );
 }
 
+/** The first free "Yard N". Counting the list instead handed a second yard the
+ *  name of one still on the shelf: delete Yard 1 of two, and the next New yard
+ *  was a second Yard 2. */
+function untitled(names: string[]): string {
+  const taken = new Set(names);
+  let n = 1;
+  while (taken.has(`Yard ${n}`)) n += 1;
+  return `Yard ${n}`;
+}
+
 /** The yards shelf: where a kept list turns into a plan for a place. */
 function YardShelf() {
   const { yards, create } = useYards();
@@ -116,7 +126,7 @@ function YardShelf() {
         <button
           className="btn btn--ghost btn--sm"
           style={{ marginTop: sorted.length ? "var(--sp-2)" : 0 }}
-          onClick={() => navigate(`/yard/${create(`Yard ${yards.length + 1}`).id}`)}
+          onClick={() => navigate(`/yard/${create(untitled(yards.map((y) => y.name))).id}`)}
         >
           New yard
         </button>
