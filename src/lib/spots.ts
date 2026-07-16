@@ -2,6 +2,7 @@
 // water, soil, zone). Applying one swaps in that place's conditions and leaves
 // intent constraints (edible, functions, layer…) alone.
 import { useCallback, useSyncExternalStore } from "react";
+import { createLocalStore } from "./localStore";
 import type { Atom, Constraints } from "./constraints";
 
 export type Spot = {
@@ -12,40 +13,13 @@ export type Spot = {
 };
 
 export const SITE_KEYS = ["light", "water", "soil"] as const;
-const LS_KEY = "perennials.spots.v1";
 
-let cache: Spot[] | null = null;
-const listeners = new Set<() => void>();
-
-function read(): Spot[] {
-  if (cache) return cache;
-  try {
-    cache = JSON.parse(localStorage.getItem(LS_KEY) ?? "[]") as Spot[];
-  } catch {
-    cache = [];
-  }
-  return cache;
-}
-
-function write(spots: Spot[]) {
-  cache = spots;
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(spots));
-  } catch {
-    /* private mode */
-  }
-  listeners.forEach((l) => l());
-}
+const store = createLocalStore<Spot[]>("perennials.spots.v1", [], (raw) =>
+  Array.isArray(raw) ? (raw as Spot[]) : null,
+);
 
 export function useSpots() {
-  const spots = useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
-    read,
-    () => [],
-  );
+  const spots = useSyncExternalStore(store.subscribe, store.read, () => store.empty);
 
   const save = useCallback((name: string, c: Constraints): Spot => {
     const facets: Record<string, string[]> = {};
@@ -57,12 +31,12 @@ export function useSpots() {
       }
     }
     const spot: Spot = { id: `s${Date.now().toString(36)}`, name: name.trim(), zone, facets };
-    write([...read(), spot]);
+    store.write([...store.read(), spot]);
     return spot;
   }, []);
 
   const remove = useCallback((id: string) => {
-    write(read().filter((s) => s.id !== id));
+    store.write(store.read().filter((s) => s.id !== id));
   }, []);
 
   return { spots, save, remove };
