@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTheme } from "@/lib/settings";
 import { useDataState } from "@/data/store";
-import { IconAlert, IconBook, IconGuide, IconMoon, IconSun } from "./icons";
+import { useKept } from "@/lib/kept";
+import { IconAlert, IconBook, IconGuide, IconKeep, IconMoon, IconSun } from "./icons";
 
 function BrandMark() {
   return (
@@ -105,12 +106,25 @@ function StaleNotice() {
   );
 }
 
-const TABS = [
+type Tab = {
+  to: string;
+  label: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  end: boolean;
+  /** Only Kept carries a number: it is the one tab whose contents she put there. */
+  badge?: boolean;
+};
+
+// The nav grid has been `repeat(3, 1fr)` since the garden view was cut, so this
+// third tab lands in the slot that was already sitting empty.
+const TABS: Tab[] = [
   { to: "/", label: "Guide", icon: IconGuide, end: true },
+  { to: "/kept", label: "Kept", icon: IconKeep, end: false, badge: true },
   { to: "/about", label: "Field notes", icon: IconBook, end: false },
 ];
 
 export function Layout() {
+  const { kept } = useKept();
   return (
     <div className="app">
       <header className="app-header">
@@ -131,9 +145,12 @@ export function Layout() {
       </main>
 
       <nav className="app-nav" aria-label="Sections">
-        {TABS.map(({ to, label, icon: Icon, end }) => (
+        {TABS.map(({ to, label, icon: Icon, end, badge }) => (
           <NavLink key={to} to={to} end={end} className="nav-item">
-            <Icon />
+            <span className="nav-icon">
+              <Icon />
+              {badge && kept.length > 0 && <span className="nav-badge">{kept.length}</span>}
+            </span>
             <span>{label}</span>
             <span className="nav-dot" />
           </NavLink>

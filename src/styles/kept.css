@@ -1,0 +1,180 @@
+/* ===================================================================== *
+ * Kept — her plants, and their bloom succession
+ * ===================================================================== */
+
+.kept-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+/* The card is a link and the remove is a button; they are siblings, never
+   nested, or the whole row becomes one ambiguous tap target. */
+.kept-item .pcard {
+  flex: 1;
+  min-width: 0;
+}
+.kept-remove {
+  flex: none;
+  color: var(--ink-faint);
+}
+.kept-remove:hover {
+  color: var(--danger);
+}
+
+.nav-icon {
+  position: relative;
+  display: inline-flex;
+}
+.nav-badge {
+  position: absolute;
+  top: -3px;
+  left: 60%;
+  min-width: 0.95rem;
+  height: 0.95rem;
+  padding: 0 0.2rem;
+  border-radius: var(--r-pill);
+  background: var(--green);
+  color: var(--on-green);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 0.95rem;
+  text-align: center;
+}
+
+/* bloom calendar ------------------------------------------------------ */
+/*
+ * Nine slots, because USDA records nine places in a year and not twelve months.
+ * The name column is fixed and narrow so the grid never scrolls sideways on a
+ * phone: a bar only has to be visible, not wide.
+ */
+.bcal-grid {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 8rem) repeat(9, 1fr);
+  align-items: stretch;
+  gap: 2px;
+}
+
+.bcal-corner {
+  /* the empty cell above the name column */
+}
+
+.bcal-season {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-align: center;
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--line);
+}
+
+/* The qualifier row is the first thing to go when there's no room for it — the
+   season headers and the bar's position already carry early/mid/late. */
+.bcal-tickrow {
+  display: none;
+}
+.bcal-tick {
+  font-size: 0.6rem;
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 2px 0;
+}
+
+.bcal-head {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3px var(--sp-2) 3px 0;
+  min-width: 0;
+}
+.bcal-head--sum {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+.bcal-name {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.bcal-name:hover {
+  color: var(--green);
+}
+.bcal-period {
+  font-size: 0.62rem;
+  color: var(--ink-faint);
+  line-height: 1.3;
+}
+
+.bcal-sum {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  background: var(--paper-sunk);
+  border-radius: var(--r-sm);
+  padding: var(--sp-1) 0;
+}
+/* A slot nothing is recorded in. It is a gap in the record, so it reads as
+   absence — faint, sunk, hatched — and never as danger. Red in this app means
+   the plant can hurt you. */
+.bcal-sum--gap {
+  color: var(--ink-faint);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    color-mix(in srgb, var(--ink) 7%, transparent) 3px,
+    color-mix(in srgb, var(--ink) 7%, transparent) 6px
+  );
+}
+
+.bcal-cell {
+  display: grid;
+  place-items: center;
+  min-height: 1.15rem;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+/* The bar carries the bloom's own colour when the source recorded one. With no
+   recorded colour it stays ink: still "in bloom", making no claim about which. */
+.bcal-bar {
+  width: 100%;
+  height: 0.62rem;
+  border-radius: var(--r-sm);
+  background: var(--ink-faint);
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+.bcal-verdict {
+  margin-top: var(--sp-3);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.bcal-coverage {
+  margin-top: var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+.bcal-unrecorded {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: var(--sp-3);
+}
+
+@media (min-width: 34rem) {
+  .bcal-tickrow {
+    display: block;
+  }
+  .bcal-grid {
+    grid-template-columns: minmax(8rem, 12rem) repeat(9, 1fr);
+  }
+}

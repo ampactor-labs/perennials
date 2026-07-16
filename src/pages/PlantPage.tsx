@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
 import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
-import { IconAlert, IconChevronLeft } from "@/components/icons";
+import { useKept } from "@/lib/kept";
+import { IconAlert, IconChevronLeft, IconKeep } from "@/components/icons";
 import { Thumb } from "@/components/Thumb";
 
 /** Close the source's clause so ours doesn't run into it. Never rewords it. */
@@ -24,6 +25,21 @@ function BackLink() {
     <button className="back-link" onClick={() => navigate(-1)}>
       <IconChevronLeft width={18} height={18} />
       All plants
+    </button>
+  );
+}
+
+function KeepButton({ plant }: { plant: Plant }) {
+  const { kept, toggle } = useKept();
+  const on = kept.some((k) => k.id === plant.id);
+  return (
+    <button
+      className={on ? "btn btn--primary keep-btn" : "btn keep-btn"}
+      onClick={() => toggle(plant.id)}
+      aria-pressed={on}
+    >
+      <IconKeep width={17} height={17} filled={on} />
+      {on ? "Kept" : "Keep"}
     </button>
   );
 }
@@ -153,6 +169,9 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
           {plant.altNames.length > 0 && <AltNames names={plant.altNames} />}
           {plant.family && <div className="detail-family eyebrow">{plant.family}</div>}
         </div>
+        {/* .detail-head has been `1fr auto` all along with nothing in the auto
+            column. This is what it was waiting for. */}
+        <KeepButton plant={plant} />
       </header>
 
       {plant.thumb && (

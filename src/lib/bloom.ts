@@ -32,3 +32,74 @@ export const BLOOM_PERIOD_LABEL: Record<string, string> = {
 };
 
 export const bloomPeriodLabel = (v: string) => BLOOM_PERIOD_LABEL[v] ?? v;
+
+/**
+ * The succession axis.
+ *
+ * USDA records twelve bloom periods and they are not months — they are its own
+ * season words. Laying them on a Jan–Dec calendar would invent precision the
+ * source does not have: "Late Spring" is not May, it is late spring, and in her
+ * zone that is a different fortnight than in Georgia. So the axis *is* the
+ * source's vocabulary, ordered the way a year runs.
+ *
+ * The unqualified values are the subtle ones. "Spring" does not mean mid-spring;
+ * it means the record only ever said spring. It therefore covers the whole
+ * spring band rather than having a slot picked on its behalf.
+ */
+export const BLOOM_SLOTS = [
+  "Winter",
+  "Late Winter",
+  "Early Spring",
+  "Mid Spring",
+  "Late Spring",
+  "Early Summer",
+  "Mid Summer",
+  "Late Summer",
+  "Fall",
+] as const;
+
+export type BloomSlot = (typeof BLOOM_SLOTS)[number];
+
+const PERIOD_SLOTS: Record<string, readonly BloomSlot[]> = {
+  Winter: ["Winter"],
+  "Late Winter": ["Late Winter"],
+  "Early Spring": ["Early Spring"],
+  "Mid Spring": ["Mid Spring"],
+  "Late Spring": ["Late Spring"],
+  Spring: ["Early Spring", "Mid Spring", "Late Spring"],
+  "Early Summer": ["Early Summer"],
+  "Mid Summer": ["Mid Summer"],
+  "Late Summer": ["Late Summer"],
+  Summer: ["Early Summer", "Mid Summer", "Late Summer"],
+  Fall: ["Fall"],
+  // Blooms continuously — so it is in flower in every slot. That is the datum,
+  // not a guess: these are the plants that carry a sequence through its gaps.
+  Indeterminate: BLOOM_SLOTS,
+};
+
+/** The slots a recorded period covers. An unrecorded or unknown value covers
+ *  none — and a caller must not read that as "does not flower". */
+export const bloomSlots = (period: string | null | undefined): readonly BloomSlot[] =>
+  period ? PERIOD_SLOTS[period] ?? [] : [];
+
+/** The calendar's header: seasons over the slots they span. */
+export const BLOOM_SEASONS: { name: string; span: number }[] = [
+  { name: "Winter", span: 2 },
+  { name: "Spring", span: 3 },
+  { name: "Summer", span: 3 },
+  { name: "Fall", span: 1 },
+];
+
+/** The qualifier alone, for the tick row: "Winter · Late", "Early · Mid · Late".
+ *  The season above it already carries the noun. */
+export const SLOT_TICK: Record<BloomSlot, string> = {
+  Winter: "Winter",
+  "Late Winter": "Late",
+  "Early Spring": "Early",
+  "Mid Spring": "Mid",
+  "Late Spring": "Late",
+  "Early Summer": "Early",
+  "Mid Summer": "Mid",
+  "Late Summer": "Late",
+  Fall: "Fall",
+};

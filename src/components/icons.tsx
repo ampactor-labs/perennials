@@ -99,3 +99,11 @@ export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
+
+/* A pressed specimen's tab. `filled` is the kept state — the only icon here that
+   has one, because it is the only one that reports something she decided. */
+export const IconKeep = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: boolean }) => (
+  <svg {...base} {...p} fill={filled ? "currentColor" : "none"}>
+    <path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.2L5.5 21V4.5a1 1 0 0 1 1-1Z" />
+  </svg>
+);
