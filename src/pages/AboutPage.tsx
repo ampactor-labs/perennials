@@ -91,6 +91,11 @@ export function AboutPage() {
           </span>
           <span>Bloom colour and period, North America. Public domain.</span>
         </div>
+        <div className="attr-row">
+          <span className="attr-label">You</span>
+          <span>The kept list and every note. Written on this phone, kept on this phone, sent
+            nowhere.</span>
+        </div>
       </section>
 
       <div className="callout" style={{ marginTop: "var(--sp-4)" }}>

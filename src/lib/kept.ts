@@ -32,8 +32,3 @@ export function useKept() {
 
   return { kept, toggle, remove };
 }
-
-export function useIsKept(id: number): boolean {
-  const { kept } = useKept();
-  return kept.some((k) => k.id === id);
-}

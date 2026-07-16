@@ -5,6 +5,7 @@ import { useDataState, type Dataset } from "@/data/store";
 import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
 import { IconAlert, IconChevronLeft, IconKeep } from "@/components/icons";
+import { NotePanel } from "@/components/NotePanel";
 import { Thumb } from "@/components/Thumb";
 
 /** Close the source's clause so ours doesn't run into it. Never rewords it. */
@@ -214,6 +215,10 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
           </span>
         </div>
       )}
+
+      {/* Her hand, above the printed record — where an annotation sits on a
+          herbarium sheet. */}
+      <NotePanel plant={plant} />
 
       <section className="panel" style={{ marginTop: "var(--sp-5)" }}>
         <div className="panel-title">At a glance</div>
