@@ -92,7 +92,7 @@ function Companions({ plant, data }: { plant: Plant; data: Dataset }) {
 }
 
 /**
- * A row of values, or — when `absent` is given — a row that says nobody recorded
+ * A row of values, or (when `absent` is given) a row that says nobody recorded
  * any. The distinction is the whole point on the three fields below: she filtered
  * on "Attracts: Bees", and a page that simply omits the row leaves her unable to
  * tell "nothing visits it" from "nobody has looked".
@@ -154,7 +154,7 @@ function ChipRow({
  * When it blooms: the printed record, and hers, side by side.
  *
  * USDA recorded a period for about one plant in eight, and this row used to
- * render nothing at all for the other seven — silence in the one place a reader
+ * render nothing at all for the other seven: silence in the one place a reader
  * looks for bloom timing, while her own "Blooming today" marks sat further up
  * the page saying otherwise. Her record belongs here, in her own ink, whether or
  * not the printed one has anything to say. Same rule as the calendar: a mark of
@@ -246,7 +246,7 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         </div>
       )}
 
-      {/* Her hand, above the printed record — where an annotation sits on a
+      {/* Her hand, above the printed record, where an annotation sits on a
           herbarium sheet. The note is her prose; the bloom marks are her data. */}
       <NotePanel plant={plant} />
       <SeenMark plant={plant} />
@@ -264,9 +264,9 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         {/* Spacing, for someone actually laying out a bed. */}
         {plant.width != null && <ChipRow label="Width" values={[`${plant.width} m`]} />}
         {/* The three she can now search by. They belong on the page she searched
-            her way to — otherwise she narrows to "Attracts: Bees", taps a result,
+            her way to. Otherwise she narrows to "Attracts: Bees", taps a result,
             and the page says nothing about bees. */}
-        {/* "Bloom" was this row's label, and it renders the colour — so a plant
+        {/* "Bloom" was this row's label, and it renders the colour, so a plant
             USDA never described read "Bloom: Not recorded" directly under a
             button she had just pressed to say it was blooming. The row is about
             the colour; it has to say so. */}

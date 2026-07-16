@@ -1,4 +1,4 @@
-// The constraint model: an ORDERED list of atoms. Order matters — it's what
+// The constraint model: an ORDERED list of atoms. Order matters: it's what
 // the collapse trail renders, and it round-trips through the URL so any
 // constraint set is a shareable link.
 

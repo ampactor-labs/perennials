@@ -12,7 +12,7 @@ export type Dataset = {
   meta: Meta;
   bySlug: Map<string, Plant>;
   byId: Map<number, Plant>;
-  /** The name index. Built on first use, not on load — see makeDataset. */
+  /** The name index. Built on first use, not on load; see makeDataset. */
   readonly index: MiniSearch;
 };
 
@@ -22,7 +22,7 @@ type Raw = { plants: Plant[]; facets: Facets; meta: Meta };
  * The lazy text index, built once per payload and NOT on load.
  *
  * The index takes an 8,800-document pass, which is half a second of frozen main
- * thread on a phone — paid on every cold launch, including a fully offline one in
+ * thread on a phone, paid on every cold launch, including a fully offline one in
  * the garden where the service worker hands over the bytes instantly. And it is
  * needed only when she types a name, which is the thing she does least.
  *
@@ -30,7 +30,7 @@ type Raw = { plants: Plant[]; facets: Facets; meta: Meta };
  * that, the getter builds it on the spot. Either way the guide is on screen first.
  *
  * It lives outside makeDataset because the dataset is now re-assembled when her
- * home zone changes (a re-sort) and the index does not care about order — losing
+ * home zone changes (a re-sort) and the index does not care about order; losing
  * it to a re-sort would charge her the half second again for nothing.
  */
 function makeIndexBuilder(plants: Plant[]): () => MiniSearch {
@@ -73,12 +73,12 @@ function makeIndexBuilder(plants: Plant[]): () => MiniSearch {
  * Assemble the dataset in the order the guide opens in.
  *
  * The server ships plants sorted by documentation richness, which is a global
- * signal with no regional pull — a tropical that dies in her winter outranked a
+ * signal with no regional pull: a tropical that dies in her winter outranked a
  * serviceberry whenever contributors wrote more about it. Banding by her home
  * zone puts plants that can live where she gardens first, the unmeasured in the
  * middle, and the recorded misfits last; the sort is stable, so within each band
- * the richness order still decides. Nothing is hidden — it is an order, not a
- * filter — and evaluate() inherits it for free, since results are pushed in
+ * the richness order still decides. Nothing is hidden: it is an order, not a
+ * filter, and evaluate() inherits it for free, since results are pushed in
  * dataset order whenever no text search outranks it.
  */
 function makeDataset(raw: Raw, zone: number, buildIndex: () => MiniSearch): Dataset {
@@ -96,7 +96,7 @@ function makeDataset(raw: Raw, zone: number, buildIndex: () => MiniSearch): Data
 }
 
 type State =
-  /** `cold` is true only when the guide is not on this phone yet — it decides
+  /** `cold` is true only when the guide is not on this phone yet; it decides
    *  whether the gate is allowed to say it is downloading anything. */
   | { status: "loading"; cold: boolean }
   | { status: "error"; error: string }
@@ -124,7 +124,7 @@ const DATA_CACHE = "perennials-data";
  * These three fetches fire from DataProvider's mount effect at about t=90ms; the
  * service worker does not claim the page until about t=460ms. On a first visit
  * the responses therefore never pass through the Workbox route and never land in
- * Cache Storage — so she could open the guide at home, watch it work, drive to a
+ * Cache Storage, so she could open the guide at home, watch it work, drive to a
  * field with no signal, and find an empty app telling her to "open it once where
  * there's signal", which is precisely what she had done.
  *
@@ -168,7 +168,7 @@ async function getJson(path: string) {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-/** Is the guide already on this phone? Must be asked before the fetch — afterwards
+/** Is the guide already on this phone? Must be asked before the fetch; afterwards
  *  the answer is always yes. */
 async function alreadySaved() {
   if (!("caches" in window)) return false;
@@ -202,7 +202,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         // Now there is something worth keeping, ask the browser to keep it.
         // Without this, the app shell and the guide sit in the evictable bucket and
-        // Chrome is free to drop them under storage pressure — which, for a field
+        // Chrome is free to drop them under storage pressure, which, for a field
         // guide, means it stops being one. An installed Android PWA with engagement
         // is granted this silently, so it costs her no prompt.
         void navigator.storage?.persist?.().catch(() => {});
@@ -216,7 +216,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // One index per payload; one dataset per (payload, home zone). A zone change
-  // re-sorts and rebuilds two Maps — rare and cheap — but never re-indexes.
+  // re-sorts and rebuilds two Maps (rare and cheap) but never re-indexes.
   const buildIndex = useMemo(
     () => (phase.status === "ready" ? makeIndexBuilder(phase.raw.plants) : null),
     [phase],

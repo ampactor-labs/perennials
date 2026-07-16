@@ -135,8 +135,8 @@ export type SuggestContext = {
  * Two things this gets right that it previously didn't.
  *
  * It splits on whitespace. The whole input used to be matched as one string
- * against one label at a time, so "wet shade" — the app's own placeholder, and
- * the first thing anybody types — matched no facet value and produced nothing.
+ * against one label at a time, so "wet shade" (the app's own placeholder, and
+ * the first thing anybody types) matched no facet value and produced nothing.
  * The phrase is tried whole first (plenty of real values are two words: "Full
  * shade", "Nitrogen fixer"), then word by word, and when the words land on
  * different facets they are also offered together as one tap.
@@ -208,8 +208,8 @@ export function suggest(
   for (const e of perWord) offer([e.atom], e.label, e.group);
 
   // Plant names ride along beneath. AND across terms, so a two-word phrase that
-  // names no plant returns nothing instead of fuzzy-matching a typo in a binomial
-  // — which is how "wet shade" used to surface Ribes petiolare, "Wetern blackcurrant".
+  // names no plant returns nothing instead of fuzzy-matching a typo in a binomial,
+  // which is how "wet shade" used to surface Ribes petiolare, "Wetern blackcurrant".
   const plants: PlantSuggestion[] =
     q.length < 2
       ? []

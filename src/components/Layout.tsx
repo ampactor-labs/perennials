@@ -5,8 +5,8 @@ import { useDataState } from "@/data/store";
 import { useKept } from "@/lib/kept";
 import { IconAlert, IconBook, IconGuide, IconKeep, IconMoon, IconSun } from "./icons";
 
-/* A herbarium sheet in miniature: a paper tile, a sprig pressed to sepia — the
-   colour specimens actually dry to, and the ink of her notes — and the one dot
+/* A herbarium sheet in miniature: a paper tile, a sprig pressed to sepia (the
+   colour specimens actually dry to, and the ink of her notes), and the one dot
    of colour a pressed plant keeps, its bloom, in the green the wordmark's
    interpunct already wears. Every colour is a token, so the mark presses
    itself into whichever paper the theme is printed on. */
@@ -57,7 +57,7 @@ function DataGate({ children }: { children: ReactNode }) {
   const state = useDataState();
   if (state.status === "loading") {
     // Only claim to be downloading when we actually are. This gate shows on every
-    // launch — including offline ones, where it was telling her it was pulling a
+    // launch, including offline ones, where it was telling her it was pulling a
     // megabyte over a network she did not have, and that this only happens once,
     // for the hundredth time.
     return (
@@ -76,7 +76,7 @@ function DataGate({ children }: { children: ReactNode }) {
   }
   if (state.status === "error") {
     // The old copy printed the raw error ("Failed to fetch") and told her to
-    // reload — inside an installed PWA, which has no address bar and no reload
+    // reload, inside an installed PWA, which has no address bar and no reload
     // button. And it said the same thing whether she was offline or the server
     // was down, because nothing ever asked which.
     const offline = !navigator.onLine;
@@ -98,7 +98,7 @@ function DataGate({ children }: { children: ReactNode }) {
 }
 
 // The dataset re-pulls itself every 7 days. If it hasn't in twice that, something
-// upstream is stuck — and nobody would otherwise find out, because the app keeps
+// upstream is stuck, and nobody would otherwise find out, because the app keeps
 // serving the last good data quietly, forever. So say so, and only then. Silence
 // is the healthy state.
 const STALE_AFTER_DAYS = 14;
@@ -137,7 +137,7 @@ type Tab = {
 
 // The nav grid grows one implicit column per tab (grid-auto-flow: column), so
 // adding or cutting a tab here needs no CSS change. It used to be a fixed
-// repeat() — and a stale two-column copy in browse.css wrapped this third tab
+// repeat(), and a stale two-column copy in browse.css wrapped this third tab
 // into a hidden row on phones.
 const TABS: Tab[] = [
   { to: "/", label: "Guide", icon: IconGuide, end: true },

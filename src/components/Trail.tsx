@@ -8,7 +8,7 @@ import { IconX } from "./icons";
 // per-atom trail could report a "collapse" that went up.
 export function Trail() {
   const s = useSearch();
-  // Still render when the trail is empty but something was just thrown away —
+  // Still render when the trail is empty but something was just thrown away;
   // otherwise "clear" hides the very control that could take it back.
   if (s.trail.length === 0 && !s.undoable) return null;
 

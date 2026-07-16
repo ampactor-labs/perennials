@@ -4,7 +4,7 @@
  * tokens.css states the rule of the house: "saturated color only ever encodes
  * plant data (bloom swatches, function tags)." Bloom is the one facet whose
  * values *are* colours, and it shipped as the words "Yellow" and "Purple" set
- * in ink — asking a gardener to read a colour and re-imagine it.
+ * in ink, asking a gardener to read a colour and re-imagine it.
  *
  * USDA records exactly these eight, so this is a closed list, not an open
  * colour-mapping problem. The swatch always sits *beside* the word and never
@@ -25,7 +25,7 @@ export const BLOOM_HEX: Record<string, string> = {
   Orange: "#d4762a",
 };
 
-/** USDA's word for "no defined bloom window" — which, to a gardener planning a
+/** USDA's word for "no defined bloom window", which, to a gardener planning a
  *  pollinator sequence, is the most useful thing a plant can do. Say it plainly. */
 export const BLOOM_PERIOD_LABEL: Record<string, string> = {
   Indeterminate: "Blooms continuously",
@@ -36,7 +36,7 @@ export const bloomPeriodLabel = (v: string) => BLOOM_PERIOD_LABEL[v] ?? v;
 /**
  * The succession axis.
  *
- * USDA records twelve bloom periods and they are not months — they are its own
+ * USDA records twelve bloom periods and they are not months; they are its own
  * season words. Laying them on a Jan–Dec calendar would invent precision the
  * source does not have: "Late Spring" is not May, it is late spring, and in her
  * zone that is a different fortnight than in Georgia. So the axis *is* the
@@ -72,24 +72,24 @@ const PERIOD_SLOTS: Record<string, readonly BloomSlot[]> = {
   "Late Summer": ["Late Summer"],
   Summer: ["Early Summer", "Mid Summer", "Late Summer"],
   Fall: ["Fall"],
-  // Blooms continuously — so it is in flower in every slot. That is the datum,
+  // Blooms continuously, so it is in flower in every slot. That is the datum,
   // not a guess: these are the plants that carry a sequence through its gaps.
   Indeterminate: BLOOM_SLOTS,
 };
 
 /** The slots a recorded period covers. An unrecorded or unknown value covers
- *  none — and a caller must not read that as "does not flower". */
+ *  none, and a caller must not read that as "does not flower". */
 export const bloomSlots = (period: string | null | undefined): readonly BloomSlot[] =>
   period ? PERIOD_SLOTS[period] ?? [] : [];
 
 /**
  * Her date onto the nine-word axis.
  *
- * This looks like the sin described above — pinning the season words to a
- * calendar — but it runs in the honest direction. USDA's "Late Spring" is a
+ * This looks like the sin described above (pinning the season words to a
+ * calendar), but it runs in the honest direction. USDA's "Late Spring" is a
  * continent average we refuse to place on months; a tap on "Blooming today" is
  * one real date in one yard, and coarsening it onto this axis loses precision
- * instead of inventing it. The reading is zone 6, northern hemisphere — hers.
+ * instead of inventing it. The reading is zone 6, northern hemisphere: hers.
  * The dates themselves are never discarded; only the calendar coarsens.
  */
 const MONTH_SLOT: readonly BloomSlot[] = [

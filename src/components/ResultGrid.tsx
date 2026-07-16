@@ -41,7 +41,7 @@ export function ResultGrid({ results }: { results: Plant[] }) {
 
 /**
  * The moment she is most stuck. The old copy sent her to "the counts on each
- * filter" — which, on a phone, are behind the Filters button and not on screen.
+ * filter", which, on a phone, are behind the Filters button and not on screen.
  * The thing that *is* on screen is the trail, directly above, so name it, and
  * hand her the last step as a button.
  */

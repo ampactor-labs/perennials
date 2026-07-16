@@ -1,9 +1,9 @@
-// "Seen" — the days she saw a plant in flower.
+// "Seen": the days she saw a plant in flower.
 //
 // USDA's bloom period is a continent average; a tap on "Blooming today" is her
 // yard on a real date. The two records never mix: taps live here, in their own
 // store, and the calendar draws them as her own mark above the printed band.
-// The dates themselves are the record — nothing ever discards them; only the
+// The dates themselves are the record. Nothing ever discards them; only the
 // calendar coarsens them onto its nine-word axis.
 import { useCallback, useSyncExternalStore } from "react";
 import { BLOOM_SLOTS, slotForDate, type BloomSlot } from "./bloom";
@@ -20,7 +20,7 @@ export function seenSlots(seen: Seen[], id: number): readonly BloomSlot[] {
   return BLOOM_SLOTS.filter((slot) => hit.has(slot));
 }
 
-/** Same local day — the granularity of a tap. */
+/** Same local day: the granularity of a tap. */
 export const sameDay = (a: number, b: number) =>
   new Date(a).toDateString() === new Date(b).toDateString();
 
@@ -35,7 +35,7 @@ const store = createLocalStore<Seen[]>("perennials.seen.v1", [], (raw) =>
 export function useSeen() {
   const seen = useSyncExternalStore(store.subscribe, store.read, () => store.empty);
 
-  /** Stamp today. A second tap the same day un-stamps it — the undo for a
+  /** Stamp today. A second tap the same day un-stamps it: the undo for a
    *  pocket tap, and the only way "today" can ever hold two entries is never. */
   const markToday = useCallback((id: number) => {
     const now = Date.now();

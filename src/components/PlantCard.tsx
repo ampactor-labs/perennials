@@ -8,7 +8,7 @@ type Tag = { text: string; fn?: boolean };
 // tokens.css: "saturated color only ever encodes plant data (bloom swatches,
 // function tags)". `.ptag--fn` was written for exactly this and then only ever
 // used on the detail page, so on the grid she scans at arm's length "Nitrogen
-// fixer" — the reason you plant the thing — looked identical to "Perennial".
+// fixer" (the reason you plant the thing) looked identical to "Perennial".
 function topTags(p: Plant): Tag[] {
   const tags: Tag[] = [];
   if (p.layer) tags.push({ text: p.layer });
@@ -25,8 +25,8 @@ const LOOKALIKE = /mistaken|confused with/i;
 const CHIP_MAX = 22;
 
 /**
- * What the caution chip says. `warnings` is a coarse filter vocabulary — model.ts
- * says plainly never to show it to a human — and printing warnings[0] let the label
+ * What the caution chip says. `warnings` is a coarse filter vocabulary that
+ * model.ts says plainly never to show a human, and printing warnings[0] let the label
  * that happened to sort first speak for the plant. Chokecherry said "Weed potential"
  * and never mentioned the poisonous seeds; asparagus said "Toxic" beside "Edible"
  * when the source only ever called the fruits toxic.

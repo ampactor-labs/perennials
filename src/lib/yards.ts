@@ -1,4 +1,4 @@
-// Yard sketches — her hand on a fixed sheet, the record performing on top.
+// Yard sketches: her hand on a fixed sheet, the record performing on top.
 //
 // A yard is a napkin drawing, and the sheet refuses everything a napkin
 // refuses: no pan, no zoom, no scale. Width is recorded for 244 of 8,800
@@ -9,13 +9,13 @@
 // Growth is bounded on purpose. A phone's localStorage is about 5MB and a lost
 // client plan is the one failure this lane cannot afford, so freehand strokes
 // decimate while drawing, simplify on commit, and sanitize enforces hard caps
-// on read — a yard stays in the low kilobytes, and a hundred of them still
+// on read. A yard stays in the low kilobytes, and a hundred of them still
 // clear the origin budget with room to spare.
 import { useCallback, useSyncExternalStore } from "react";
 import { createLocalStore } from "./localStore";
 
 export const SHEET_W = 1000;
-export const SHEET_H = 1414; // portrait, √2 — the paper she holds
+export const SHEET_H = 1414; // portrait, √2: the paper she holds
 
 export type Pt = [number, number];
 
@@ -26,14 +26,14 @@ export type Stroke =
 
 export type Placed = {
   uid: string;
-  /** Plant.id — every decoration resolves live against the dataset. */
+  /** Plant.id; every decoration resolves live against the dataset. */
   id: number;
   /** Snapshot at placement. A dataset refresh must never erase a mark from a
    *  client's plan; a dropped plant keeps its name and says so in its sheet. */
   name: string;
   x: number;
   y: number;
-  /** Her spacing estimate, sheet units. Her hand — the record has no say in it. */
+  /** Her spacing estimate, sheet units. Her hand; the record has no say in it. */
   r?: number;
 };
 
@@ -49,7 +49,7 @@ export type Yard = {
 };
 
 // The caps. sanitize enforces them on read and the editor respects them on
-// write, so no gesture — and no hand-edited entry — can grow a yard past them.
+// write, so no gesture (and no hand-edited entry) can grow a yard past them.
 export const MAX_STROKES = 200;
 export const MAX_PTS = 240;
 export const MAX_PLANTS = 150;
@@ -92,7 +92,7 @@ function rdp(pts: Pt[], eps: number): Pt[] {
   return pts.filter((_, i) => keep[i]);
 }
 
-/** Midpoint-smoothed path — the same curve on screen and in the exported
+/** Midpoint-smoothed path: the same curve on screen and in the exported
  *  sheet, because both call this. */
 export function pathD(pts: readonly Pt[], close: boolean): string {
   if (pts.length < 2) return "";
@@ -109,7 +109,7 @@ export function pathD(pts: readonly Pt[], close: boolean): string {
 
 /**
  * A committed stroke: rounded to integers, simplified to what a pen would
- * keep, and guaranteed under the point cap — the epsilon widens until it fits,
+ * keep, and guaranteed under the point cap; the epsilon widens until it fits,
  * so the bound holds no matter how long the thumb wandered.
  */
 export function commitStroke(pts: Pt[]): Pt[] {
@@ -193,7 +193,7 @@ export function useYards() {
     return yard;
   }, []);
 
-  /** Replace one yard wholesale — the editor commits whole values, so undo is
+  /** Replace one yard wholesale; the editor commits whole values, so undo is
    *  snapshots. False means localStorage refused; the session still holds it,
    *  and the editor tells her rather than losing a plan silently. */
   const put = useCallback((yard: Yard): boolean => {

@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-// Every icon here is decorative — each one sits beside, or inside, a control that
+// Every icon here is decorative: each one sits beside, or inside, a control that
 // already carries its own text or aria-label. Left exposed, a screen reader reads
 // out a stream of unnamed graphics.
 const base: SVGProps<SVGSVGElement> = {
@@ -100,7 +100,7 @@ export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-/* A pressed specimen's tab. `filled` is the kept state — the only icon here that
+/* A pressed specimen's tab. `filled` is the kept state, the only icon here that
    has one, because it is the only one that reports something she decided. */
 export const IconKeep = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: boolean }) => (
   <svg {...base} {...p} fill={filled ? "currentColor" : "none"}>
@@ -108,8 +108,8 @@ export const IconKeep = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: 
   </svg>
 );
 
-/* Five petals. Like IconKeep, `filled` reports something she did — today's
-   "Blooming today" tap — never a fact about the plant. Thinner stroke than the
+/* Five petals. Like IconKeep, `filled` reports something she did (today's
+   "Blooming today" tap), never a fact about the plant. Thinner stroke than the
    set: five petals at 1.7 smudge into a blot at button size. */
 export const IconBloom = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: boolean }) => (
   <svg {...base} {...p} strokeWidth={1.4} fill={filled ? "currentColor" : "none"}>

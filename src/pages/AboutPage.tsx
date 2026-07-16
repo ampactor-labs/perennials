@@ -5,7 +5,7 @@ import { IconAlert } from "@/components/icons";
  * The colophon, not an essay.
  *
  * This page used to explain the omnibox, the trail, the spots and the guild view
- * in prose — to someone already holding all four. It teaches itself. What it
+ * in prose, to someone already holding all four. It teaches itself. What it
  * cannot tell her is how much of the record is actually filled in, so that is
  * what this page is now: the counts, where they came from, and the two rules
  * that govern everything else.

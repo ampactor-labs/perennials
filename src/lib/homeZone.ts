@@ -1,4 +1,4 @@
-// The zone the guide sorts for — home — as distinct from a zone atom in a
+// The zone the guide sorts for (home), as distinct from a zone atom in a
 // search, which filters. The default view used to open in the server's
 // documentation order, so a tropical nobody here could plant outranked a
 // serviceberry whenever contributors wrote more about it. No source records
@@ -14,13 +14,13 @@ const store = createLocalStore<number>(
   6,
   (raw) => (typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= 13 ? raw : null),
   // No live cross-tab sync: this value decides the dataset's sort order, and a
-  // zone named in one tab must not reorder — and re-truncate to the first page —
+  // zone named in one tab must not reorder (and re-truncate to the first page)
   // a list another tab is scrolled three hundred cards into. Review caught this;
   // other tabs pick the new zone up when they next assemble the dataset.
   { crossTab: false },
 );
 
-/** She named a zone — a search, a spot — so that is where home is now. */
+/** She named a zone (a search, a spot), so that is where home is now. */
 export const learnHomeZone = (zone: number) => {
   if (Number.isInteger(zone) && zone >= 1 && zone <= 13 && zone !== store.read()) {
     store.write(zone);
@@ -32,7 +32,7 @@ export function useHomeZone(): number {
 }
 
 /**
- * 0 — recorded hardy there. 1 — nobody recorded hardiness. 2 — the record says
+ * 0: recorded hardy there. 1: nobody recorded hardiness. 2: the record says
  * it cannot overwinter there.
  *
  * The middle band is the honesty rule expressed as a sort order: a plant nobody

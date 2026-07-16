@@ -4,7 +4,7 @@ import { photoSrc, thumbSrc, PHOTO_SIZES } from "@/lib/img";
 /**
  * A plant photo, or the ✿ that means "no photo".
  *
- * Two things it fixes. It asks the server for the size the box actually is —
+ * Two things it fixes. It asks the server for the size the box actually is;
  * every image in the app used to be the full-resolution original crushed into a
  * 56-pixel square, which cost bytes and still looked soft on a retina screen.
  * And the fallback fires on a failed *fetch*, not only on a missing URL: offline,
@@ -34,7 +34,7 @@ export function Thumb({
   // Two different facts, and they used to share a glyph. "This plant has no photo
   // in the guide" is an absence in the data; "this one never downloaded" is an
   // absence on this phone, and it is fixed by walking back to signal. She is a
-  // professional identifying plants in the field — she is owed the difference.
+  // professional identifying plants in the field; she is owed the difference.
   if (!has) {
     return (
       <span className={fallbackClass} aria-hidden="true">
@@ -61,7 +61,7 @@ export function Thumb({
       sizes={photo ? PHOTO_SIZES : sizes}
       alt={alt}
       // Without this the browser fetches no-cors and the service worker stores an
-      // OPAQUE response — which Chrome pads by ~7 MB apiece in its storage
+      // OPAQUE response, which Chrome pads by ~7 MB apiece in its storage
       // accounting. Forty-eight photos reported 400 MB, and the cache eventually
       // hit the quota wall and stopped accepting writes entirely, silently, while
       // the photos still rendered online. The API already sends

@@ -96,7 +96,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 
   // How far she has scrolled into the results, kept up here so it survives the
   // trip into a plant page and back. It used to live inside ResultGrid, which
-  // unmounts on navigation — so Back reset her to the first 48 of 300.
+  // unmounts on navigation, so Back reset her to the first 48 of 300.
   //
   // The reset happens during render rather than in an effect. An effect fires
   // after React has already mounted the new results against the stale limit, so
@@ -149,7 +149,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // A fresh object literal here re-rendered every useSearch() consumer on every
-  // render of this provider — and the URL-sync effect above makes that twice per
+  // render of this provider, and the URL-sync effect above makes that twice per
   // constraint change.
   const value = useMemo<SearchValue>(
     () => ({

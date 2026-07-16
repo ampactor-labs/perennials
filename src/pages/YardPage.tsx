@@ -28,7 +28,7 @@ const short = (n: string) => (n.length > 16 ? n.slice(0, 15) + "…" : n);
  *
  * The page owns the state machine; the canvas only draws and reports gestures.
  * Every committed gesture writes the whole yard back to the store (undo is a
- * stack of whole values), and a refused write — quota, private mode — is said
+ * stack of whole values), and a refused write (quota, private mode) is said
  * out loud, because a silently lost client plan is the one failure this lane
  * cannot afford.
  */
@@ -172,7 +172,7 @@ export function YardPage() {
 
   const onPlace = (p: Pt) => {
     if (armedId === null) return;
-    if (yard.plants.length >= MAX_PLANTS) return say(`This sheet holds ${MAX_PLANTS} plants — start a second yard.`);
+    if (yard.plants.length >= MAX_PLANTS) return say(`This sheet holds ${MAX_PLANTS} plants. Start a second yard.`);
     const plant = byId.get(armedId);
     if (!plant) return;
     commit({
@@ -182,7 +182,7 @@ export function YardPage() {
   };
 
   const onStroke = (k: "line" | "area", pts: Pt[]) => {
-    if (yard.strokes.length >= MAX_STROKES) return say(`This sheet holds ${MAX_STROKES} strokes — start a second yard.`);
+    if (yard.strokes.length >= MAX_STROKES) return say(`This sheet holds ${MAX_STROKES} strokes. Start a second yard.`);
     commit({ ...yard, strokes: [...yard.strokes, { k, id: uid(), pts }] });
   };
 
@@ -195,7 +195,7 @@ export function YardPage() {
     if (!pendingLabel || !text) return setPendingLabel(null);
     if (yard.strokes.length >= MAX_STROKES) {
       setPendingLabel(null);
-      return say(`This sheet holds ${MAX_STROKES} strokes — start a second yard.`);
+      return say(`This sheet holds ${MAX_STROKES} strokes. Start a second yard.`);
     }
     commit({ ...yard, strokes: [...yard.strokes, { k: "label", id: uid(), at: pendingLabel, text }] });
     setPendingLabel(null);
@@ -257,7 +257,7 @@ export function YardPage() {
       {!saved && (
         <div className="callout callout--warn" style={{ marginTop: "var(--sp-2)" }}>
           <span>
-            This phone's storage refused the last save — the sketch lives in this session only.
+            This phone's storage refused the last save; the sketch lives in this session only.
             Free some space, then touch the sketch again.
           </span>
         </div>
@@ -377,7 +377,7 @@ export function YardPage() {
       {mode === "place" &&
         (keptPlants.length === 0 ? (
           <p className="yard-coverage">
-            Nothing kept yet — <Link to="/">find some plants</Link> and press Keep; they become
+            Nothing kept yet. <Link to="/">Find some plants</Link> and press Keep; they become
             this tray.
           </p>
         ) : (
@@ -398,7 +398,7 @@ export function YardPage() {
           </div>
         ))}
       {mode === "place" && armedId !== null && (
-        <p className="yard-coverage">Tap the sheet to place — tap again for a drift.</p>
+        <p className="yard-coverage">Tap the sheet to place. Tap again for a drift.</p>
       )}
 
       {selected && (
@@ -425,7 +425,7 @@ export function YardPage() {
 
           {!selPlant && (
             <p className="attr-absent">
-              No longer in this copy of the guide — the mark keeps the name it was placed with.
+              No longer in this copy of the guide; the mark keeps the name it was placed with.
             </p>
           )}
           {selPlant && (
@@ -487,7 +487,7 @@ export function YardPage() {
                 Spacing ring
               </button>
             )}
-            {selected.r && <span className="yard-coverage">Drag the ring's edge — your estimate, not the record's.</span>}
+            {selected.r && <span className="yard-coverage">Drag the ring's edge. Your estimate, not the record's.</span>}
             <button className="linkish note-delete" onClick={() => removePlaced(selected.uid)}>
               Remove from sketch
             </button>

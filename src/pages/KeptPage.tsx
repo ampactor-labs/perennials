@@ -10,7 +10,7 @@ import { BloomCalendar } from "@/components/BloomCalendar";
 import { PlantCard } from "@/components/PlantCard";
 import { IconKeep, IconX } from "@/components/icons";
 
-/** Every plant her hand has touched — a note or a bloom mark — resolved against
+/** Every plant her hand has touched, by a note or a bloom mark, resolved against
  *  the dataset she is holding. Order follows her writing, notes first. */
 function writtenPlants(data: Dataset, notes: Note[], seen: Seen[]): Plant[] {
   const out: Plant[] = [];
@@ -48,7 +48,7 @@ function exportText(data: Dataset, kept: Plant[], notes: Note[], seen: Seen[]): 
   const notedOnly = writtenPlants(data, notes, seen).filter((p) => !keptIds.has(p.id));
 
   const parts = [
-    `Perennials — kept plants & notes — ${new Date().toLocaleDateString()}`,
+    `Perennials · kept plants & notes · ${new Date().toLocaleDateString()}`,
     "",
     `KEPT (${kept.length})`,
     ...kept.map(entry),
@@ -140,7 +140,7 @@ export function KeptPage() {
   const plants = kept.map((k) => data.byId.get(k.id)).filter((p) => p !== undefined);
   const keptIds = new Set(plants.map((p) => p.id));
   const noteFor = (id: number) => notes.find((n) => n.id === id);
-  // A note is not a keep, and neither is a bloom mark — "avoid, spreads like
+  // A note is not a keep, and neither is a bloom mark. "Avoid, spreads like
   // hell" is a decision *against* a plant, and a flower witnessed over a fence
   // is not a plant in her yard. Written-on-but-not-kept gets its own shelf,
   // out of the bloom year.

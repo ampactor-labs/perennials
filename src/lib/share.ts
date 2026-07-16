@@ -12,7 +12,7 @@ export async function shareFiles(files: File[]) {
       await navigator.share({ files });
       return;
     } catch {
-      /* she closed the sheet, or the share failed — fall through to download */
+      /* she closed the sheet, or the share failed; fall through to download */
     }
   }
   for (const file of files) {

@@ -8,12 +8,12 @@ import { shareFiles } from "./share";
  * The sheet she hands a client.
  *
  * The export re-renders the sketch from scratch with the light-paper palette
- * baked in as literal hex — a specimen sheet, not a screenshot of dark mode —
+ * baked in as literal hex (a specimen sheet, not a screenshot of dark mode)
  * and a footer that keeps the picture honest on its own: "Diagram, not to
  * scale", the coverage line, and the source attribution (CC BY-SA is a licence
  * term on a shared file, not a nicety). No photographs go in, so the canvas
  * never taints and the raster works with no signal. Alongside the PNG rides a
- * plain-text plant list — the format guaranteed to outlive the app.
+ * plain-text plant list, the format guaranteed to outlive the app.
  */
 
 // tokens.css, light theme, as literals: the exported file has no stylesheet.
@@ -121,7 +121,7 @@ function sheetSvg(
 function plantListText(yard: Yard, placedPlants: Plant[]): string {
   const byId = new Map(placedPlants.map((p) => [p.id, p]));
   const lines: string[] = [
-    `${yard.name} — ${new Date().toLocaleDateString()}`,
+    `${yard.name} · ${new Date().toLocaleDateString()}`,
     "Diagram, not to scale.",
     "",
     `PLANTS (${yard.plants.length})`,

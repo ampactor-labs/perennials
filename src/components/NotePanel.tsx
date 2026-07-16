@@ -8,8 +8,8 @@ import { IconPlus } from "./icons";
  *
  * The panel renders in one slot whether the note exists or not, so the page
  * never reflows around her decision to write. Reading is the common case and
- * it looks like an annotation — a sepia rule, her words in the display face,
- * dated — not like a form that happens to be filled in.
+ * it looks like an annotation (a sepia rule, her words in the display face,
+ * dated), not like a form that happens to be filled in.
  */
 export function NotePanel({ plant }: { plant: Plant }) {
   const { notes, set, remove } = useNotes();

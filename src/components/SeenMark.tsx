@@ -4,13 +4,13 @@ import { sameDay, useSeen } from "@/lib/seen";
 import { IconBloom, IconX } from "./icons";
 
 /**
- * "Blooming today" — one tap, standing in front of the plant.
+ * "Blooming today": one tap, standing in front of the plant.
  *
  * The note above this is her prose; these are her data points. Each tap stamps
  * a day, the days list here in full, and the bloom calendar coarsens them into
  * its own mark above the printed band. A second tap on the same day un-stamps
  * it, and every listed day carries its own strike-out, because this record is
- * hers to edit — the one column of the guide that is.
+ * hers to edit; the one column of the guide that is.
  */
 export function SeenMark({ plant }: { plant: Plant }) {
   const { seen, markToday, remove } = useSeen();

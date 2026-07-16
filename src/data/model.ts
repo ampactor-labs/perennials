@@ -1,4 +1,4 @@
-// The app's data model — a straight reflection of the Permapeople dataset as
+// The app's data model: a straight reflection of the Permapeople dataset as
 // normalized by server/src/transform.mjs. Nothing here is authored; every
 // value comes from Permapeople contributors (CC BY-SA 4.0).
 
@@ -53,7 +53,7 @@ export type Plant = {
    * Flower-visitor groups (Bees, Butterflies, Hoverflies…) from GloBI's published
    * interaction records.
    *
-   * Absent means nobody has recorded a visitor — for about 4,900 of the 8,800
+   * Absent means nobody has recorded a visitor, for about 4,900 of the 8,800
    * plants. It does not mean nothing visits them. (An earlier note here promised
    * that a present-but-empty array would distinguish "looked, found nothing" from
    * "never looked", but no plant in the shipped data has one, so anything relying

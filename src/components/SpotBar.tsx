@@ -24,7 +24,7 @@ export function SpotBar() {
     }
   }
 
-  // A spot only stores the site — light, water, soil, zone — because that is what
+  // A spot only stores the site (light, water, soil, zone) because that is what
   // makes it re-appliable next spring without dragging last spring's wishes along.
   // But the button used to say "these conditions", and a gardener reads that as
   // "this search". Name what it will actually keep.

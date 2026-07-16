@@ -8,7 +8,7 @@
 type Store<T> = {
   read: () => T;
   /** Returns false when localStorage refused the write (quota, private mode).
-   *  The session keeps working from cache either way — but a caller holding
+   *  The session keeps working from cache either way, but a caller holding
    *  something she cannot afford to lose, like a client's yard plan, should
    *  say so instead of letting the failure stay silent. */
   write: (next: T) => boolean;
@@ -19,7 +19,7 @@ type Store<T> = {
 
 // Ask the browser, once, not to evict this origin's storage under pressure.
 // The dataset can always be re-downloaded; what she keeps and writes cannot.
-// Asked on first write — first *decision* — not on load: an empty guide has
+// Asked on first write (first *decision*), not on load: an empty guide has
 // nothing worth protecting, and browsers weigh engagement when granting it.
 let persistAsked = false;
 function askPersist() {

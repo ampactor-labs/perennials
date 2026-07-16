@@ -1,4 +1,4 @@
-// "Kept" — the plants she has decided on.
+// "Kept": the plants she has decided on.
 //
 // spots.ts already saved the conditions of a *place* ("north bed", "wet corner").
 // It never saved the plants, so the answer to a search only ever existed in the

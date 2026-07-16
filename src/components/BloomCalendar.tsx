@@ -15,9 +15,9 @@ import { seenSlots, useSeen } from "@/lib/seen";
 type Row = {
   plant: Plant;
   period: string;
-  /** the printed record — USDA's period, spread over its slots */
+  /** the printed record: USDA's period, spread over its slots */
   slots: readonly BloomSlot[];
-  /** her record — days she tapped "Blooming today", coarsened onto the axis */
+  /** her record: days she tapped "Blooming today", coarsened onto the axis */
   hand: readonly BloomSlot[];
 };
 
@@ -25,7 +25,7 @@ type Row = {
 const firstSlot = (r: Row) =>
   BLOOM_SLOTS.findIndex((s) => r.slots.includes(s) || r.hand.includes(s));
 
-/** "late winter, fall" — her words, not an array printed at her. */
+/** "late winter, fall": her words, not an array printed at her. */
 function joinLower(slots: readonly BloomSlot[]): string {
   const w = slots.map((s) => s.toLowerCase());
   if (w.length === 1) return w[0];
@@ -38,17 +38,17 @@ function joinLower(slots: readonly BloomSlot[]): string {
  *
  * The question this answers is the forest-garden one: is something in flower
  * across the whole season, or does the yard go quiet in August? It only ever
- * runs over her kept list — across all 8,800 plants the axis would be almost
+ * runs over her kept list; across all 8,800 plants the axis would be almost
  * entirely holes, because USDA records a bloom period for about one in eight.
  *
  * The honesty rule bites hardest here. A plant with no record at all is NOT a
- * row of empty cells — that reads as "never flowers", which is a claim nobody
+ * row of empty cells; that reads as "never flowers", which is a claim nobody
  * made. It is named below the grid instead, and an empty slot is only ever
  * "nothing recorded", never "nothing blooms".
  *
  * Two records draw here and never mix. The bar is the printed one, USDA's
- * continent-average period. The sepia dot above it is hers — her hand above
- * the printed record — and it earns a plant its row even when the printed
+ * continent-average period. The sepia dot above it is hers: her hand above
+ * the printed record. It earns a plant its row even when the printed
  * period is blank, which on her kept list is most of them.
  */
 export function BloomCalendar({ plants }: { plants: Plant[] }) {
@@ -156,7 +156,7 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
         </>
       )}
 
-      {/* Coverage, always — a partial facet has to say how partial. */}
+      {/* Coverage, always: a partial facet has to say how partial. */}
       <p className="bcal-coverage">
         {printed === 0
           ? `No bloom period is recorded for any of the ${plants.length === 1 ? "plant" : `${plants.length} plants`} you've kept.`

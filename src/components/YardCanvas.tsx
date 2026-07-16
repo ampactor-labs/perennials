@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { SHEET_H, SHEET_W, commitStroke, pathD, type Pt, type Yard } from "@/lib/yards";
 
 /**
- * The sheet. A fixed 1000×1414 viewBox with no pan and no zoom — the whole
+ * The sheet. A fixed 1000×1414 viewBox with no pan and no zoom: the whole
  * yard is one screen, so screen-to-sheet is one rectangle division and there
  * is no gesture arbitration to get wrong. One finger acts; a second finger is
  * ignored. Everything transient (a stroke mid-draw, a token mid-drag) lives
@@ -14,15 +14,15 @@ export type TokenView = {
   uid: string;
   x: number;
   y: number;
-  /** Short name printed beside the mark — legible in sun, and the only thing
+  /** Short name printed beside the mark, legible in sun, and the only thing
    *  that isn't decoration. */
   label: string;
-  /** fill: recorded bloom colour. ink: in bloom, colour unrecorded — still
+  /** fill: recorded bloom colour. ink: in bloom, colour unrecorded, still
    *  "in bloom", claiming no colour. hollow: recorded and quiet. hatch: no
-   *  record at all — unknown must never look dormant. */
+   *  record at all; unknown must never look dormant. */
   state: "fill" | "ink" | "hollow" | "hatch";
   fill?: string;
-  /** She saw it bloom (in this slot, or ever in Year view). Sepia — her hand. */
+  /** She saw it bloom (in this slot, or ever in Year view). Sepia: her hand. */
   witness: boolean;
   /** Her spacing estimate, sheet units. */
   ring?: number;
@@ -41,7 +41,7 @@ const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
 // The ref carries the latest value itself: React batches the setLive that
 // paints the transient, so a pointerup must never read its result back out of
-// state — it could lag the finger by one sample.
+// state; it could lag the finger by one sample.
 type Gesture =
   | { t: "draw"; pts: Pt[] }
   | { t: "drag"; uid: string; start: [number, number]; moved: boolean; at?: Pt }
@@ -66,7 +66,7 @@ export function YardCanvas({
   tokens: TokenView[];
   mode: Mode;
   sel: string | null;
-  /** Whether Place mode has a plant loaded — an unarmed tap should do nothing. */
+  /** Whether Place mode has a plant loaded; an unarmed tap should do nothing. */
   armed: boolean;
   onPlace: (p: Pt) => void;
   onLabelAt: (p: Pt) => void;
@@ -238,7 +238,7 @@ export function YardCanvas({
     >
       <defs>
         {/* Unknown wears hatching, the calendar's own texture for a gap in the
-            record — never the hollow that means "recorded and quiet". */}
+            record, never the hollow that means "recorded and quiet". */}
         <pattern
           id="yard-hatch"
           width="7"
@@ -253,7 +253,7 @@ export function YardCanvas({
 
       <rect x="0" y="0" width={SHEET_W} height={SHEET_H} className="yard-paper" />
 
-      {/* her hand: beds, lines, labels — all sepia */}
+      {/* her hand: beds, lines, labels, all sepia */}
       {yard.strokes.map((s) =>
         s.k === "label" ? (
           <text key={s.id} x={s.at[0]} y={s.at[1]} className="yard-label">
@@ -314,7 +314,7 @@ export function YardCanvas({
         );
       })}
 
-      {/* the compass — hers, an annotation, so the drawing never rotates */}
+      {/* the compass: hers, an annotation, so the drawing never rotates */}
       <g
         className="yard-rose"
         transform={`translate(${ROSE.x} ${ROSE.y}) rotate(${north})`}

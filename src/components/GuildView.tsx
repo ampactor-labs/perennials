@@ -4,7 +4,7 @@ import { PAGE, useSearch } from "@/state/search";
 import { PlantCard } from "./PlantCard";
 import { ResultGrid } from "./ResultGrid";
 
-// Results grouped as the forest garden stacks them, canopy down to root — so
+// Results grouped as the forest garden stacks them, canopy down to root, so
 // "fill my guild" reads as: pick your site, then shop each layer.
 const LAYER_ORDER = [
   "Tall trees",
@@ -53,7 +53,7 @@ function Spine({ layer }: { layer: string }) {
 
 const SEED = 6;
 
-/** Reveals SEED, then a page at a time. "Show all" used to mean exactly that —
+/** Reveals SEED, then a page at a time. "Show all" used to mean exactly that:
  *  one tap mounted 1,986 cards in a single commit and froze the tab. */
 function Deck({ plants }: { plants: Plant[] }) {
   const [shown, setShown] = useState(SEED);
@@ -138,7 +138,7 @@ export function GuildView({ results }: { results: Plant[] }) {
   }
 
   // How many plants carry each layer in the entire catalogue, regardless of what
-  // she has asked for — the number that tells an empty section which kind it is.
+  // she has asked for. The number tells an empty section which kind it is.
   const inCatalog = new Map<string, number>(
     (s.data?.facets.layer ?? []).map((v) => [v.value, v.count]),
   );

@@ -18,7 +18,7 @@ import { AboutPage } from "./pages/AboutPage";
 
 // A new page starts at the top. Going BACK does not: `pathname` changes on a pop
 // too, so this used to throw away her place in the list every time she closed a
-// plant — which is the loop she is in all day. BrowsePage restores the scroll
+// plant, which is the loop she is in all day. BrowsePage restores the scroll
 // itself on a pop; this just gets out of the way.
 function ScrollToTop() {
   const { pathname } = useLocation();

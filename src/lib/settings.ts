@@ -17,7 +17,7 @@ export function usePersistent<T>(key: string, fallback: T) {
       try {
         localStorage.setItem(key, JSON.stringify(next));
       } catch {
-        /* private mode / quota — hold in memory only */
+        /* private mode / quota; hold in memory only */
       }
     },
     [key],

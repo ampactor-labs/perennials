@@ -43,7 +43,7 @@ export function Omnibox() {
       for (const a of sug.atoms) s.add(a);
       // Clear the draft, not the committed search. Wiping the text here meant
       // that searching "currant" and then adding Water: Wet dropped the text step
-      // out of the trail and made the results *grow* — an added constraint that
+      // out of the trail and made the results *grow*. An added constraint that
       // widens the set teaches exactly the wrong model.
       setDraft("");
       inputRef.current?.focus();
@@ -71,7 +71,7 @@ export function Omnibox() {
       }
       // Bare Enter takes the top *constraint*, never a plant. On a phone this key
       // is rendered as "Search", and navigating to a plant page is the one action
-      // that throws away what she typed — so it must not be what Search does.
+      // that throws away what she typed, so it must not be what Search does.
       const top = suggestions.find((x) => x.type === "constraint");
       if (top) pick(top);
       else {

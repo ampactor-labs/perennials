@@ -1,4 +1,4 @@
-// "Spots" — her named places. A spot is a saved set of SITE conditions (light,
+// "Spots": her named places. A spot is a saved set of SITE conditions (light,
 // water, soil, zone). Applying one swaps in that place's conditions and leaves
 // intent constraints (edible, functions, layer…) alone.
 import { useCallback, useSyncExternalStore } from "react";
@@ -78,7 +78,7 @@ export function hasSiteConditions(c: Constraints): boolean {
 }
 
 /**
- * The site conditions a save would actually keep, in her words — so the button
+ * The site conditions a save would actually keep, in her words, so the button
  * can name them, and the parts it silently drops are visible before she commits.
  */
 export function siteSummary(c: Constraints): string {
