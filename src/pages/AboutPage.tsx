@@ -1,108 +1,120 @@
 import { useDataState } from "@/data/store";
+import { IconAlert } from "@/components/icons";
 
+/**
+ * The colophon, not an essay.
+ *
+ * This page used to explain the omnibox, the trail, the spots and the guild view
+ * in prose — to someone already holding all four. It teaches itself. What it
+ * cannot tell her is how much of the record is actually filled in, so that is
+ * what this page is now: the counts, where they came from, and the two rules
+ * that govern everything else.
+ */
 export function AboutPage() {
   const state = useDataState();
-  const meta = state.status === "ready" ? state.data.meta : null;
-  const count = meta?.count ?? null;
+  if (state.status !== "ready") return null;
 
-  // Counted from the data she is actually holding, so the coverage numbers below
-  // can never drift away from what the guide really knows.
-  const plants = state.status === "ready" ? state.data.plants : [];
-  const withVisitors = plants.filter((p) => p.attracts?.length).length;
-  const withBloom = plants.filter((p) => p.bloomColor).length;
+  const { plants, meta } = state.data;
+  const count = meta.count || plants.length;
+  // Counted from the data she is actually holding, so these can never drift
+  // away from what the guide really knows.
+  const n = {
+    edible: meta.edibleCount ?? plants.filter((p) => p.edible).length,
+    photo: plants.filter((p) => p.thumb).length,
+    visitors: plants.filter((p) => p.attracts?.length).length,
+    bloom: plants.filter((p) => p.bloomColor).length,
+    companions: plants.filter((p) => p.companions?.length).length,
+  };
+  const pct = (x: number) => (count ? `${Math.round((x / count) * 100)}%` : "");
+
+  const rows: [string, number][] = [
+    ["Edible", n.edible],
+    ["Photo", n.photo],
+    ["Flower visitors", n.visitors],
+    ["Bloom colour", n.bloom],
+    ["Companions", n.companions],
+  ];
 
   return (
     <div className="page wrap detail">
-      <section style={{ maxWidth: "60ch" }}>
-        <div className="eyebrow">Field notes</div>
-        <h1 className="detail-title" style={{ fontSize: "var(--text-2xl)", marginTop: "var(--sp-2)" }}>
-          What this is
-        </h1>
-        <p className="detail-summary">
-          A field guide to {count ? count.toLocaleString() : "thousands of"} useful plants, searched
-          the way a gardener stands in a yard: state your conditions, then your wishes, and watch
-          the field narrow to what fits.
-        </p>
+      <header className="detail-head">
+        <div>
+          <h1 className="detail-title" style={{ fontSize: "var(--text-2xl)" }}>
+            Field notes
+          </h1>
+          <div className="detail-family eyebrow">{count.toLocaleString()} plants</div>
+        </div>
+      </header>
 
-        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          How to ask
-        </h2>
-        <p>
-          Type what you have. “Wet shade”, “nitrogen”, “zone 6”, a plant name; it will offer you
-          constraints and you pick from them. Each pick becomes a link in the trail, and the trail
-          shows the count falling as it lands. Save a place's conditions as a <em>spot</em> (“north
-          bed”, “wet corner”) and re-apply it in one tap. The <em>Guild</em> view stacks the same
-          results by forest-garden layer, canopy down to roots. Every search lives in the address
-          bar, so a list you build is a link you can send.
-        </p>
-
-        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          The data
-        </h2>
-        <p>
-          The plants, their descriptions, and most of their attributes come from{" "}
-          <a href="https://permapeople.org" target="_blank" rel="noreferrer noopener">
-            Permapeople
-          </a>
-          , an open, community-built plant database, licensed CC BY-SA 4.0. Two other sources fill in
-          what Permapeople doesn't record. Flower visitors, meaning who has actually been seen at
-          the blooms, come from{" "}
-          <a
-            href="https://www.globalbioticinteractions.org"
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            GloBI
-          </a>
-          , the Global Biotic Interactions database (CC BY 4.0), which aggregates published field
-          observations. Bloom colour and bloom period come from{" "}
-          <a href="https://plants.usda.gov" target="_blank" rel="noreferrer noopener">
-            USDA PLANTS
-          </a>{" "}
-          (public domain).
-        </p>
-        <p>
-          It's real data, so it's uneven. Some entries are richly described and others are a name and
-          a family. The two newer sources cover part of the catalogue and not all of it: visitor
-          records for {withVisitors.toLocaleString()} plants, a bloom colour for{" "}
-          {withBloom.toLocaleString()}. Those numbers look thin because they are numbers about the
-          whole world. USDA is a North-American database, so once you have said zone 6 and North
-          America it knows a good deal more; the facets tell you the coverage for the plants you are
-          actually looking at, not for 8,800 taxa you will never plant.
-        </p>
-        <p>
-          A blank is not a no. It means nobody recorded it. Nothing here is invented to fill a gap,
-          so where the sources are quiet, so is this.
-        </p>
-
-        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          How it stays fast and current
-        </h2>
-        <p>
-          The guide runs off a small data service. It re-pulls Permapeople every week, and every hour
-          it re-checks a few plants against GloBI and USDA, so the whole catalogue comes round again
-          about every ten weeks. Your phone downloads the result once, roughly a megabyte
-          compressed, and then filters on the device. Nothing is fetched while you search. That is
-          why it stays instant across thousands of plants, and why it keeps working in a garden with
-          no signal.
-          {meta?.generatedAt && (
-            <>
-              {" "}
-              This copy of the data was generated on <span className="mono">{meta.generatedAt}</span>.
-            </>
-          )}
-        </p>
-
-        <h2 className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
-          Cautions
-        </h2>
-        <p>
-          Edibility and medicinal notes are what contributors recorded. They are not advice. Warnings
-          are shown in the source's own words, because “Toxic” and “Toxic fruits” are not the same
-          sentence to someone standing over an asparagus bed. Check a plant against your own region
-          and a second source before you eat it or put it in the ground.
-        </p>
+      <section className="panel" style={{ marginTop: "var(--sp-5)" }}>
+        <div className="panel-title">How much is filled in</div>
+        {rows.map(([label, value]) => (
+          <div key={label} className="attr-row">
+            <span className="attr-label">{label}</span>
+            <span>
+              <span className="mono">{value.toLocaleString()}</span>{" "}
+              <span className="attr-absent" style={{ fontStyle: "normal" }}>
+                {pct(value)}
+              </span>
+            </span>
+          </div>
+        ))}
       </section>
+
+      <section className="panel" style={{ marginTop: "var(--sp-4)" }}>
+        <div className="panel-title">Sources</div>
+        <div className="attr-row">
+          <span className="attr-label">
+            <a href="https://permapeople.org" target="_blank" rel="noreferrer noopener">
+              Permapeople
+            </a>
+          </span>
+          <span>Plants, attributes, descriptions. CC BY-SA 4.0.</span>
+        </div>
+        <div className="attr-row">
+          <span className="attr-label">
+            <a
+              href="https://www.globalbioticinteractions.org"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              GloBI
+            </a>
+          </span>
+          <span>Flower visitors, from published field observations. CC BY 4.0.</span>
+        </div>
+        <div className="attr-row">
+          <span className="attr-label">
+            <a href="https://plants.usda.gov" target="_blank" rel="noreferrer noopener">
+              USDA PLANTS
+            </a>
+          </span>
+          <span>Bloom colour and period, North America. Public domain.</span>
+        </div>
+      </section>
+
+      <div className="callout" style={{ marginTop: "var(--sp-4)" }}>
+        <span>
+          A blank is not a no. It means nobody recorded it, and nothing here is invented to fill a
+          gap.
+        </span>
+      </div>
+
+      <div className="callout callout--warn" style={{ marginTop: "var(--sp-3)" }}>
+        <IconAlert />
+        <span>
+          Edibility, medicinal and warning text is what contributors recorded, in their words. It is
+          not advice. Check a plant against your own region and a second source before you eat it or
+          plant it.
+        </span>
+      </div>
+
+      {meta.generatedAt && (
+        <p className="provenance">
+          This copy of the data was generated on <span className="mono">{meta.generatedAt}</span>. It
+          refreshes itself weekly, and downloads once so the guide works with no signal.
+        </p>
+      )}
     </div>
   );
 }

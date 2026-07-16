@@ -240,11 +240,7 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
           label="Blooms"
           values={plant.bloomPeriod ? [bloomPeriodLabel(plant.bloomPeriod)] : []}
         />
-        <ChipRow
-          label="Flower visitors"
-          values={plant.attracts ?? []}
-          absent="Nobody has recorded a visitor here, which is not the same as none."
-        />
+        <ChipRow label="Flower visitors" values={plant.attracts ?? []} absent="No visitor recorded." />
         <ChipRow label="Edible parts" values={plant.edibleParts} />
         {/* How it's eaten, which is a different question from which part. */}
         <ChipRow label="Eaten as" values={plant.edibleUses} />
