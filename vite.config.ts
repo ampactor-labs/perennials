@@ -3,8 +3,9 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
 
-// Field-guide green used for the install/theme chrome.
-const THEME = "#3f6b3f";
+// The app's own green (tokens.css --green, light theme) for the install/theme
+// chrome. Was #3f6b3f, a colour that existed nowhere but the old icon.
+const THEME = "#33503a";
 
 // Served from ampactor.dev/perennials/ (org GitHub Pages), so everything hangs
 // off this base path — assets, router, service-worker scope, manifest.

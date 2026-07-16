@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Perennials">
-  <rect width="64" height="64" rx="14" fill="#3f6b3f"/>
-  <path d="M32 52c0-11 0-16-6-22-4-4-10-5-13-5 0 8 2 15 7 19 4 3 8 4 12 4z" fill="#8bbf6a"/>
-  <path d="M32 52c0-13 0-19 7-25 4-4 11-5 14-5 0 9-2 16-7 21-4 4-9 6-14 6z" fill="#c8e6a8"/>
-  <path d="M32 54V30" stroke="#2f4f2f" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="32" cy="22" r="6" fill="#f2c14e"/>
+  <!-- A herbarium sheet in miniature: paper tile, a sprig pressed to sepia,
+       and the one dot of colour a specimen keeps - its bloom. Colours are the
+       app's light-theme tokens, baked in because a favicon has no stylesheet. -->
+  <rect x="1.5" y="1.5" width="61" height="61" rx="13" fill="#dcd8c6" stroke="#b1ac92" stroke-width="2"/>
+  <path d="M34 56 C34 47 32 38 30 30 C29 25 28.5 21 28 17" fill="none" stroke="#6f5f45" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M33.5 46 C27 47.5 19.5 44 16.5 36.5 C23 33.5 30.5 37.5 33.5 46 Z" fill="#6f5f45"/>
+  <path d="M31 33 C31.5 25.5 36.5 19.5 45 18.5 C45.5 26.5 39.5 32 31 33 Z" fill="#6f5f45"/>
+  <circle cx="27.5" cy="13.5" r="5" fill="#33503a"/>
 </svg>

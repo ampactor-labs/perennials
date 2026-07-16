@@ -5,14 +5,34 @@ import { useDataState } from "@/data/store";
 import { useKept } from "@/lib/kept";
 import { IconAlert, IconBook, IconGuide, IconKeep, IconMoon, IconSun } from "./icons";
 
+/* A herbarium sheet in miniature: a paper tile, a sprig pressed to sepia — the
+   colour specimens actually dry to, and the ink of her notes — and the one dot
+   of colour a pressed plant keeps, its bloom, in the green the wordmark's
+   interpunct already wears. Every colour is a token, so the mark presses
+   itself into whichever paper the theme is printed on. */
 function BrandMark() {
   return (
     <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="14" fill="var(--green)" />
-      <path d="M32 52c0-11 0-16-6-22-4-4-10-5-13-5 0 8 2 15 7 19 4 3 8 4 12 4z" fill="#8bbf6a" />
-      <path d="M32 52c0-13 0-19 7-25 4-4 11-5 14-5 0 9-2 16-7 21-4 4-9 6-14 6z" fill="#c8e6a8" />
-      <path d="M32 54V30" stroke="#2f4f2f" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="32" cy="22" r="6" fill="#f2c14e" />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="61"
+        height="61"
+        rx="13"
+        fill="var(--paper-sunk)"
+        stroke="var(--line-strong)"
+        strokeWidth="2"
+      />
+      <path
+        d="M34 56 C34 47 32 38 30 30 C29 25 28.5 21 28 17"
+        fill="none"
+        stroke="var(--sepia)"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <path d="M33.5 46 C27 47.5 19.5 44 16.5 36.5 C23 33.5 30.5 37.5 33.5 46 Z" fill="var(--sepia)" />
+      <path d="M31 33 C31.5 25.5 36.5 19.5 45 18.5 C45.5 26.5 39.5 32 31 33 Z" fill="var(--sepia)" />
+      <circle cx="27.5" cy="13.5" r="5" fill="var(--green)" />
     </svg>
   );
 }
@@ -115,8 +135,10 @@ type Tab = {
   badge?: boolean;
 };
 
-// The nav grid has been `repeat(3, 1fr)` since the garden view was cut, so this
-// third tab lands in the slot that was already sitting empty.
+// The nav grid grows one implicit column per tab (grid-auto-flow: column), so
+// adding or cutting a tab here needs no CSS change. It used to be a fixed
+// repeat() — and a stale two-column copy in browse.css wrapped this third tab
+// into a hidden row on phones.
 const TABS: Tab[] = [
   { to: "/", label: "Guide", icon: IconGuide, end: true },
   { to: "/kept", label: "Kept", icon: IconKeep, end: false, badge: true },
