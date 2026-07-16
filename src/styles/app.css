@@ -179,9 +179,6 @@
 /* ===================================================================== *
  * Catalog: filter bar, facets, results
  * ===================================================================== */
-.catalog {
-  margin-top: var(--sp-5);
-}
 /* Sticky. It holds the result count and — below 48rem, where the inline rail is
    display:none — the only door to the facets. Static, it scrolled away, so
    changing one constraint after scrolling forty plants deep meant flicking all
@@ -289,11 +286,6 @@
   border-bottom: none;
 }
 /* data chips ----------------------------------------------------------- */
-.swatch-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
 /* Bloom swatch. The ring is what keeps a white or very pale bloom legible on
    paper. Without `display` this collapses to nothing as a bare inline span,
    which is probably why it sat here styled and unused. */
@@ -416,10 +408,6 @@
     overflow-y: auto;
     padding-right: var(--sp-2);
   }
-  .plant-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--sp-4);
-  }
   .filter-toggle {
     display: none;
   }
@@ -435,15 +423,6 @@
   .nav-item {
     flex-direction: row;
     gap: var(--sp-2);
-  }
-}
-
-@media (min-width: 64rem) {
-  .plant-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .facets-drawer-only {
-    display: none;
   }
 }
 

@@ -80,13 +80,6 @@ export const IconAlert = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-export const IconInfo = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base} {...p}>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 11v5M12 8v.5" />
-  </svg>
-);
-
 export const IconLeaf = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M4 20c0-9 6-15 16-15 0 10-6 15-14 15" />
