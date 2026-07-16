@@ -7,6 +7,7 @@
 // asked for: it starts at 6 and re-learns itself every time she names a zone.
 import { useSyncExternalStore } from "react";
 import type { Plant } from "@/data/model";
+import { hardyIn } from "./hardiness";
 import { createLocalStore } from "./localStore";
 
 const store = createLocalStore<number>(
@@ -42,5 +43,5 @@ export function useHomeZone(): number {
  */
 export function hardyBand(p: Plant, zone: number): 0 | 1 | 2 {
   if (!p.hardiness) return 1;
-  return p.hardiness.min <= zone && zone <= p.hardiness.max ? 0 : 2;
+  return hardyIn(p.hardiness, zone) ? 0 : 2;
 }

@@ -2,7 +2,9 @@
 // normalized by server/src/transform.mjs. Nothing here is authored; every
 // value comes from Permapeople contributors (CC BY-SA 4.0).
 
-export type Hardiness = { min: number; max: number };
+/** `max` is null when the source recorded only a floor ("hardy to zone 5").
+ *  Ask lib/hardiness.ts what a record means; never read min/max raw. */
+export type Hardiness = { min: number; max: number | null };
 
 export type Plant = {
   id: number;

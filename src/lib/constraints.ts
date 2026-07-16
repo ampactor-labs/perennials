@@ -105,7 +105,7 @@ const FACET_LABEL: Record<string, string> = {
   edibleParts: "Edible part",
   functions: "Use",
   attracts: "Attracts",
-  bloomColor: "Bloom color",
+  bloomColor: "Bloom colour",
   bloomPeriod: "Bloom period",
   warnings: "Caution",
   family: "Family",

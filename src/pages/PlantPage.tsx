@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
 import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
+import { hardinessLabel } from "@/lib/hardiness";
 import { useKept } from "@/lib/kept";
 import { seenSlots, useSeen } from "@/lib/seen";
 import { IconAlert, IconChevronLeft, IconKeep } from "@/components/icons";
@@ -180,7 +181,7 @@ function BloomsRow({ plant }: { plant: Plant }) {
 
 function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
   const paras = (plant.description ?? "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
-  const zone = plant.hardiness ? `${plant.hardiness.min}–${plant.hardiness.max}` : null;
+  const zone = plant.hardiness ? hardinessLabel(plant.hardiness) : null;
   return (
     <div className="page wrap detail">
       <div className="detail-top">

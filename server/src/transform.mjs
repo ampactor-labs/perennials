@@ -87,8 +87,11 @@ function hardiness(raw) {
   if (!raw) return null;
   const m = String(raw).match(/(\d+)\s*[-–]\s*(\d+)/);
   if (m) return { min: +m[1], max: +m[2] };
+  // A lone number is a cold-hardiness floor ("hardy to zone 5"), not a one-zone
+  // window. Fabricating a max from it read Chokecherry's "1" as "zone 1 only",
+  // and the app's zone filter then dropped it as if the record said it dies there.
   const one = String(raw).match(/\d+/);
-  return one ? { min: +one[0], max: +one[0] } : null;
+  return one ? { min: +one[0], max: null } : null;
 }
 
 function heightM(raw) {
