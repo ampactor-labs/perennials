@@ -64,7 +64,12 @@
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* One implicit column per tab, whatever the count. A fixed repeat() here has
+     bitten twice: a stale two-column copy of this rule sat forgotten in
+     browse.css ("bottom nav has two tabs now") and wrapped the third tab into
+     a hidden row under Android's system bar. Auto-flow cannot wrap. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   background: color-mix(in srgb, var(--paper) 92%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--line);
