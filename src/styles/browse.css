@@ -252,6 +252,12 @@
   background: color-mix(in srgb, var(--green) 30%, var(--paper-raised));
   color: var(--ink);
 }
+/* Her record standing beside the printed one, in the sepia her notes and bloom
+   marks already write in. */
+.ptag--mine {
+  background: color-mix(in srgb, var(--sepia) 28%, var(--paper-raised));
+  color: var(--ink);
+}
 .pgrid-sentinel {
   text-align: center;
   padding: var(--sp-4);

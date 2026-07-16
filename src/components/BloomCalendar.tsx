@@ -8,10 +8,9 @@ import {
   SLOT_TICK,
   bloomPeriodLabel,
   bloomSlots,
-  slotForDate,
   type BloomSlot,
 } from "@/lib/bloom";
-import { useSeen } from "@/lib/seen";
+import { seenSlots, useSeen } from "@/lib/seen";
 
 type Row = {
   plant: Plant;
@@ -56,10 +55,7 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
   const { seen } = useSeen();
   if (plants.length === 0) return null;
 
-  const handSlots = (id: number): readonly BloomSlot[] => {
-    const hit = new Set(seen.filter((s) => s.id === id).map((s) => slotForDate(s.at)));
-    return BLOOM_SLOTS.filter((slot) => hit.has(slot));
-  };
+  const handSlots = (id: number) => seenSlots(seen, id);
 
   const rows: Row[] = plants
     .map((plant) => ({

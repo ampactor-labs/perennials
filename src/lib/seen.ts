@@ -6,10 +6,19 @@
 // The dates themselves are the record — nothing ever discards them; only the
 // calendar coarsens them onto its nine-word axis.
 import { useCallback, useSyncExternalStore } from "react";
+import { BLOOM_SLOTS, slotForDate, type BloomSlot } from "./bloom";
 import { createLocalStore } from "./localStore";
 
 /** One observation: she saw this plant in bloom on this day. */
 export type Seen = { id: number; at: number };
+
+/** Her marks for one plant, coarsened onto the calendar's nine-word axis and
+ *  ordered the way a year runs. The dates themselves stay in the store; this is
+ *  only the reading the axis can show. */
+export function seenSlots(seen: Seen[], id: number): readonly BloomSlot[] {
+  const hit = new Set(seen.filter((s) => s.id === id).map((s) => slotForDate(s.at)));
+  return BLOOM_SLOTS.filter((slot) => hit.has(slot));
+}
 
 /** Same local day — the granularity of a tap. */
 export const sameDay = (a: number, b: number) =>

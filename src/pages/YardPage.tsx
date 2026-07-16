@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
-import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, slotForDate, type BloomSlot } from "@/lib/bloom";
+import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, type BloomSlot } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
-import { useSeen } from "@/lib/seen";
+import { seenSlots, useSeen } from "@/lib/seen";
 import {
   MAX_LABEL,
   MAX_PLANTS,
@@ -100,9 +100,8 @@ export function YardPage() {
       tokenState = "hatch";
     }
 
-    const mine = seen.filter((s) => s.id === pl.id);
-    const witness =
-      slot === null ? mine.length > 0 : mine.some((s) => slotForDate(s.at) === slot);
+    const mine = seenSlots(seen, pl.id);
+    const witness = slot === null ? mine.length > 0 : mine.includes(slot);
 
     let showState: TokenView["show"] = null;
     if (p && showKind && showValue) {

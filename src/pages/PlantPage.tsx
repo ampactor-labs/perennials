@@ -4,6 +4,7 @@ import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
 import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
+import { seenSlots, useSeen } from "@/lib/seen";
 import { IconAlert, IconChevronLeft, IconKeep } from "@/components/icons";
 import { NotePanel } from "@/components/NotePanel";
 import { SeenMark } from "@/components/SeenMark";
@@ -149,6 +150,34 @@ function ChipRow({
   );
 }
 
+/**
+ * When it blooms: the printed record, and hers, side by side.
+ *
+ * USDA recorded a period for about one plant in eight, and this row used to
+ * render nothing at all for the other seven — silence in the one place a reader
+ * looks for bloom timing, while her own "Blooming today" marks sat further up
+ * the page saying otherwise. Her record belongs here, in her own ink, whether or
+ * not the printed one has anything to say. Same rule as the calendar: a mark of
+ * hers earns its place even where USDA is blank.
+ */
+function BloomsRow({ plant }: { plant: Plant }) {
+  const { seen } = useSeen();
+  const mine = seenSlots(seen, plant.id);
+  const printed = plant.bloomPeriod ? bloomPeriodLabel(plant.bloomPeriod) : null;
+  if (!printed && mine.length === 0) return null;
+  return (
+    <div className="attr-row">
+      <span className="attr-label">Blooms</span>
+      <span className="chip-row">
+        {printed && <span className="ptag">{printed}</span>}
+        {mine.length > 0 && (
+          <span className="ptag ptag--mine">{mine.join(", ")} · seen by you</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
 function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
   const paras = (plant.description ?? "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   const zone = plant.hardiness ? `${plant.hardiness.min}–${plant.hardiness.max}` : null;
@@ -237,16 +266,17 @@ function Detail({ plant, data }: { plant: Plant; data: Dataset }) {
         {/* The three she can now search by. They belong on the page she searched
             her way to — otherwise she narrows to "Attracts: Bees", taps a result,
             and the page says nothing about bees. */}
+        {/* "Bloom" was this row's label, and it renders the colour — so a plant
+            USDA never described read "Bloom: Not recorded" directly under a
+            button she had just pressed to say it was blooming. The row is about
+            the colour; it has to say so. */}
         <ChipRow
-          label="Bloom"
+          label="Bloom colour"
           values={plant.bloomColor ? [plant.bloomColor] : []}
           swatches
           absent="Not recorded. USDA covers North-American species."
         />
-        <ChipRow
-          label="Blooms"
-          values={plant.bloomPeriod ? [bloomPeriodLabel(plant.bloomPeriod)] : []}
-        />
+        <BloomsRow plant={plant} />
         <ChipRow label="Flower visitors" values={plant.attracts ?? []} absent="No visitor recorded." />
         <ChipRow label="Edible parts" values={plant.edibleParts} />
         {/* How it's eaten, which is a different question from which part. */}
