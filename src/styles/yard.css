@@ -291,8 +291,12 @@
 }
 
 /* the yards shelf on the Kept page */
-.yard-list {
-  margin-top: var(--sp-3);
+.yard-shelf-hint {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+}
+.yard-list:not(:empty) {
+  margin-top: var(--sp-2);
 }
 .yard-row {
   display: flex;
