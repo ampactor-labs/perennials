@@ -1,0 +1,316 @@
+/* ===================================================================== *
+ * Yard sketches — her hand on a fixed sheet
+ * ===================================================================== */
+
+.yard-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+/* The name is a title that happens to be editable, not a form field. */
+.yard-title {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid transparent;
+}
+.yard-title:focus-visible {
+  outline: none;
+  border-bottom-color: var(--line-strong);
+}
+
+.yard-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.yard-canvas--draw,
+.yard-canvas--area {
+  cursor: crosshair;
+}
+.yard-paper {
+  fill: var(--paper);
+}
+
+/* her hand: everything sepia, like the notes it joins */
+.yard-line,
+.yard-area {
+  stroke: var(--sepia);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.yard-area {
+  fill: color-mix(in srgb, var(--sepia) 13%, transparent);
+}
+.yard-label {
+  fill: var(--sepia);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 26px;
+}
+
+/* the placed plants */
+.yard-mark {
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+}
+.yard-mark--gone {
+  stroke-dasharray: 4 4;
+}
+.yard-name {
+  fill: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 22px;
+  text-anchor: middle;
+}
+.yard-token--dim .yard-mark,
+.yard-token--dim .yard-name {
+  opacity: 0.35;
+}
+/* her spacing estimate — dashed, sepia, never the record's */
+.yard-ring {
+  fill: none;
+  stroke: var(--sepia);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+}
+/* she saw it bloom */
+.yard-witness {
+  fill: none;
+  stroke: var(--sepia);
+  stroke-width: 2.5;
+}
+/* the current client question */
+.yard-show {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 3.5;
+}
+.yard-sel {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+  opacity: 0.7;
+}
+
+.yard-rose-face {
+  fill: var(--paper);
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.yard-rose-needle {
+  stroke: var(--ink-soft);
+  stroke-width: 2.5;
+}
+.yard-rose-tip {
+  fill: var(--ink-soft);
+}
+.yard-rose-n {
+  fill: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 20px;
+  text-anchor: middle;
+}
+
+/* the year scrubber — the calendar's axis as a control */
+.scrub {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+.scrub-year,
+.scrub-play {
+  flex: none;
+  min-height: var(--tap);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+.scrub-year.on,
+.scrub-play.on,
+.scrub-slot.on {
+  background: var(--green);
+  color: var(--on-green);
+  border-color: var(--green);
+}
+.scrub-mid {
+  flex: 1;
+  min-width: 0;
+}
+.scrub-slots {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 2px;
+}
+.scrub-slot {
+  min-height: var(--tap);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-sm);
+  color: var(--ink-faint);
+  font-size: 0.62rem;
+  padding: 0 1px;
+}
+.scrub-seasons {
+  display: flex;
+  margin-top: 2px;
+}
+.scrub-seasons span {
+  text-align: center;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.yard-coverage {
+  margin-top: var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+.yard-note {
+  margin-top: var(--sp-2);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.yard-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+.yard-tools .seg {
+  flex: 1;
+}
+
+.yard-labelrow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.yard-ask {
+  margin-top: var(--sp-3);
+}
+.yard-ask-select {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+/* the tray: her kept plants, ready to place */
+.yard-tray {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  margin-top: var(--sp-3);
+  padding-bottom: var(--sp-1);
+}
+.yard-plant {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--tap);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-pill);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+.yard-plant.on {
+  background: var(--green);
+  color: var(--on-green);
+  border-color: var(--green);
+}
+.yard-plant-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+}
+.yard-plant-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.yard-sheet {
+  margin-top: var(--sp-3);
+}
+.yard-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.yard-sheet-name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+.yard-sheet-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.yard-end {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-6);
+}
+
+/* the yards shelf on the Kept page */
+.yard-list {
+  margin-top: var(--sp-3);
+}
+.yard-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.yard-row:last-child {
+  border-bottom: none;
+}
+.yard-row-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  color: var(--ink);
+}
+.yard-row-meta {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}

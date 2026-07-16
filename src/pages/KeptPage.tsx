@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
 import { useKept } from "@/lib/kept";
+import { useYards } from "@/lib/yards";
 import { noteDate, useNotes, type Note } from "@/lib/notes";
 import { useSeen, type Seen } from "@/lib/seen";
 import { shareFiles } from "@/lib/share";
@@ -91,11 +92,45 @@ function KeptEntry({
   );
 }
 
+/** The yards shelf: where a kept list turns into a plan for a place. */
+function YardShelf() {
+  const { yards, create } = useYards();
+  const navigate = useNavigate();
+  const sorted = [...yards].sort((a, b) => b.at - a.at);
+  return (
+    <>
+      <div className="panel-title" style={{ marginTop: "var(--sp-6)" }}>
+        Yard sketches
+      </div>
+      <div className="yard-list">
+        {sorted.map((y) => (
+          <div key={y.id} className="yard-row">
+            <Link to={`/yard/${y.id}`} className="yard-row-name">
+              {y.name}
+            </Link>
+            <span className="yard-row-meta">
+              {y.plants.length} {y.plants.length === 1 ? "plant" : "plants"}
+            </span>
+          </div>
+        ))}
+        <button
+          className="btn btn--ghost btn--sm"
+          style={{ marginTop: sorted.length ? "var(--sp-2)" : 0 }}
+          onClick={() => navigate(`/yard/${create(`Yard ${yards.length + 1}`).id}`)}
+        >
+          New yard
+        </button>
+      </div>
+    </>
+  );
+}
+
 export function KeptPage() {
   const state = useDataState();
   const { kept, remove } = useKept();
   const { notes } = useNotes();
   const { seen } = useSeen();
+  const { yards } = useYards();
   if (state.status !== "ready") return null;
   const data = state.data;
 
@@ -111,7 +146,7 @@ export function KeptPage() {
   // out of the bloom year.
   const notedOnly = writtenPlants(data, notes, seen).filter((p) => !keptIds.has(p.id));
 
-  if (plants.length === 0 && notedOnly.length === 0) {
+  if (plants.length === 0 && notedOnly.length === 0 && yards.length === 0) {
     return (
       <div className="page wrap">
         <div className="empty">
@@ -174,6 +209,8 @@ export function KeptPage() {
           </div>
         </>
       )}
+
+      <YardShelf />
     </div>
   );
 }

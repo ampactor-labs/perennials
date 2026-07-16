@@ -9,6 +9,7 @@ import "./styles/app.css";
 import "./styles/detail.css";
 import "./styles/browse.css";
 import "./styles/kept.css";
+import "./styles/yard.css";
 
 // Keep the installed app fresh without nagging — swap in updates on next load.
 registerSW({ immediate: true });

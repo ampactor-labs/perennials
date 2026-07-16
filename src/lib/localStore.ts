@@ -7,7 +7,11 @@
 // storage.
 type Store<T> = {
   read: () => T;
-  write: (next: T) => void;
+  /** Returns false when localStorage refused the write (quota, private mode).
+   *  The session keeps working from cache either way — but a caller holding
+   *  something she cannot afford to lose, like a client's yard plan, should
+   *  say so instead of letting the failure stay silent. */
+  write: (next: T) => boolean;
   subscribe: (cb: () => void) => () => void;
   /** Stable reference for useSyncExternalStore's server snapshot. */
   empty: T;
@@ -53,15 +57,18 @@ export function createLocalStore<T>(
     return cache;
   };
 
-  const write = (next: T) => {
+  const write = (next: T): boolean => {
     cache = next;
+    let persisted = true;
     try {
       localStorage.setItem(key, JSON.stringify(next));
       askPersist();
     } catch {
-      /* private mode: the session keeps working from cache, nothing survives it */
+      /* private mode or quota: the session keeps working from cache */
+      persisted = false;
     }
     notify();
+    return persisted;
   };
 
   // Another tab wrote: drop the cache so the next snapshot re-reads, and let
