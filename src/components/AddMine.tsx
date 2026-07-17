@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_MINE, useMine, type MineField } from "@/lib/mine";
-import { getPhoto, putPhoto } from "@/lib/photos";
+import { putPhoto, useMinePhoto } from "@/lib/photos";
 import { IconPlus, IconX } from "./icons";
 
 /**
@@ -112,27 +112,10 @@ export function AddMine({
  */
 export function AddMinePhoto({ id, value }: { id: number; value?: string }) {
   const { set, remove } = useMine();
-  const [url, setUrl] = useState<string | null>(null);
+  const url = useMinePhoto(value);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const pick = useRef<HTMLInputElement>(null);
-
-  // An object URL is a live handle into this document; letting it leak keeps the
-  // whole decoded image alive for the life of the tab.
-  useEffect(() => {
-    if (!value) return setUrl(null);
-    let dead = false;
-    let made: string | null = null;
-    void getPhoto(value).then((blob) => {
-      if (dead || !blob) return;
-      made = URL.createObjectURL(blob);
-      setUrl(made);
-    });
-    return () => {
-      dead = true;
-      if (made) URL.revokeObjectURL(made);
-    };
-  }, [value]);
 
   const take = async (file: File | undefined) => {
     if (!file) return;

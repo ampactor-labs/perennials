@@ -13,6 +13,8 @@
 // 1400px on the long edge is more than the detail figure can show (~984 real
 // pixels on her phone) and lands around 200KB, so a hundred photos still fit in
 // a quota the browser will actually grant.
+import { useEffect, useState } from "react";
+
 const DB = "perennials-photos";
 const SHELF = "photos";
 const MAX_EDGE = 1400;
@@ -111,4 +113,38 @@ export async function deletePhoto(key: string): Promise<void> {
 /** Put a photo back under the key it had, for the importer. */
 export async function restorePhoto(key: string, blob: Blob): Promise<void> {
   await tx("readwrite", (s) => s.put(blob, key));
+}
+
+/**
+ * A live URL for one of her photos, or null.
+ *
+ * An object URL is a handle into this document and stays alive until it is
+ * revoked; leaking one keeps the whole decoded image in memory for the life of
+ * the tab, and this runs in a grid, so leaking is not theoretical. Every URL is
+ * revoked when the key changes or the card unmounts, and a resolve that lands
+ * after unmount is dropped rather than assigned.
+ */
+export function useMinePhoto(key: string | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!key) {
+      setUrl(null);
+      return;
+    }
+    let dead = false;
+    let made: string | null = null;
+    void getPhoto(key).then((blob) => {
+      if (dead || !blob) return;
+      made = URL.createObjectURL(blob);
+      setUrl(made);
+    });
+    return () => {
+      dead = true;
+      setUrl(null);
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, [key]);
+
+  return url;
 }

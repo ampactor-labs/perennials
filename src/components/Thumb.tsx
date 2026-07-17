@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useMinePhotoKey } from "@/data/store";
 import { photoSrc, thumbSrc, PHOTO_SIZES } from "@/lib/img";
+import { useMinePhoto } from "@/lib/photos";
 
 /**
  * A plant photo, or the ✿ that means "no photo".
@@ -30,6 +32,28 @@ export function Thumb({
   fallbackClass?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  // Asked here rather than by each caller on purpose. Every photo in the guide
+  // comes through this component, so this is the one place that can promise her
+  // camera reaches all of them: the grid, the omnibox, the companion pills and
+  // the yard list all got it without being touched, and a new one cannot forget.
+  const hers = useMinePhoto(useMinePhotoKey(id, has));
+
+  // Hers wins over the ✿ and never over the record: a plant Permapeople
+  // photographed keeps its own figure, because `mine` is only ever passed where
+  // the guide has nothing. Without this the grid kept painting "no photo" at her
+  // across a card for a plant she had photographed herself, which is the guide
+  // calling her own work an absence.
+  if (hers) {
+    return (
+      <img
+        src={hers}
+        alt={alt}
+        className="thumb--mine"
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
 
   // Two different facts, and they used to share a glyph. "This plant has no photo
   // in the guide" is an absence in the data; "this one never downloaded" is an
