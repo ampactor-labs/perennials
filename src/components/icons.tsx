@@ -102,7 +102,7 @@ export const IconKeep = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: 
 );
 
 /* Five petals. Like IconKeep, `filled` reports something she did (today's
-   "Blooming today" tap), never a fact about the plant. Thinner stroke than the
+   "Mark blooming today" tap), never a fact about the plant. Thinner stroke than the
    set: five petals at 1.7 smudge into a blot at button size. */
 export const IconBloom = ({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: boolean }) => (
   <svg {...base} {...p} strokeWidth={1.4} fill={filled ? "currentColor" : "none"}>

@@ -87,7 +87,7 @@ export const bloomSlots = (period: string | null | undefined): readonly BloomSlo
  *
  * This looks like the sin described above (pinning the season words to a
  * calendar), but it runs in the honest direction. USDA's "Late Spring" is a
- * continent average we refuse to place on months; a tap on "Blooming today" is
+ * continent average we refuse to place on months; a tap on "Mark blooming today" is
  * one real date in one yard, and coarsening it onto this axis loses precision
  * instead of inventing it. The reading is zone 6, northern hemisphere: hers.
  * The dates themselves are never discarded; only the calendar coarsens.

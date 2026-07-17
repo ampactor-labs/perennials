@@ -4,7 +4,7 @@ import { sameDay, useSeen } from "@/lib/seen";
 import { IconBloom, IconX } from "./icons";
 
 /**
- * "Blooming today": one tap, standing in front of the plant.
+ * "Mark blooming today": one tap, standing in front of the plant.
  *
  * The note above this is her prose; these are her data points. Each tap stamps
  * a day, the days list here in full, and the bloom calendar coarsens them into
@@ -25,7 +25,7 @@ export function SeenMark({ plant }: { plant: Plant }) {
         aria-pressed={markedToday}
       >
         <IconBloom width={16} height={16} filled={markedToday} />
-        Blooming today
+        Mark blooming today
       </button>
       {days.length > 0 && (
         <span className="seen-dates">
