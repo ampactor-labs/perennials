@@ -4,6 +4,7 @@ import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
 import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, type BloomSlot } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
+import { mineFor, useMine } from "@/lib/mine";
 import { seenSlots, useSeen } from "@/lib/seen";
 import {
   MAX_LABEL,
@@ -14,6 +15,7 @@ import {
   useYards,
 } from "@/lib/yards";
 import { exportYard } from "@/lib/yardExport";
+import { AddMine } from "@/components/AddMine";
 import { YardCanvas, type Mode, type TokenView } from "@/components/YardCanvas";
 import { YearScrubber } from "@/components/YearScrubber";
 import { Thumb } from "@/components/Thumb";
@@ -39,6 +41,7 @@ export function YardPage() {
   const { yards, put, remove } = useYards();
   const { kept } = useKept();
   const { seen } = useSeen();
+  const { mine } = useMine();
 
   const [mode, setMode] = useState<Mode>("move");
   const [armedId, setArmedId] = useState<number | null>(null);
@@ -447,7 +450,20 @@ export function YardPage() {
                     {selPlant.bloomPeriod && <span className="ptag">{bloomPeriodLabel(selPlant.bloomPeriod)}</span>}
                   </span>
                 ) : (
-                  <span className="attr-absent">Not in our sources.</span>
+                  // The same blank as the plant page's, so the same offer. She is
+                  // standing over the bed with the sheet open; this is the likeliest
+                  // place in the guide for her to know the answer.
+                  <span className="chip-row">
+                    {!mineFor(mine, selPlant.id, "bloomColor") && (
+                      <span className="attr-absent">Not in our sources.</span>
+                    )}
+                    <AddMine
+                      id={selPlant.id}
+                      field="bloomColor"
+                      label="Bloom colour"
+                      value={mineFor(mine, selPlant.id, "bloomColor")?.text}
+                    />
+                  </span>
                 )}
               </div>
               <div className="attr-row">
@@ -455,7 +471,17 @@ export function YardPage() {
                 {selPlant.attracts?.length ? (
                   <span>{selPlant.attracts.join(", ")}</span>
                 ) : (
-                  <span className="attr-absent">No visitor in our sources.</span>
+                  <span className="chip-row">
+                    {!mineFor(mine, selPlant.id, "attracts") && (
+                      <span className="attr-absent">No visitor in our sources.</span>
+                    )}
+                    <AddMine
+                      id={selPlant.id}
+                      field="attracts"
+                      label="Flower visitors"
+                      value={mineFor(mine, selPlant.id, "attracts")?.text}
+                    />
+                  </span>
                 )}
               </div>
               {selPlant.functions.length > 0 && (

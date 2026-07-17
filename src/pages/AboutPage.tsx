@@ -1,4 +1,6 @@
+import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
+import { herValue } from "@/lib/mine";
 import { BackupPanel } from "@/components/BackupPanel";
 import { IconAlert } from "@/components/icons";
 
@@ -15,10 +17,17 @@ export function AboutPage() {
   const state = useDataState();
   if (state.status !== "ready") return null;
 
-  const { plants, meta } = state.data;
+  const { plants, meta, mine } = state.data;
   const count = meta.count || plants.length;
   // Counted from the data she is actually holding, so these can never drift
   // away from what the guide really knows.
+  //
+  // Hers counts. This page exists to say how much of the record is filled in, and
+  // it was reading only the three sources while listing her as the fourth two
+  // inches below; every blank she closed still printed as a blank. `hers` counts
+  // the rows only she has, so the totals move by exactly what she added.
+  const hers = (has: (p: Plant) => unknown, field: "photo" | "attracts" | "bloomColor") =>
+    plants.filter((p) => !has(p) && herValue(mine, p.id, field)).length;
   const n = {
     edible: meta.edibleCount ?? plants.filter((p) => p.edible).length,
     photo: plants.filter((p) => p.thumb).length,
@@ -26,13 +35,18 @@ export function AboutPage() {
     bloom: plants.filter((p) => p.bloomColor).length,
     companions: plants.filter((p) => p.companions?.length).length,
   };
+  const yours = {
+    photo: hers((p) => p.thumb, "photo"),
+    visitors: hers((p) => p.attracts?.length, "attracts"),
+    bloom: hers((p) => p.bloomColor, "bloomColor"),
+  };
   const pct = (x: number) => (count ? `${Math.round((x / count) * 100)}%` : "");
 
-  const rows: [string, number][] = [
+  const rows: [string, number, number?][] = [
     ["Edible", n.edible],
-    ["Photo", n.photo],
-    ["Flower visitors", n.visitors],
-    ["Bloom colour", n.bloom],
+    ["Photo", n.photo, yours.photo],
+    ["Flower visitors", n.visitors, yours.visitors],
+    ["Bloom colour", n.bloom, yours.bloom],
     ["Companions", n.companions],
   ];
 
@@ -49,14 +63,17 @@ export function AboutPage() {
 
       <section className="panel" style={{ marginTop: "var(--sp-5)" }}>
         <div className="panel-title">How much is filled in</div>
-        {rows.map(([label, value]) => (
+        {rows.map(([label, value, yours]) => (
           <div key={label} className="attr-row">
             <span className="attr-label">{label}</span>
             <span>
-              <span className="mono">{value.toLocaleString()}</span>{" "}
+              <span className="mono">{(value + (yours ?? 0)).toLocaleString()}</span>{" "}
               <span className="attr-absent" style={{ fontStyle: "normal" }}>
-                {pct(value)}
+                {pct(value + (yours ?? 0))}
               </span>
+              {/* Named, not folded in. The count moves because she moved it, and
+                  she should be able to see which part is hers. */}
+              {!!yours && <span className="ptag ptag--mine mine-count">{yours} yours</span>}
             </span>
           </div>
         ))}

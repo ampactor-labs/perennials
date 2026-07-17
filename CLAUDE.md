@@ -16,6 +16,16 @@ range, and the standard attributes any plant field guide carries.
   and the alternate names turned up, both of which had been sitting there ignored.
 - GloBI (globalbioticinteractions.org), CC BY 4.0. Observed flower visitors.
 - USDA PLANTS, public domain. Bloom colour and period.
+- Her. The fourth source, and the only one that has seen the actual yard: notes,
+  bloom dates, and the blanks she fills in herself (`lib/mine.ts`, `lib/photos.ts`).
+  It is hers, it is not CC BY-SA, and it never leaves the browser.
+
+The three source lanes and hers never mix. Source values are never edited and her
+answers are never attributed to a source, which is why `Plant` (`data/model.ts`) is
+exactly what the API gave us and her values ride beside it in `Dataset.mine` instead
+of inside it. That separation is the licence boundary as much as the design one.
+Everything of hers renders in sepia (`ptag--mine`), and the "+" that offers to fill a
+field only ever appears where our sources gave nothing.
 
 The dataset is not committed to this repo. The API (`server/`) pulls, normalizes and
 enriches it, then serves it as JSON, so there is no large data file here to load into
@@ -30,6 +40,14 @@ Scope every absence claim to our own data, because that is the only claim we can
 Cautions are shown in the source's exact words, because "Toxic" and "Toxic fruits" are not
 the same sentence to someone standing over an asparagus bed. If you add a facet whose
 coverage is partial, it has to print its coverage.
+
+The rule binds us, not her. We don't invent a value to fill a gap; she is standing in
+front of the plant and may fill any gap she likes, and once she has, it counts for real:
+her values filter, land in the facet rail with their own counts, move coverage, feed the
+suggestions, and sort by zone. That works because `ACCESS` in `lib/query.ts` is the single
+place the guide asks what a plant is. Fold a new reader in there and every one of those
+follows; read a plant's fields directly anywhere else and the rest of that list silently
+won't. The one thing her values may never do is claim to be a source's.
 
 ## Layout
 
@@ -52,10 +70,21 @@ the visual design and UX intact unless asked to change them.
 The tests cover the rules the guide turns on and nothing else: what a hardiness
 record means, that a plant we have no measurement for never sorts below one the record rules
 out, that a month lands on exactly one of USDA's nine season words, that a stroke
-cannot grow past its cap. They exist because "a lone hardiness number is a floor,
-not a one-zone window" was wrong for months and dropped Red mulberry and hardy
-kiwi out of a zone-6 search, and nothing was watching. Put a rule here the day you
-rely on it.
+cannot grow past its cap, that restoring a backup never costs her an entry, and that her
+own values reach the guide without ever wearing a source's name. They exist because "a lone
+hardiness number is a floor, not a one-zone window" was wrong for months and dropped Red
+mulberry and hardy kiwi out of a zone-6 search, and nothing was watching. Put a rule here
+the day you rely on it.
+
+## Her copy is the sync
+
+Field notes writes two files: a `.json` that restores all eight stores including her
+photos, and a `.txt` that outlives the app. Import the `.json` on another machine and
+that machine has her guide; there is no account, no server-side user data and no PII
+anywhere in this project, and that is a feature to defend rather than a gap to close.
+Restore defaults to merge (newest wins per entry), because the realistic restore is her
+second device and wiping the phone she is holding would be data loss wearing a feature's
+clothes.
 
 **Do not run `tsc --noEmit`.** `tsconfig.json` is a solution-style config (`"files": []`
 plus project references), so a bare `tsc --noEmit` compiles nothing and exits 0 no matter
