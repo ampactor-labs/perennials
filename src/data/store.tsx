@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import MiniSearch from "minisearch";
 import { hardyBand, useHomeZone } from "@/lib/homeZone";
+import { indexMine, useMine, type MineIndex, NO_MINE } from "@/lib/mine";
 import type { Facets, Meta, Plant } from "./model";
 
 export type Dataset = {
@@ -12,6 +13,17 @@ export type Dataset = {
   meta: Meta;
   bySlug: Map<string, Plant>;
   byId: Map<number, Plant>;
+  /**
+   * What she has filled in herself, keyed by plant.
+   *
+   * It rides beside the plants and never inside them. Plant is a straight
+   * reflection of what the sources gave us, right down to the licence the
+   * attribution rests on (model.ts), so folding her answers into it would put her
+   * words behind Permapeople's name and lose the one distinction this app is
+   * built on. Everything that reads a plant reads this too, and knows which is
+   * which because they never merged.
+   */
+  mine: MineIndex;
   /** The name index. Built on first use, not on load; see makeDataset. */
   readonly index: MiniSearch;
 };
@@ -81,14 +93,20 @@ function makeIndexBuilder(plants: Plant[]): () => MiniSearch {
  * filter, and evaluate() inherits it for free, since results are pushed in
  * dataset order whenever no text search outranks it.
  */
-function makeDataset(raw: Raw, zone: number, buildIndex: () => MiniSearch): Dataset {
-  const plants = [...raw.plants].sort((a, b) => hardyBand(a, zone) - hardyBand(b, zone));
+function makeDataset(raw: Raw, zone: number, mine: MineIndex, buildIndex: () => MiniSearch): Dataset {
+  // Her hardiness bands with the record's. A plant we have no number for sits in
+  // the middle band because we cannot say; once she has measured it, we can, and
+  // it sorts on what she found.
+  const plants = [...raw.plants].sort(
+    (a, b) => hardyBand(a, zone, mine.get(a.id)) - hardyBand(b, zone, mine.get(b.id)),
+  );
   return {
     plants,
     facets: raw.facets,
     meta: raw.meta,
     bySlug: new Map(plants.map((p) => [p.slug, p])),
     byId: new Map(plants.map((p) => [p.id, p])),
+    mine,
     get index() {
       return buildIndex();
     },
@@ -166,9 +184,23 @@ async function getJson(path: string) {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
+/**
+ * Her photo's key for one plant, or undefined.
+ *
+ * Undefined the moment the guide has its own: her photo supplements the record
+ * and never covers it, and asking here rather than at each call site is what
+ * keeps that rule in one place instead of four.
+ */
+export function useMinePhotoKey(id: number, guideHasOne: boolean): string | undefined {
+  const state = useContext(Ctx);
+  if (guideHasOne || state.status !== "ready") return undefined;
+  return state.data.mine.get(id)?.photo;
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>({ status: "loading" });
   const zone = useHomeZone();
+  const { mine } = useMine();
 
   useEffect(() => {
     let cancelled = false;
@@ -197,11 +229,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // One index per payload; one dataset per (payload, home zone). A zone change
-  // re-sorts and rebuilds two Maps (rare and cheap) but never re-indexes.
+  // One index per payload; one dataset per (payload, home zone, her values). A
+  // zone change re-sorts and rebuilds two Maps (rare and cheap) but never
+  // re-indexes, and a value of hers costs exactly the same: she writes one every
+  // so often, and the half-second index pass is not in that price.
   const buildIndex = useMemo(
     () => (phase.status === "ready" ? makeIndexBuilder(phase.raw.plants) : null),
     [phase],
+  );
+  // Resolved against the catalogue's own vocabulary, so this has to wait for the
+  // facets to land; it is her records, not the dataset, that decide when it runs.
+  const resolved = useMemo(
+    () => (phase.status === "ready" ? indexMine(mine, phase.raw.facets) : NO_MINE),
+    [mine, phase],
   );
   const state = useMemo<State>(() => {
     if (phase.status !== "ready" || !buildIndex) {
@@ -209,8 +249,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ? { status: "loading" } // unreachable: buildIndex exists whenever phase is ready
         : phase;
     }
-    return { status: "ready", data: makeDataset(phase.raw, zone, buildIndex) };
-  }, [phase, zone, buildIndex]);
+    return { status: "ready", data: makeDataset(phase.raw, zone, resolved, buildIndex) };
+  }, [phase, zone, resolved, buildIndex]);
 
   return <Ctx.Provider value={state}>{children}</Ctx.Provider>;
 }

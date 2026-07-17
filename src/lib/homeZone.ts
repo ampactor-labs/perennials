@@ -6,7 +6,7 @@
 // one regional fact the guide owns is the zone she gardens in. It is never
 // asked for: it starts at 6 and re-learns itself every time she names a zone.
 import { useSyncExternalStore } from "react";
-import type { Plant } from "@/data/model";
+import type { Hardiness, Plant } from "@/data/model";
 import { hardyIn } from "./hardiness";
 import { createLocalStore } from "./localStore";
 
@@ -39,15 +39,22 @@ export function useHomeZone(): number {
 }
 
 /**
- * 0: recorded hardy there. 1: our sources carry no hardiness. 2: the record says
- * it cannot overwinter there.
+ * 0: recorded hardy there. 1: nothing to go on. 2: the record says it cannot
+ * overwinter there.
  *
  * The middle band is the honesty rule expressed as a sort order: a plant we have
  * no measurement for must never rank below a plant the record says dies there,
  * because that would read a gap in our data as a fact about the plant. Band 2 is
  * a demotion the data actually states; band 1 is only paperwork.
+ *
+ * Her number counts, and only when it is a number: `hers.hardiness` is null
+ * unless what she typed parsed as a zone (see parseHardiness), so a sentence
+ * leaves the plant in band 1 where it belongs. She is asked second, not because
+ * the record outranks her, but because the "+" only appears where the record is
+ * blank, so the two can never both be here.
  */
-export function hardyBand(p: Plant, zone: number): 0 | 1 | 2 {
-  if (!p.hardiness) return 1;
-  return hardyIn(p.hardiness, zone) ? 0 : 2;
+export function hardyBand(p: Plant, zone: number, hers?: { hardiness: Hardiness | null }): 0 | 1 | 2 {
+  const h = p.hardiness ?? hers?.hardiness;
+  if (!h) return 1;
+  return hardyIn(h, zone) ? 0 : 2;
 }

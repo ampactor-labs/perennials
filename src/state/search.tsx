@@ -90,7 +90,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   // Hardiness is not a facet (it has its own control), so its coverage is counted
   // over the whole catalogue, once per dataset.
   const hardinessKnown = useMemo(
-    () => (data ? coverageOf(data.plants)[ZONE_COVERAGE] ?? 0 : 0),
+    () => (data ? coverageOf(data.plants, data.mine)[ZONE_COVERAGE] ?? 0 : 0),
     [data],
   );
 

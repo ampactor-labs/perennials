@@ -12,6 +12,8 @@
 // than anything we scraped. The only thing that matters is that the page keeps
 // saying which of the two is speaking, so every value here renders in her ink.
 import { useCallback, useSyncExternalStore } from "react";
+import type { Facets, Hardiness } from "@/data/model";
+import { parseHardiness } from "./hardiness";
 import { createLocalStore } from "./localStore";
 import { deletePhoto } from "./photos";
 
@@ -74,6 +76,108 @@ export const writeMine = store.write;
 
 export function mineFor(mine: Mine[], id: number, field: MineField): Mine | undefined {
   return mine.find((m) => m.id === id && m.field === field);
+}
+
+/* ---- what she wrote, in the shape the guide reads ------------------- */
+
+/** The facet keys her values can speak to. lib/query.ts's ACCESS reads exactly
+ *  these off a plant, so a value here filters, counts and covers like any other.
+ *  height and width have no facet; hardiness has its own control, below. */
+const FACET_FIELDS = [
+  "bloomColor",
+  "light",
+  "water",
+  "soil",
+  "layer",
+  "lifeCycle",
+  "growth",
+  "attracts",
+  "edibleParts",
+  "nativeTo",
+  "functions",
+] as const;
+
+/** Her side of one plant, resolved once when the dataset is assembled. */
+export type Hers = {
+  /** facet key -> her values, spelled the way the sources spell them. */
+  facets: Record<string, string[]>;
+  /** Her zone, when what she typed was a zone. Null keeps her out of the sort. */
+  hardiness: Hardiness | null;
+  /** Her photo's key in IndexedDB. */
+  photo?: string;
+  /** Everything she wrote here, lowercased, for the text search to scan. */
+  text: string;
+};
+
+export type MineIndex = ReadonlyMap<number, Hers>;
+
+export const NO_MINE: MineIndex = new Map();
+
+/** Has she filled this field in on this plant? */
+export function herValue(mine: MineIndex, id: number, field: string): boolean {
+  const h = mine.get(id);
+  if (!h) return false;
+  if (field === "photo") return !!h.photo;
+  if (field === "hardiness") return !!h.hardiness;
+  return !!h.facets[field]?.length;
+}
+
+/**
+ * Fold her records into one lookup, keyed by plant.
+ *
+ * Two things happen here and both matter.
+ *
+ * Her text is split on commas, because "Bees, hoverflies" is two answers and she
+ * should not have to know that. And each piece is matched, case-insensitively,
+ * against the values the sources already use for that facet, so her "purple"
+ * becomes the catalogue's "Purple" and lands in the same bucket rather than
+ * forking the rail into two options that mean one thing. What does not match
+ * survives exactly as she typed it: "cream" is not a USDA colour and it is still
+ * true, so it becomes a value of her own that only her plants have.
+ *
+ * The canonical spelling is the sources'; the value is hers. That is the whole
+ * bargain: it lets her answers join the guide's vocabulary without ever being
+ * attributed to a source, because they are never written into Plant.
+ */
+export function indexMine(mine: Mine[], facets: Facets): MineIndex {
+  if (mine.length === 0) return NO_MINE;
+
+  // value.toLowerCase() -> the spelling the catalogue uses, per facet.
+  const canon = new Map<string, Map<string, string>>();
+  for (const key of FACET_FIELDS) {
+    const m = new Map<string, string>();
+    for (const v of facets[key] ?? []) m.set(v.value.toLowerCase(), v.value);
+    canon.set(key, m);
+  }
+
+  const out = new Map<number, Hers>();
+  const facetField = new Set<string>(FACET_FIELDS);
+
+  for (const rec of mine) {
+    let hers = out.get(rec.id);
+    if (!hers) {
+      hers = { facets: {}, hardiness: null, text: "" };
+      out.set(rec.id, hers);
+    }
+    if (rec.field !== "photo") hers.text += " " + rec.text.toLowerCase();
+
+    if (rec.field === "photo") {
+      hers.photo = rec.text;
+    } else if (rec.field === "hardiness") {
+      hers.hardiness = parseHardiness(rec.text);
+    } else if (facetField.has(rec.field)) {
+      const table = canon.get(rec.field)!;
+      const values: string[] = [];
+      for (const piece of rec.text.split(",")) {
+        const t = piece.trim();
+        if (!t) continue;
+        const v = table.get(t.toLowerCase()) ?? t;
+        if (!values.includes(v)) values.push(v);
+      }
+      if (values.length) hers.facets[rec.field] = values;
+    }
+  }
+  return out;
 }
 
 export function useMine() {

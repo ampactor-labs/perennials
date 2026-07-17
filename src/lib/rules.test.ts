@@ -10,8 +10,10 @@ import assert from "node:assert/strict";
 
 import { mergeById } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
-import { hardyIn, hardinessLabel } from "./hardiness";
+import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
+import { indexMine } from "./mine";
+import { ACCESS } from "./query";
 import { seenSlots } from "./seen";
 import { commitStroke, MAX_PTS, SHEET_H, SHEET_W } from "./yards";
 import type { Plant } from "@/data/model";
@@ -137,6 +139,91 @@ test("a straight line keeps its two ends and nothing else", () => {
 
 test("the sheet is portrait and dimensionless", () => {
   assert.ok(SHEET_H > SHEET_W, "the sheet she holds is portrait");
+});
+
+/* ---- her values reach the guide, and never wear a source's name ------- */
+
+const FACETS_FIXTURE = {
+  bloomColor: [{ value: "Purple", count: 1 }, { value: "Yellow", count: 1 }],
+  attracts: [{ value: "Bees", count: 1 }, { value: "Hoverflies", count: 1 }],
+  light: [{ value: "Full sun", count: 1 }],
+};
+
+const mine = (id: number, field: string, text: string) => ({ id, field, text, at: 1 }) as never;
+
+test("her spelling joins the catalogue's, instead of forking the rail", () => {
+  const ix = indexMine([mine(1, "bloomColor", "purple")], FACETS_FIXTURE);
+  assert.deepEqual(
+    ix.get(1)!.facets.bloomColor,
+    ["Purple"],
+    "'purple' and 'Purple' are one answer; two options that mean one thing is the bug",
+  );
+});
+
+test("a value the sources never heard of survives as she typed it", () => {
+  const ix = indexMine([mine(1, "bloomColor", "cream")], FACETS_FIXTURE);
+  assert.deepEqual(ix.get(1)!.facets.bloomColor, ["cream"], "cream is not a USDA colour and is still true");
+});
+
+test("a list she typed is a list, not one long answer", () => {
+  const ix = indexMine([mine(1, "attracts", "bees, Hoverflies")], FACETS_FIXTURE);
+  assert.deepEqual(ix.get(1)!.facets.attracts, ["Bees", "Hoverflies"]);
+});
+
+test("her value filters, counts and covers exactly like a source's", () => {
+  const p = { ...plant(null), id: 1, bloomColor: undefined } as Plant;
+  const hers = indexMine([mine(1, "bloomColor", "purple")], FACETS_FIXTURE).get(1);
+  assert.equal(ACCESS.bloomColor(p, undefined), null, "with nothing of hers it is still a blank");
+  assert.deepEqual(ACCESS.bloomColor(p, hers), ["Purple"], "with her value the guide can see it");
+});
+
+test("a plant she has not touched costs nothing to read", () => {
+  const p = { ...plant(null), id: 1, light: ["Full sun"] } as Plant;
+  assert.equal(
+    ACCESS.light(p, undefined),
+    p.light,
+    "the source's own array must come back by reference, not copied per plant per facet",
+  );
+});
+
+test("her answer never overwrites a source's, only joins it", () => {
+  const p = { ...plant(null), id: 1, functions: ["Nitrogen fixer"] } as Plant;
+  const hers = indexMine([mine(1, "functions", "Chop and drop")], { functions: [] }).get(1);
+  assert.deepEqual(ACCESS.functions(p, hers), ["Nitrogen fixer", "Chop and drop"]);
+});
+
+test("saying what the source already says does not say it twice", () => {
+  const p = { ...plant(null), id: 1, functions: ["Nitrogen fixer"] } as Plant;
+  const hers = indexMine([mine(1, "functions", "nitrogen fixer")], {
+    functions: [{ value: "Nitrogen fixer", count: 1 }],
+  }).get(1);
+  assert.deepEqual(ACCESS.functions(p, hers), ["Nitrogen fixer"]);
+});
+
+// A zone drives the sort and the filter, so a guess here moves her plants for a
+// reason she never gave. Only what parses as a zone is allowed to.
+test("her hardiness counts when it is a zone and never when it is a sentence", () => {
+  assert.deepEqual(parseHardiness("5"), { min: 5, max: null }, "a lone number is a floor, as the record's is");
+  assert.deepEqual(parseHardiness("zone 5"), { min: 5, max: null });
+  assert.deepEqual(parseHardiness("5-9"), { min: 5, max: 9 });
+  assert.deepEqual(parseHardiness("5+"), { min: 5, max: null });
+  assert.equal(parseHardiness("hardy-ish by the south wall"), null, "a sentence is not a measurement");
+  assert.equal(parseHardiness("99"), null, "there is no zone 99");
+  assert.equal(parseHardiness("9-5"), null, "a range that runs backwards is not a range");
+});
+
+test("her zone moves a plant out of the band for plants we cannot place", () => {
+  const p = { ...plant(null), id: 1 } as Plant;
+  const hers = indexMine([mine(1, "hardiness", "4")], {}).get(1);
+  assert.equal(hardyBand(p, 6, undefined), 1, "with no number it is paperwork, not a verdict");
+  assert.equal(hardyBand(p, 6, hers), 0, "she measured it; it is hardy here and sorts like it");
+  assert.equal(hardyBand(p, 2, hers), 2, "and where her own number rules it out, it sorts like that too");
+});
+
+test("an unparseable hardiness leaves the plant where it was", () => {
+  const p = { ...plant(null), id: 1 } as Plant;
+  const hers = indexMine([mine(1, "hardiness", "dies in a hard frost")], {}).get(1);
+  assert.equal(hardyBand(p, 6, hers), 1, "her words stay on the page and out of the sort");
 });
 
 /* ---- the restore: a merge never costs her an entry -------------------- */
