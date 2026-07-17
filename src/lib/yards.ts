@@ -176,6 +176,12 @@ const store = createLocalStore<Yard[]>("perennials.yards.v1", [], (raw) =>
   Array.isArray(raw) ? raw.map(cleanYard).filter((y): y is Yard => y !== null) : null,
 );
 
+/** Read and replace the whole store, for lib/backup.ts. It goes through the
+ *  store rather than localStorage so a restore lands in the cache and pokes
+ *  every subscriber; writing the key raw is what used to need a reload. */
+export const readYards = store.read;
+export const writeYards = store.write;
+
 export function useYards() {
   const yards = useSyncExternalStore(store.subscribe, store.read, () => store.empty);
 

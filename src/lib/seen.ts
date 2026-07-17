@@ -1,6 +1,6 @@
 // "Seen": the days she saw a plant in flower.
 //
-// USDA's bloom period is a continent average; a tap on "Blooming today" is her
+// USDA's bloom period is a continent average; a tap on "Mark blooming today" is her
 // yard on a real date. The two records never mix: taps live here, in their own
 // store, and the calendar draws them as her own mark above the printed band.
 // The dates themselves are the record. Nothing ever discards them; only the
@@ -31,6 +31,12 @@ const store = createLocalStore<Seen[]>("perennials.seen.v1", [], (raw) =>
       ) as Seen[])
     : null,
 );
+
+/** Read and replace the whole store, for lib/backup.ts. It goes through the
+ *  store rather than localStorage so a restore lands in the cache and pokes
+ *  every subscriber; writing the key raw is what used to need a reload. */
+export const readSeen = store.read;
+export const writeSeen = store.write;
 
 export function useSeen() {
   const seen = useSyncExternalStore(store.subscribe, store.read, () => store.empty);

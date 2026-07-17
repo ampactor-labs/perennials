@@ -2,9 +2,8 @@ import { Link } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState, type Dataset } from "@/data/store";
 import { useKept } from "@/lib/kept";
-import { noteDate, useNotes, type Note } from "@/lib/notes";
+import { useNotes, type Note } from "@/lib/notes";
 import { useSeen, type Seen } from "@/lib/seen";
-import { shareFiles } from "@/lib/share";
 import { BloomCalendar } from "@/components/BloomCalendar";
 import { PlantCard } from "@/components/PlantCard";
 import { IconKeep, IconX } from "@/components/icons";
@@ -21,46 +20,6 @@ function writtenPlants(data: Dataset, notes: Note[], seen: Seen[]): Plant[] {
     if (p) out.push(p);
   }
   return out;
-}
-
-/**
- * The notebook's paper backup. localStorage is one factory reset from gone,
- * and plain text is the only format guaranteed to outlive the app. On phones
- * the share sheet is the native way out (Files, mail, a message to herself);
- * anywhere else it downloads.
- */
-function exportText(data: Dataset, kept: Plant[], notes: Note[], seen: Seen[]): string {
-  const noteFor = (id: number) => notes.find((n) => n.id === id);
-  const seenFor = (id: number) => seen.filter((s) => s.id === id).sort((a, b) => a.at - b.at);
-  const entry = (p: Plant) => {
-    const n = noteFor(p.id);
-    const days = seenFor(p.id);
-    return [
-      `${p.name} — ${p.scientificName}`,
-      n ? `  ${n.text.replace(/\n/g, "\n  ")}  (${noteDate(n.at)})` : null,
-      days.length ? `  Seen in bloom: ${days.map((s) => noteDate(s.at)).join(", ")}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  };
-  const keptIds = new Set(kept.map((p) => p.id));
-  const notedOnly = writtenPlants(data, notes, seen).filter((p) => !keptIds.has(p.id));
-
-  const parts = [
-    `Perennials · kept plants & notes · ${new Date().toLocaleDateString()}`,
-    "",
-    `KEPT (${kept.length})`,
-    ...kept.map(entry),
-  ];
-  if (notedOnly.length) parts.push("", `NOTED, NOT KEPT (${notedOnly.length})`, ...notedOnly.map(entry));
-  return parts.join("\n") + "\n";
-}
-
-async function saveACopy(text: string) {
-  const stamp = new Date().toISOString().slice(0, 10);
-  await shareFiles([
-    new File([text], `perennials-notebook-${stamp}.txt`, { type: "text/plain" }),
-  ]);
 }
 
 function KeptEntry({
@@ -140,12 +99,13 @@ export function KeptPage() {
               ` · ${seen.length} bloom ${seen.length === 1 ? "mark" : "marks"}`}
           </div>
         </div>
-        <button
-          className="btn btn--sm"
-          onClick={() => saveACopy(exportText(data, plants, notes, seen))}
-        >
+        {/* "Save a copy" used to live here and write this list. It now writes her
+            yards, spots, zone, filled-in blanks and photos too, which is more than
+            this page is about; it moved to Field notes, with the rest of what the
+            guide knows about itself. */}
+        <Link className="linkish" to="/about">
           Save a copy
-        </button>
+        </Link>
       </header>
 
       {plants.length > 0 && (

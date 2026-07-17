@@ -19,6 +19,12 @@ const store = createLocalStore<Note[]>("perennials.notes.v1", [], (raw) =>
     : null,
 );
 
+/** Read and replace the whole store, for lib/backup.ts. It goes through the
+ *  store rather than localStorage so a restore lands in the cache and pokes
+ *  every subscriber; writing the key raw is what used to need a reload. */
+export const readNotes = store.read;
+export const writeNotes = store.write;
+
 export function useNotes() {
   const notes = useSyncExternalStore(store.subscribe, store.read, () => store.empty);
 

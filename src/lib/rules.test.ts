@@ -8,6 +8,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 
+import { mergeById } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
 import { hardyIn, hardinessLabel } from "./hardiness";
 import { hardyBand } from "./homeZone";
@@ -50,7 +51,7 @@ test("the label never prints a fabricated top", () => {
 
 /* ---- the sort: absence is never a demotion --------------------------- */
 
-test("a plant nobody measured never ranks below one the record rules out", () => {
+test("a plant we have no measurement for never ranks below one the record rules out", () => {
   const unmeasured = hardyBand(plant(null), 6);
   const misfit = hardyBand(plant({ min: 9, max: 11 }), 6);
   const fits = hardyBand(plant({ min: 4, max: 7 }), 6);
@@ -136,4 +137,54 @@ test("a straight line keeps its two ends and nothing else", () => {
 
 test("the sheet is portrait and dimensionless", () => {
   assert.ok(SHEET_H > SHEET_W, "the sheet she holds is portrait");
+});
+
+/* ---- the restore: a merge never costs her an entry -------------------- */
+
+// The realistic restore is her second device, so the merge is the one piece of
+// this app that can silently delete work she cannot get back. Every rule it
+// relies on is pinned here.
+
+type E = { k: string; at: number; v: string };
+const id = (e: E) => e.k;
+const at = (e: E) => e.at;
+
+test("a merge keeps every entry only one side has", () => {
+  const here: E[] = [{ k: "a", at: 1, v: "here" }];
+  const file: E[] = [{ k: "b", at: 1, v: "file" }];
+  const out = mergeById(here, file, id, at, "merge");
+  assert.equal(out.length, 2);
+  assert.deepEqual(
+    out.map((e) => e.k).sort(),
+    ["a", "b"],
+    "a merge is a union; neither side may lose an entry the other lacks",
+  );
+});
+
+test("a merge takes the newer of two entries for the same thing", () => {
+  const here: E[] = [{ k: "a", at: 10, v: "newer" }];
+  const file: E[] = [{ k: "a", at: 2, v: "older" }];
+  assert.equal(mergeById(here, file, id, at, "merge")[0].v, "newer", "an old backup must not undo newer work");
+  assert.equal(mergeById(file, here, id, at, "merge")[0].v, "newer", "and the same, whichever side it arrives on");
+});
+
+test("a merge cannot shrink the phone's own list", () => {
+  const here: E[] = [
+    { k: "a", at: 5, v: "a" },
+    { k: "b", at: 5, v: "b" },
+    { k: "c", at: 5, v: "c" },
+  ];
+  const out = mergeById(here, [{ k: "a", at: 99, v: "newer a" }], id, at, "merge");
+  assert.ok(out.length >= here.length, "a restore that drops her entries is the bug this rules out");
+});
+
+test("replace is the only mode that discards what's on the phone", () => {
+  const here: E[] = [{ k: "a", at: 1, v: "hers" }];
+  const file: E[] = [{ k: "b", at: 1, v: "theirs" }];
+  assert.deepEqual(mergeById(here, file, id, at, "replace"), file, "replace means replace, and says so");
+});
+
+test("an empty backup merged in changes nothing", () => {
+  const here: E[] = [{ k: "a", at: 1, v: "hers" }];
+  assert.deepEqual(mergeById(here, [], id, at, "merge"), here, "importing an empty file is not a delete");
 });

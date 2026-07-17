@@ -1,4 +1,5 @@
 import { useDataState } from "@/data/store";
+import { BackupPanel } from "@/components/BackupPanel";
 import { IconAlert } from "@/components/icons";
 
 /**
@@ -93,14 +94,19 @@ export function AboutPage() {
         </div>
         <div className="attr-row">
           <span className="attr-label">You</span>
-          <span>The kept list, every note, and every bloom you've marked.</span>
+          <span>
+            The kept list, every note, every bloom you've marked, every blank you've filled in
+            yourself, and your yards.
+          </span>
         </div>
       </section>
 
+      <BackupPanel />
+
       <div className="callout" style={{ marginTop: "var(--sp-4)" }}>
         <span>
-          A blank is not a no. It means nobody recorded it, and nothing here is invented to fill a
-          gap.
+          A blank is not a no. It means our sources didn't carry it, which is a fact about this
+          guide and not about the plant. Nothing here is invented to fill a gap.
         </span>
       </div>
 

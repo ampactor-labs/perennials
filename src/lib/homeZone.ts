@@ -21,6 +21,12 @@ const store = createLocalStore<number>(
   { crossTab: false },
 );
 
+/** Read and replace the whole store, for lib/backup.ts. It goes through the
+ *  store rather than localStorage so a restore lands in the cache and pokes
+ *  every subscriber; writing the key raw is what used to need a reload. */
+export const readZone = store.read;
+export const writeZone = store.write;
+
 /** She named a zone (a search, a spot), so that is where home is now. */
 export const learnHomeZone = (zone: number) => {
   if (Number.isInteger(zone) && zone >= 1 && zone <= 13 && zone !== store.read()) {
@@ -33,13 +39,13 @@ export function useHomeZone(): number {
 }
 
 /**
- * 0: recorded hardy there. 1: nobody recorded hardiness. 2: the record says
+ * 0: recorded hardy there. 1: our sources carry no hardiness. 2: the record says
  * it cannot overwinter there.
  *
- * The middle band is the honesty rule expressed as a sort order: a plant nobody
- * measured must never rank below a plant the record says dies there, because
- * that would read absence as a fact. Band 2 is a demotion the data actually
- * states; band 1 is only paperwork.
+ * The middle band is the honesty rule expressed as a sort order: a plant we have
+ * no measurement for must never rank below a plant the record says dies there,
+ * because that would read a gap in our data as a fact about the plant. Band 2 is
+ * a demotion the data actually states; band 1 is only paperwork.
  */
 export function hardyBand(p: Plant, zone: number): 0 | 1 | 2 {
   if (!p.hardiness) return 1;

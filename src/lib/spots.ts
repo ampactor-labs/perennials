@@ -18,6 +18,12 @@ const store = createLocalStore<Spot[]>("perennials.spots.v1", [], (raw) =>
   Array.isArray(raw) ? (raw as Spot[]) : null,
 );
 
+/** Read and replace the whole store, for lib/backup.ts. It goes through the
+ *  store rather than localStorage so a restore lands in the cache and pokes
+ *  every subscriber; writing the key raw is what used to need a reload. */
+export const readSpots = store.read;
+export const writeSpots = store.write;
+
 export function useSpots() {
   const spots = useSyncExternalStore(store.subscribe, store.read, () => store.empty);
 

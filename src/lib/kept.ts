@@ -14,6 +14,12 @@ const store = createLocalStore<Kept[]>("perennials.kept.v1", [], (raw) =>
   Array.isArray(raw) ? (raw.filter((k) => typeof (k as Kept)?.id === "number") as Kept[]) : null,
 );
 
+/** Read and replace the whole store, for lib/backup.ts. It goes through the
+ *  store rather than localStorage so a restore lands in the cache and pokes
+ *  every subscriber; writing the key raw is what used to need a reload. */
+export const readKept = store.read;
+export const writeKept = store.write;
+
 export function useKept() {
   const kept = useSyncExternalStore(store.subscribe, store.read, () => store.empty);
 
