@@ -14,7 +14,7 @@ import type { Hardiness } from "@/data/model";
  *
  * The transform now writes `max: null` for a lone number. The degenerate
  * min === max that older data still carries means the same thing (no plant is
- * hardy in exactly one zone), so both read as "nobody recorded a top" and only
+ * hardy in exactly one zone), so both read as "we have no top" and only
  * the floor is testable.
  */
 const topless = (h: Hardiness) => h.max === null || h.max === h.min;

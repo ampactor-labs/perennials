@@ -22,10 +22,14 @@ enriches it, then serves it as JSON, so there is no large data file here to load
 context. To work on the data path, read `server/`.
 
 The governing rule, in the data and in the UI: **absence is never presented as a fact.**
-A field nobody recorded reads as "not recorded", never as "no". Cautions are shown in the
-source's exact words, because "Toxic" and "Toxic fruits" are not the same sentence to
-someone standing over an asparagus bed. If you add a facet whose coverage is partial, it
-has to print its coverage.
+A field our sources didn't fill reads as "not in our sources", never as "no", and never
+as "nobody recorded it" either. That second one is the subtler trap: somebody has almost
+certainly measured this plant's bloom colour somewhere, and all we actually know is that
+the three sources we pull didn't hand it to us, or that our transform didn't take it.
+Scope every absence claim to our own data, because that is the only claim we can back.
+Cautions are shown in the source's exact words, because "Toxic" and "Toxic fruits" are not
+the same sentence to someone standing over an asparagus bed. If you add a facet whose
+coverage is partial, it has to print its coverage.
 
 ## Layout
 
@@ -46,7 +50,7 @@ the visual design and UX intact unless asked to change them.
 - `server/` has its own commands; see `server/README.md`
 
 The tests cover the rules the guide turns on and nothing else: what a hardiness
-record means, that a plant nobody measured never sorts below one the record rules
+record means, that a plant we have no measurement for never sorts below one the record rules
 out, that a month lands on exactly one of USDA's nine season words, that a stroke
 cannot grow past its cap. They exist because "a lone hardiness number is a floor,
 not a one-zone window" was wrong for months and dropped Red mulberry and hardy

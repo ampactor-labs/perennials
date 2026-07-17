@@ -134,9 +134,9 @@ function plantListText(yard: Yard, placedPlants: Plant[]): string {
     }
     lines.push(`${p.name} — ${p.scientificName}`);
     lines.push(
-      `  Bloom: ${p.bloomColor ?? "not recorded"}${p.bloomPeriod ? `, ${p.bloomPeriod}` : ""}`,
+      `  Bloom: ${p.bloomColor ?? "not in our sources"}${p.bloomPeriod ? `, ${p.bloomPeriod}` : ""}`,
     );
-    lines.push(`  Visitors: ${p.attracts?.length ? p.attracts.join(", ") : "not recorded"}`);
+    lines.push(`  Visitors: ${p.attracts?.length ? p.attracts.join(", ") : "not in our sources"}`);
     if (p.functions.length) lines.push(`  Functions: ${p.functions.join(", ")}`);
     if (p.cautions) lines.push(`  Caution: ${p.cautions} (Permapeople's wording)`);
   }

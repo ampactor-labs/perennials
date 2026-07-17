@@ -55,8 +55,9 @@ export type Plant = {
    * Flower-visitor groups (Bees, Butterflies, Hoverflies…) from GloBI's published
    * interaction records.
    *
-   * Absent means nobody has recorded a visitor, for about 4,900 of the 8,800
-   * plants. It does not mean nothing visits them. (An earlier note here promised
+   * Absent means GloBI handed us no visitor record, for about 4,900 of the 8,800
+   * plants. That is a fact about GloBI's coverage and our use of it, not about the
+   * plant: it does not mean nothing visits them. (An earlier note here promised
    * that a present-but-empty array would distinguish "looked, found nothing" from
    * "never looked", but no plant in the shipped data has one, so anything relying
    * on that distinction was reading "unrecorded" as "no visitors".)

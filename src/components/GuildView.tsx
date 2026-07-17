@@ -90,8 +90,8 @@ function Section({ layer, plants, inCatalog }: { layer: string; plants: Plant[];
       </header>
       {layer === "Ground cover" && plants.length > 0 && (
         <p className="guild-empty" style={{ marginBottom: "var(--sp-3)" }}>
-          Includes plants recorded as <em>functioning</em> as ground cover, where nobody recorded a
-          layer for them.
+          Includes plants recorded as <em>functioning</em> as ground cover, where our sources carry
+          no layer for them.
         </p>
       )}
       {plants.length === 0 ? (
@@ -158,11 +158,11 @@ export function GuildView({ results }: { results: Plant[] }) {
       {unplaced.length > 0 && (
         <details className="guild-unplaced">
           <summary>
-            No layer recorded <span className="mono">{unplaced.length.toLocaleString()}</span>
+            No layer in our data <span className="mono">{unplaced.length.toLocaleString()}</span>
           </summary>
           <div style={{ marginTop: "var(--sp-3)" }}>
             <p className="guild-empty" style={{ marginBottom: "var(--sp-3)" }}>
-              Nobody has recorded which layer these grow in. They are still in your results; the
+              Our sources don't say which layer these grow in. They are still in your results; the
               List view shows every one of them.
             </p>
             <Deck plants={unplaced} />

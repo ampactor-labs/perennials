@@ -17,7 +17,7 @@ type Row = {
   period: string;
   /** the printed record: USDA's period, spread over its slots */
   slots: readonly BloomSlot[];
-  /** her record: days she tapped "Blooming today", coarsened onto the axis */
+  /** her record: days she tapped "Mark blooming today", coarsened onto the axis */
   hand: readonly BloomSlot[];
 };
 
@@ -44,7 +44,7 @@ function joinLower(slots: readonly BloomSlot[]): string {
  * The honesty rule bites hardest here. A plant with no record at all is NOT a
  * row of empty cells; that reads as "never flowers", which is a claim nobody
  * made. It is named below the grid instead, and an empty slot is only ever
- * "nothing recorded", never "nothing blooms".
+ * "nothing in our data", never "nothing blooms".
  *
  * Two records draw here and never mix. The bar is the printed one, USDA's
  * continent-average period. The sepia dot above it is hers: her hand above
@@ -164,7 +164,7 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
         {marked > 0 &&
           `You've marked ${marked} ${marked === 1 ? "plant" : "plants"} in bloom yourself. `}
         Bloom comes from USDA PLANTS, which covers North-American species, so a blank is a
-        gap in the record rather than a plant that doesn't flower.
+        gap in our data rather than a plant that doesn't flower.
       </p>
 
       {unrecorded.length > 0 && (

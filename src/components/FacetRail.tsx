@@ -122,10 +122,10 @@ export function FacetRail() {
             standing for something it isn't. */}
         {s.zone !== null && hardinessKnown < s.total && (
           <p className="facet-sec-note" style={{ margin: 0 }}>
-            Hardiness is recorded for <b>{hardinessKnown.toLocaleString()}</b> of{" "}
+            Our data has hardiness for <b>{hardinessKnown.toLocaleString()}</b> of{" "}
             {s.total.toLocaleString()} plants. The other{" "}
             {(s.total - hardinessKnown).toLocaleString()} are set aside here, not because they
-            would die in zone {s.zone}, but because nobody has said.
+            would die in zone {s.zone}, but because we don't have the number.
           </p>
         )}
       </div>
