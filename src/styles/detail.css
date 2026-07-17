@@ -34,6 +34,65 @@
   font-style: italic;
 }
 
+/* What she fills in herself, on a field our sources left blank.
+   Sepia throughout: the same ink her notes and bloom marks write in, so her
+   answers can never be read as scraped ones. Nothing here is saturated colour
+   encoding plant data, so tokens.css's one rule still holds. */
+.mine-add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border: 1px dashed var(--sepia);
+  border-radius: var(--r);
+  background: none;
+  color: var(--sepia);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.mine-add:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--sepia) 12%, transparent);
+}
+.mine-add:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.mine-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.mine-input {
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+}
+.mine-input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+/* A refused write is the one failure she has to hear about. */
+.mine-refused {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--danger);
+}
+.mine-photo {
+  margin-top: var(--sp-4);
+}
+/* Her photo carries the sepia edge the sourced one doesn't. */
+.specimen-photo--mine {
+  border-color: var(--sepia);
+}
+
 .detail-head {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -106,6 +165,34 @@
   width: 1.15rem;
   height: 1.15rem;
   margin-top: 1px;
+}
+
+/* Save a copy, and put one back. Chrome stays ink-on-paper: the only colour in
+   here is --danger on a message she has to not miss. */
+.backup-say {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin-top: var(--sp-2);
+}
+.backup-say--ok {
+  color: var(--ink);
+}
+.backup-say--bad {
+  color: var(--danger);
+}
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+/* The fork in a restore: merge or replace, never one tap from the file picker. */
+.backup-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
 }
 
 .provenance {
