@@ -88,6 +88,12 @@
   stroke-width: 2;
   stroke-dasharray: 7 6;
 }
+/* The handle that says the ring moves. Solid against the ring's dashes. */
+.yard-ring-grip {
+  fill: var(--sepia);
+  stroke: var(--paper);
+  stroke-width: 2.5;
+}
 /* she saw it bloom */
 .yard-witness {
   fill: none;

@@ -143,14 +143,14 @@ export function YardPage() {
             const lit = tokens.filter((t) => t.state === "fill" || t.state === "ink").length;
             const quiet = tokens.filter((t) => t.state === "hollow").length;
             const unknown = tokens.filter((t) => t.state === "hatch").length;
-            return `In ${slot.toLowerCase()}: ${lit} recorded in bloom · ${quiet} recorded quiet · ${unknown} no record.`;
+            return `In ${slot.toLowerCase()}: ${lit} recorded in bloom · ${quiet} recorded quiet · ${unknown} not in our data.`;
           })();
 
   const showLine = (() => {
     if (!show || placed === 0) return null;
     const m = tokens.filter((t) => t.show === "match").length;
     const u = tokens.filter((t) => t.show === "unrecorded").length;
-    return `${m} of ${placed} recorded as ${showValue}${u > 0 ? `; ${u} not recorded` : ""}.`;
+    return `${m} of ${placed} recorded as ${showValue}${u > 0 ? `; ${u} not in our data` : ""}.`;
   })();
 
   /* ---- the client questions this yard can be asked -------------------- */
@@ -447,7 +447,7 @@ export function YardPage() {
                     {selPlant.bloomPeriod && <span className="ptag">{bloomPeriodLabel(selPlant.bloomPeriod)}</span>}
                   </span>
                 ) : (
-                  <span className="attr-absent">Not recorded.</span>
+                  <span className="attr-absent">Not in our sources.</span>
                 )}
               </div>
               <div className="attr-row">
@@ -455,7 +455,7 @@ export function YardPage() {
                 {selPlant.attracts?.length ? (
                   <span>{selPlant.attracts.join(", ")}</span>
                 ) : (
-                  <span className="attr-absent">No visitor recorded.</span>
+                  <span className="attr-absent">No visitor in our sources.</span>
                 )}
               </div>
               {selPlant.functions.length > 0 && (
@@ -484,10 +484,19 @@ export function YardPage() {
               </button>
             ) : (
               <button className="btn btn--ghost btn--sm" onClick={() => onRing(selected.uid, 60)}>
-                Spacing ring
+                Add spacing ring
               </button>
             )}
-            {selected.r && <span className="yard-coverage">Drag the ring's edge. Your estimate, not the record's.</span>}
+            {/* Both halves of this always showed nothing until she already had a
+                ring, so the only way to learn the gesture was to have found it.
+                A placement is a point on purpose (width is recorded for 3% of the
+                catalogue), so "how do I resize this?" has an answer, and the panel
+                has to be the thing that gives it. */}
+            <span className="yard-coverage">
+              {selected.r
+                ? "Drag the ring's edge to resize it. Your estimate, not the record's."
+                : "A placement is a point. Add a ring to give it a size of your own."}
+            </span>
             <button className="linkish note-delete" onClick={() => removePlaced(selected.uid)}>
               Remove from sketch
             </button>

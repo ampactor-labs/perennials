@@ -304,6 +304,19 @@ export function YardCanvas({
             {ring && (
               <circle cx={at[0]} cy={at[1]} r={ring} className="yard-ring" />
             )}
+            {/* The grip. The ring has always been draggable and nothing said so:
+                a dashed circle reads as decoration, and the band you have to hit
+                is ~10px on a phone. One filled dot on the selected token's ring
+                is the difference between a feature and a secret. Upper-right, so
+                it never sits under the name. */}
+            {ring && sel === t.uid && (
+              <circle
+                cx={at[0] + ring * 0.7071}
+                cy={at[1] - ring * 0.7071}
+                r={9}
+                className="yard-ring-grip"
+              />
+            )}
             {t.show === "match" && (
               <circle cx={at[0]} cy={at[1]} r={TOKEN_R + 11} className="yard-show" />
             )}
