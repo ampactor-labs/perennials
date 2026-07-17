@@ -96,19 +96,17 @@ function makeDataset(raw: Raw, zone: number, buildIndex: () => MiniSearch): Data
 }
 
 type State =
-  /** `cold` is true only when the guide is not on this phone yet; it decides
-   *  whether the gate is allowed to say it is downloading anything. */
-  | { status: "loading"; cold: boolean }
+  | { status: "loading" }
   | { status: "error"; error: string }
   | { status: "ready"; data: Dataset };
 
 /** What the fetch produced, before the home zone has had its say on the order. */
 type Phase =
-  | { status: "loading"; cold: boolean }
+  | { status: "loading" }
   | { status: "error"; error: string }
   | { status: "ready"; raw: Raw };
 
-const Ctx = createContext<State>({ status: "loading", cold: false });
+const Ctx = createContext<State>({ status: "loading" });
 // The dataset comes from the hosted API (see server/). Set VITE_DATA_API to point
 // at a different backend for local work; keep the URL in sync with the
 // service-worker cache rule in vite.config.ts.
@@ -168,29 +166,13 @@ async function getJson(path: string) {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-/** Is the guide already on this phone? Must be asked before the fetch; afterwards
- *  the answer is always yes. */
-async function alreadySaved() {
-  if (!("caches" in window)) return false;
-  try {
-    const cache = await caches.open(DATA_CACHE);
-    return !!(await cache.match(`${DATA_BASE}/plants.json`));
-  } catch {
-    return false;
-  }
-}
-
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [phase, setPhase] = useState<Phase>({ status: "loading", cold: false });
+  const [phase, setPhase] = useState<Phase>({ status: "loading" });
   const zone = useHomeZone();
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const cold = !(await alreadySaved());
-      if (cancelled) return;
-      if (cold) setPhase({ status: "loading", cold: true });
-
       try {
         const [plants, facets, meta] = (await Promise.all([
           getJson("plants.json"),
@@ -224,7 +206,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const state = useMemo<State>(() => {
     if (phase.status !== "ready" || !buildIndex) {
       return phase.status === "ready"
-        ? { status: "loading", cold: false } // unreachable: buildIndex exists whenever phase is ready
+        ? { status: "loading" } // unreachable: buildIndex exists whenever phase is ready
         : phase;
     }
     return { status: "ready", data: makeDataset(phase.raw, zone, buildIndex) };

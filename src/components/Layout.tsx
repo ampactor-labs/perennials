@@ -56,21 +56,10 @@ function ThemeToggle() {
 function DataGate({ children }: { children: ReactNode }) {
   const state = useDataState();
   if (state.status === "loading") {
-    // Only claim to be downloading when we actually are. This gate shows on every
-    // launch, including offline ones, where it was telling her it was pulling a
-    // megabyte over a network she did not have, and that this only happens once,
-    // for the hundredth time.
     return (
-      <div className="loading">
+      <div className="loading" role="status">
         <span className="spinner" />
-        {state.cold ? (
-          <p>
-            Downloading the guide. It's about a megabyte, it happens once, and after
-            this the whole thing works with no signal.
-          </p>
-        ) : (
-          <p>Opening the guide…</p>
-        )}
+        <span className="sr-only">Opening the guide…</span>
       </div>
     );
   }
