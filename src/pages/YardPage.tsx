@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
@@ -26,6 +26,12 @@ import { IconChevronLeft, IconX } from "@/components/icons";
 
 const uid = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+// three.js rides in this chunk and this chunk only; the guide's first paint
+// pays nothing for the third dimension.
+const YardModel = lazy(() =>
+  import("@/components/YardModel").then((m) => ({ default: m.YardModel })),
+);
+
 const short = (n: string) => (n.length > 16 ? n.slice(0, 15) + "…" : n);
 
 /**
@@ -47,7 +53,7 @@ export function YardPage() {
   const { mine } = useMine();
 
   const [mode, setMode] = useState<Mode>("move");
-  const [view, setView] = useState<"sheet" | "elevation">("sheet");
+  const [view, setView] = useState<"sheet" | "elevation" | "model">("sheet");
   const [armedId, setArmedId] = useState<number | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [slot, setSlot] = useState<BloomSlot | null>(null);
@@ -191,12 +197,16 @@ export function YardPage() {
   const projection = placed > 0 ? view : "sheet";
 
   const elevLine = (() => {
-    if (projection !== "elevation") return null;
+    if (projection === "sheet") return null;
+    const where = projection === "elevation" ? "the line" : "the ground";
     const withH = figs.filter((f) => f.height !== null).length;
     const yours = figs.filter((f) => f.hers).length;
     if (withH === 0)
-      return "No height in our sources for any of these; each stands unmeasured on the line. Tap a mark to add yours.";
-    return `${withH} of ${placed} stand at a known height${yours ? `, ${yours} by your hand` : ""}; the rest hold the line unmeasured. Shapes follow the layer, not the plant.`;
+      return `No height in our sources for any of these; each stands unmeasured on ${where}. Tap a mark to add yours.`;
+    // "The rest" only when there is one: a full count claiming a remainder is
+    // the small cousin of the absence-dressed-as-fact bug.
+    const rest = placed - withH;
+    return `${withH} of ${placed} stand at a known height${yours ? `, ${yours} by your hand` : ""}${rest > 0 ? `; the rest hold ${where} unmeasured` : ""}. Shapes follow the layer, not the plant.`;
   })();
 
   /* ---- the client questions this yard can be asked -------------------- */
@@ -362,20 +372,22 @@ export function YardPage() {
 
       {placed > 0 && (
         <div className="seg yard-viewseg" role="group" aria-label="Projection">
-          <button
-            aria-pressed={projection === "sheet"}
-            className={projection === "sheet" ? "on" : ""}
-            onClick={() => setView("sheet")}
-          >
-            Sheet
-          </button>
-          <button
-            aria-pressed={projection === "elevation"}
-            className={projection === "elevation" ? "on" : ""}
-            onClick={() => setView("elevation")}
-          >
-            Elevation
-          </button>
+          {(
+            [
+              ["sheet", "Sheet"],
+              ["elevation", "Elevation"],
+              ["model", "Model"],
+            ] as ["sheet" | "elevation" | "model", string][]
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              aria-pressed={projection === v}
+              className={projection === v ? "on" : ""}
+              onClick={() => setView(v)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       )}
 
@@ -395,10 +407,20 @@ export function YardPage() {
           onNorth={onNorth}
           onRing={onRing}
         />
-      ) : (
+      ) : projection === "elevation" ? (
         <ElevationView figs={figs} sel={sel} onSelect={setSel} />
+      ) : (
+        <Suspense fallback={<p className="yard-coverage">Raising the model…</p>}>
+          <YardModel yard={yard} figs={figs} underlay={underlayUrl} sel={sel} onSelect={setSel} />
+        </Suspense>
       )}
       {elevLine && <p className="yard-coverage">{elevLine}</p>}
+      {projection === "model" && (
+        <p className="yard-coverage">
+          The ground is your sheet and claims no scale; heights are true to one another, and the
+          corner post is the tallest plant's measure. Drag to walk around it.
+        </p>
+      )}
 
       {placed > 0 && <YearScrubber slot={slot} onSlot={setSlot} />}
       {bloomLine && <p className="yard-coverage">{bloomLine}</p>}
