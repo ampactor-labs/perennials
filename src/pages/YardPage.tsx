@@ -6,6 +6,7 @@ import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, type BloomSlot } from "@/lib/b
 import { useKept } from "@/lib/kept";
 import { mineFor, useMine } from "@/lib/mine";
 import { deletePhoto, putPhoto, useMinePhoto } from "@/lib/photos";
+import { ACCESS } from "@/lib/query";
 import { seenSlots, useSeen } from "@/lib/seen";
 import {
   MAX_LABEL,
@@ -70,6 +71,10 @@ export function YardPage() {
 
   const yard = yards.find((y) => y.id === id);
   const underlayUrl = useMinePhoto(yard?.underlay);
+
+  // ACCESS values come back bare, one-valued or absent; the yard wants lists.
+  const asList = (v: readonly string[] | string | null): readonly string[] =>
+    v === null ? [] : typeof v === "string" ? [v] : v;
   if (state.status !== "ready" || !yard) {
     return (
       <div className="page wrap">
@@ -82,7 +87,12 @@ export function YardPage() {
       </div>
     );
   }
-  const { byId } = state.data;
+  // herIndex is the same lookup ACCESS reads everywhere else in the guide.
+  // The yard used to read p.functions, p.attracts, p.layer and p.bloomColor
+  // raw, which made it the one room in the house where her answers went
+  // silent: a bloom colour she recorded filtered the browse grid and never
+  // painted her own sheet. Every read below goes through ACCESS now.
+  const { byId, mine: herIndex } = state.data;
 
   const commit = (next: Yard) => {
     setPast((p) => [...p.slice(-49), yard]);
@@ -106,8 +116,14 @@ export function YardPage() {
 
   const tokens: TokenView[] = yard.plants.map((pl) => {
     const p = byId.get(pl.id);
+    const her = herIndex.get(pl.id);
     const slots = p ? bloomSlots(p.bloomPeriod) : [];
-    const hex = p?.bloomColor ? BLOOM_HEX[p.bloomColor] : undefined;
+    // The first colour with a swatch paints the mark. Hers arrives through
+    // ACCESS in the catalogue's spelling, so her "purple" finds its hex; a
+    // colour of her own coinage ("cream") is true and unpaintable, and the
+    // mark stays with the states that claim nothing they can't show.
+    const colours = p ? asList(ACCESS.bloomColor(p, her)) : [];
+    const hex = colours.map((c) => BLOOM_HEX[c]).find((c): c is string => !!c);
 
     let tokenState: TokenView["state"];
     if (slot === null) {
@@ -125,15 +141,8 @@ export function YardPage() {
 
     let showState: TokenView["show"] = null;
     if (p && showKind && showValue) {
-      const have =
-        showKind === "functions"
-          ? p.functions
-          : showKind === "attracts"
-            ? (p.attracts ?? null)
-            : p.layer
-              ? [p.layer]
-              : null;
-      showState = !have || have.length === 0 ? "unrecorded" : have.includes(showValue) ? "match" : "other";
+      const have = asList(ACCESS[showKind](p, her));
+      showState = have.length === 0 ? "unrecorded" : have.includes(showValue) ? "match" : "other";
     }
 
     return {
@@ -162,7 +171,9 @@ export function YardPage() {
     return {
       ...tokens[i],
       depth: pl.y,
-      layer: p?.layer ?? null,
+      // Through ACCESS, so a layer she filled shapes the figure where the
+      // record is silent; the record's own layer always speaks first.
+      layer: p ? (asList(ACCESS.layer(p, herIndex.get(pl.id)))[0] ?? null) : null,
       height: h?.m ?? null,
       hers: h?.hers ?? false,
       width: w?.m ?? null,
@@ -215,9 +226,9 @@ export function YardPage() {
     .map((pl) => byId.get(pl.id))
     .filter((p): p is Plant => !!p);
   const uniq = (xs: string[]) => [...new Set(xs)].sort();
-  const askFunctions = uniq(placedPlants.flatMap((p) => p.functions));
-  const askVisitors = uniq(placedPlants.flatMap((p) => p.attracts ?? []));
-  const askLayers = uniq(placedPlants.map((p) => p.layer ?? "").filter(Boolean));
+  const askFunctions = uniq(placedPlants.flatMap((p) => [...asList(ACCESS.functions(p, herIndex.get(p.id)))]));
+  const askVisitors = uniq(placedPlants.flatMap((p) => [...asList(ACCESS.attracts(p, herIndex.get(p.id)))]));
+  const askLayers = uniq(placedPlants.flatMap((p) => [...asList(ACCESS.layer(p, herIndex.get(p.id)))]));
 
   /* ---- gesture commits ------------------------------------------------ */
 
