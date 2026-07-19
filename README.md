@@ -12,9 +12,13 @@ Live at [ampactor.dev/perennials](https://ampactor.dev/perennials/).
 
 **Spots.** Name a place's conditions once ("north bed", "wet corner") and re-apply them in a tap.
 
+**Yards.** A napkin sketch with the record performing on top. Draw the beds, lay a photo of the ground under the sheet, place any plant in the guide, and scrub the year to watch what is in flower when. The same yard stands up in two more projections: an elevation, recorded heights on a ground line with a height rule, and a 3D model you can orbit, the sheet laid flat with the plants standing on it. Size is a claim in those views, so a plant nobody measured stays a mark on the line rather than growing an invented body, and the figures are the guild layer's shape, never the plant's. Share hands a client one PNG carrying the plan and the elevation, plus a plain-text plant list.
+
 **A page per plant.** Photo, description, the attribute sheet, hardiness, native range, where it has naturalised, functions, edible parts and edible uses, flower visitors, bloom, companions, and any caution the source recorded, in the source's own words.
 
 **The names you'd actually say.** Type "mouse melon" and you get *Melothria scabra*. Nearly two fifths of the catalogue carries common-name synonyms, and all of them are in the index.
+
+**A fourth source: you.** Notes, bloom dates you saw with your own eyes, your photo where the guide has none, and any blank the sources left, filled in your hand. Your values filter, count, sort and draw exactly like the record's, and they always render in your own ink, never under a source's name. Field notes exports everything you have written as one `.json` that restores completely on another phone, beside a plain-text copy that will outlive the app. There is no account and nothing you write leaves the browser.
 
 ## The data
 
@@ -34,7 +38,7 @@ Photos are resized by the API (`/img/<id>/<width>.webp`, 64 to 800). Permapeople
 
 ## Stack
 
-Vite, React, TypeScript. MiniSearch for the name index, built on idle rather than on load. Faceted filtering and the live counts are plain in-memory JS, one pass over the catalogue per interaction. `vite-plugin-pwa` (Workbox) precaches the shell and runtime-caches the data and photos. The look is a hand-rolled CSS design system, a herbarium specimen catalog in light and dark, whose one rule is that saturated colour only ever encodes plant data; the chrome stays ink on paper.
+Vite, React, TypeScript. MiniSearch for the name index, built on idle rather than on load. Faceted filtering and the live counts are plain in-memory JS, one pass over the catalogue per interaction. `vite-plugin-pwa` (Workbox) precaches the shell and runtime-caches the data and photos. three.js draws the yard's 3D model and rides in a lazy chunk that loads only when a Model view mounts; the service worker precaches it, so the model still raises offline, and the guide's own bundle stays under 100KB gzipped. The look is a hand-rolled CSS design system, a herbarium specimen catalog in light and dark, whose one rule is that saturated colour only ever encodes plant data; the chrome stays ink on paper.
 
 ## Run
 
@@ -54,15 +58,20 @@ The front end ships to GitHub Pages on push to `main`. The API deploys from the 
 ## Project layout
 
 ```
-src/data/       model (types), store (fetch, cache, lazy name index)
+src/data/       model (types), store (fetch, cache, lazy name index, her
+                values folded into the dataset)
 src/lib/        query (facets, one-pass evaluation, live counts), constraints
                 (the atom model + URL codec), suggest (the omnibox grammar),
-                spots, bloom, img
+                spots, bloom, img, hardiness, homeZone; hers: mine, notes,
+                seen, kept, photos, backup; the yard: yards, elevation,
+                yardExport
 src/state/      search (constraints in; results, counts and trail out)
 src/components/ Omnibox, Trail, FacetRail, SpotBar, ResultGrid, PlantCard,
-                GuildView, Thumb, Layout
-src/pages/      Browse, Plant, About
-src/styles/     tokens, base, app, browse, detail
+                GuildView, Thumb, Layout; the yard: YardCanvas, ElevationView,
+                YardModel, YearScrubber; hers: AddMine, NotePanel,
+                BloomCalendar, SeenMark, BackupPanel
+src/pages/      Browse, Plant, Kept, Yards, Yard, About
+src/styles/     tokens, base, app, browse, detail, kept, yard
 server/         the data API: pull, transform, enrich, ingest, resize, serve
 ```
 

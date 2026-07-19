@@ -49,6 +49,14 @@ place the guide asks what a plant is. Fold a new reader in there and every one o
 follows; read a plant's fields directly anywhere else and the rest of that list silently
 won't. The one thing her values may never do is claim to be a source's.
 
+The yard (`lib/yards.ts`, `pages/YardPage.tsx`) is her sheet with the record performing
+on top, in three projections: plan, elevation, model. In the vertical two, size is a
+claim, so a plant with no height in our data draws no figure and stands as a mark on the
+line; heights parse through `lib/elevation.ts` (record first, hers where it is silent),
+and figures are the recorded guild layer's archetype, never a shape invented per plant.
+The exported sheet re-renders plan and elevation from the same geometry with the licence
+line baked in.
+
 ## Layout
 
 - `src/` the app: `components/`, `pages/`, `state/`, `lib/`, `data/`, `styles/`
