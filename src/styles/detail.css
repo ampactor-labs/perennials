@@ -34,6 +34,15 @@
   font-style: italic;
 }
 
+/* Her marks landed outside the printed bloom band and the row says so, on its
+   own line under the chips. Sepia, because the sighting is hers; the record
+   keeps its own chip above, unedited. */
+.phenology {
+  width: 100%;
+  font-size: var(--text-xs);
+  color: var(--sepia);
+}
+
 /* What she fills in herself, on a field our sources left blank.
    Sepia throughout: the same ink her notes and bloom marks write in, so her
    answers can never be read as scraped ones. Nothing here is saturated colour

@@ -10,6 +10,7 @@ import {
   bloomSlots,
   type BloomSlot,
 } from "@/lib/bloom";
+import { phenologyLine } from "@/lib/phenology";
 import { seenSlots, useSeen } from "@/lib/seen";
 
 type Row = {
@@ -109,36 +110,47 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
               </div>
             ))}
 
-            {rows.map(({ plant, period, slots, hand }) => (
-              <Fragment key={plant.slug}>
-                <div className="bcal-head">
-                  <Link to={`/plant/${plant.slug}`} className="bcal-name">
-                    {plant.name}
-                  </Link>
-                  {/* The datum in words, per record, since the cells themselves
-                      are decoration and this is what a screen reader gets. */}
-                  <span className="bcal-period">
-                    {period ? bloomPeriodLabel(period) : "Seen by you"}
-                    {period && hand.length > 0 && " · seen by you"}
-                  </span>
-                </div>
-                {BLOOM_SLOTS.map((slot) => (
-                  <div key={slot} className="bcal-cell" aria-hidden="true">
-                    {hand.includes(slot) && <span className="bcal-dot" />}
-                    {slots.includes(slot) && (
-                      <span
-                        className="bcal-bar"
-                        style={{
-                          // No recorded colour means no colour. Picking one would
-                          // be a claim; the bar still says "in bloom".
-                          background: plant.bloomColor ? BLOOM_HEX[plant.bloomColor] : undefined,
-                        }}
-                      />
-                    )}
+            {rows.map(({ plant, period, slots, hand }) => {
+              // Her marks landing outside the printed band is worth a word,
+              // not a redesign: the row's word-line says the divergence
+              // instead, and since the sentence names both records, nothing
+              // the line used to say is lost.
+              const outran = phenologyLine(hand, period);
+              return (
+                <Fragment key={plant.slug}>
+                  <div className="bcal-head">
+                    <Link to={`/plant/${plant.slug}`} className="bcal-name">
+                      {plant.name}
+                    </Link>
+                    {/* The datum in words, per record, since the cells themselves
+                        are decoration and this is what a screen reader gets. */}
+                    <span className={outran ? "bcal-period bcal-period--mine" : "bcal-period"}>
+                      {outran ?? (
+                        <>
+                          {period ? bloomPeriodLabel(period) : "Seen by you"}
+                          {period && hand.length > 0 && " · seen by you"}
+                        </>
+                      )}
+                    </span>
                   </div>
-                ))}
-              </Fragment>
-            ))}
+                  {BLOOM_SLOTS.map((slot) => (
+                    <div key={slot} className="bcal-cell" aria-hidden="true">
+                      {hand.includes(slot) && <span className="bcal-dot" />}
+                      {slots.includes(slot) && (
+                        <span
+                          className="bcal-bar"
+                          style={{
+                            // No recorded colour means no colour. Picking one would
+                            // be a claim; the bar still says "in bloom".
+                            background: plant.bloomColor ? BLOOM_HEX[plant.bloomColor] : undefined,
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </Fragment>
+              );
+            })}
           </div>
 
           {marked > 0 && (

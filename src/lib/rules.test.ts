@@ -16,6 +16,7 @@ import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit } from "./
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
+import { outsideRecord, phenologyLine } from "./phenology";
 import { ACCESS } from "./query";
 import { seenSlots } from "./seen";
 import { commitStroke, MAX_PTS, SHEET_H, SHEET_W } from "./yards";
@@ -417,4 +418,52 @@ test("replace is the only mode that discards what's on the phone", () => {
 test("an empty backup merged in changes nothing", () => {
   const here: E[] = [{ k: "a", at: 1, v: "hers" }];
   assert.deepEqual(mergeById(here, [], id, at, "merge"), here, "importing an empty file is not a delete");
+});
+
+/* ---- her dates against the record ------------------------------------ */
+
+// She saw it; USDA averaged it. When her marks fall outside the printed band
+// the guide says so, and when they fall inside it there is nothing to say.
+// Divergence needs both sides: a missing period is a gap in our data, not a
+// band she can fall outside of, so it can never put words in USDA's mouth.
+
+test("marks inside the printed band claim nothing", () => {
+  assert.equal(phenologyLine(["Late Spring"], "Late Spring"), null);
+  assert.equal(phenologyLine(["Early Summer", "Late Summer"], "Summer"), null);
+  // Blooms continuously covers every slot, so nothing of hers can outrun it.
+  assert.equal(phenologyLine(["Winter"], "Indeterminate"), null);
+});
+
+test("a mark before the band names exactly the out-of-record slots, in the year's order", () => {
+  assert.deepEqual(
+    outsideRecord(["Mid Spring", "Late Spring"], ["Late Spring"]),
+    ["Mid Spring"],
+    "a mark the band already covers must not be repeated as a divergence",
+  );
+  assert.deepEqual(
+    outsideRecord(["Fall", "Winter"], ["Mid Summer"]),
+    ["Winter", "Fall"],
+    "the sentence runs the way a year does, whatever order her marks arrive in",
+  );
+  assert.equal(
+    phenologyLine(["Mid Spring"], "Late Spring"),
+    "You saw it bloom in Mid Spring; USDA's record says Late Spring.",
+    "her sighting is a fact, the period is USDA's by name, and neither is called wrong",
+  );
+  assert.equal(
+    phenologyLine(["Winter", "Fall"], "Mid Summer"),
+    "You saw it bloom in Winter and Fall; USDA's record says Mid Summer.",
+  );
+});
+
+test("no recorded period claims nothing, whatever she marked", () => {
+  assert.equal(phenologyLine(["Mid Spring"], null), null);
+  assert.equal(phenologyLine(["Mid Spring"], undefined), null);
+  assert.equal(phenologyLine(["Mid Spring"], ""), null);
+  assert.equal(phenologyLine(["Mid Spring"], "Nonsense"), null, "a period we cannot read is not a band either");
+});
+
+test("no marks claim nothing", () => {
+  assert.equal(phenologyLine([], "Late Spring"), null, "nothing witnessed is nothing to say");
+  assert.deepEqual(outsideRecord([], ["Late Spring"]), []);
 });

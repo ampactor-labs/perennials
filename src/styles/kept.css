@@ -199,6 +199,11 @@
   color: var(--ink-faint);
   line-height: 1.3;
 }
+/* Her dates outran the printed band; the word-line says so, in the sepia her
+   marks already write in. */
+.bcal-period--mine {
+  color: var(--sepia);
+}
 
 .bcal-sum {
   display: grid;

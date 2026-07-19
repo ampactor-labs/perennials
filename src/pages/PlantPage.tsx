@@ -6,6 +6,7 @@ import { BLOOM_HEX, bloomPeriodLabel } from "@/lib/bloom";
 import { hardinessLabel } from "@/lib/hardiness";
 import { useKept } from "@/lib/kept";
 import { mineFor, useMine, type MineField } from "@/lib/mine";
+import { phenologyLine } from "@/lib/phenology";
 import { seenSlots, useSeen } from "@/lib/seen";
 import { AddMine, AddMinePhoto } from "@/components/AddMine";
 import { IconAlert, IconChevronLeft, IconKeep } from "@/components/icons";
@@ -184,12 +185,18 @@ function ChipRow({
  * the page saying otherwise. Her record belongs here, in her own ink, whether or
  * not the printed one has anything to say. Same rule as the calendar: a mark of
  * hers earns its place even where USDA is blank.
+ *
+ * And when her marks land outside the printed band, the row says so in one
+ * line: her yard teaching the record, with neither side called wrong. It only
+ * ever speaks when both records exist; a blank period is a gap in our data,
+ * not a band she can fall outside of.
  */
 function BloomsRow({ plant }: { plant: Plant }) {
   const { seen } = useSeen();
   const mine = seenSlots(seen, plant.id);
   const printed = plant.bloomPeriod ? bloomPeriodLabel(plant.bloomPeriod) : null;
   if (!printed && mine.length === 0) return null;
+  const outran = phenologyLine(mine, plant.bloomPeriod);
   return (
     <div className="attr-row">
       <span className="attr-label">Blooms</span>
@@ -198,6 +205,7 @@ function BloomsRow({ plant }: { plant: Plant }) {
         {mine.length > 0 && (
           <span className="ptag ptag--mine">{mine.join(", ")} · seen by you</span>
         )}
+        {outran && <span className="phenology">{outran}</span>}
       </span>
     </div>
   );
