@@ -366,7 +366,7 @@ export function YardPage() {
         />
         <button
           className="btn btn--sm"
-          onClick={() => exportYard(yard, tokens, { slot, bloomLine, placedPlants })}
+          onClick={() => exportYard(yard, tokens, { slot, bloomLine, placedPlants, figs })}
         >
           Share
         </button>

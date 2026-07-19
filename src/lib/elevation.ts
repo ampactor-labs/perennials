@@ -102,3 +102,66 @@ export const CROWN_RATIO: Record<Archetype, number> = {
   root: 0.55,
   plain: 0.4,
 };
+
+/* ---- the figures, as geometry ----------------------------------------- */
+
+type P = [number, number];
+
+/** One archetype's drawing: a fill path, and the strokes that aren't fills.
+ *  ElevationView and the exported sheet both draw from this, so the figure a
+ *  client is handed is the figure she saw. */
+export type Figure = {
+  body: string;
+  /** The trunk, for the tree layers. */
+  trunk?: [P, P];
+  /** The below-ground reach, for the root layer. */
+  taproot?: [P, P];
+};
+
+const column = (cx: number, g: number, h: number, w: number) => {
+  const r = Math.min(w / 2, h);
+  return `M${cx - w / 2} ${g} L${cx - w / 2} ${g - h + r} Q${cx - w / 2} ${g - h} ${cx} ${g - h} Q${cx + w / 2} ${g - h} ${cx + w / 2} ${g - h + r} L${cx + w / 2} ${g} Z`;
+};
+
+const dome = (cx: number, g: number, h: number, w: number) =>
+  `M${cx - w / 2} ${g} Q${cx - w / 2} ${g - h} ${cx} ${g - h} Q${cx + w / 2} ${g - h} ${cx + w / 2} ${g} Z`;
+
+const tuft = (cx: number, g: number, h: number, w: number) =>
+  `M${cx - w / 2} ${g} Q${cx - w / 8} ${g - h * 0.85} ${cx} ${g - h} Q${cx + w / 8} ${g - h * 0.85} ${cx + w / 2} ${g} Z`;
+
+const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
+  `M${cx - rx} ${cy} A${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`;
+
+export function figurePaths(
+  kind: Archetype,
+  cx: number,
+  ground: number,
+  h: number,
+  w: number,
+): Figure {
+  if (kind === "tall-tree" || kind === "tree") {
+    const trunkFrac = kind === "tree" ? 0.42 : 0.5;
+    const ry = (h * (1 - trunkFrac)) / 2;
+    return {
+      body: ellipse(cx, ground - h + ry, w / 2, ry),
+      trunk: [
+        [cx, ground],
+        [cx, ground - h + ry],
+      ],
+    };
+  }
+  if (kind === "root") {
+    return {
+      body: tuft(cx, ground, h, w),
+      taproot: [
+        [cx, ground],
+        [cx, ground + 22],
+      ],
+    };
+  }
+  if (kind === "shrub") return { body: dome(cx, ground, h, w) };
+  if (kind === "herb") return { body: tuft(cx, ground, h, w) };
+  if (kind === "ground")
+    return { body: `M${cx - w / 2} ${ground} Q${cx} ${ground - 2 * h} ${cx + w / 2} ${ground} Z` };
+  return { body: column(cx, ground, h, w) }; // vine, and the plain column
+}

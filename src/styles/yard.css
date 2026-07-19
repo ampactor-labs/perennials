@@ -142,7 +142,6 @@
   font-family: var(--font-sans);
   font-size: 19px;
 }
-.yard-fig ellipse,
 .yard-fig path {
   stroke: var(--ink-soft);
   stroke-width: 2;
@@ -156,7 +155,6 @@
   stroke-dasharray: 6 5;
 }
 /* a height she measured wears her ink */
-.yard-fig--hers ellipse,
 .yard-fig--hers path,
 .yard-fig--hers .yard-fig-trunk {
   stroke: var(--sepia);

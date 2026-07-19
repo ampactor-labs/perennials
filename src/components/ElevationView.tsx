@@ -4,6 +4,7 @@ import {
   CROWN_RATIO,
   ELEV_H,
   ELEV_W,
+  figurePaths,
   GROUND_Y,
   tickStep,
   TOP_Y,
@@ -33,26 +34,12 @@ export type Fig = TokenView & {
 
 const TOKEN_R = 16;
 
-/** A rounded-top column: the vine's climb, and the plain figure for a plant
- *  whose layer our sources never recorded. */
-const column = (cx: number, g: number, h: number, w: number) => {
-  const r = Math.min(w / 2, h);
-  return `M${cx - w / 2} ${g} L${cx - w / 2} ${g - h + r} Q${cx - w / 2} ${g - h} ${cx} ${g - h} Q${cx + w / 2} ${g - h} ${cx + w / 2} ${g - h + r} L${cx + w / 2} ${g} Z`;
-};
-
-const dome = (cx: number, g: number, h: number, w: number) =>
-  `M${cx - w / 2} ${g} Q${cx - w / 2} ${g - h} ${cx} ${g - h} Q${cx + w / 2} ${g - h} ${cx + w / 2} ${g} Z`;
-
-const tuft = (cx: number, g: number, h: number, w: number) =>
-  `M${cx - w / 2} ${g} Q${cx - w / 8} ${g - h * 0.85} ${cx} ${g - h} Q${cx + w / 8} ${g - h * 0.85} ${cx + w / 2} ${g} Z`;
-
 function Silhouette({ f, scale }: { f: Fig; scale: number }) {
   if (f.height === null || scale <= 0) return null;
   const kind = archetypeOf(f.layer);
   const h = f.height * scale;
   const w = Math.max(18, (f.width ?? f.height * CROWN_RATIO[kind]) * scale);
-  const cx = f.x;
-  const g = GROUND_Y;
+  const fig = figurePaths(kind, f.x, GROUND_Y, h, w);
   const fill =
     f.state === "fill"
       ? f.fill
@@ -62,36 +49,27 @@ function Silhouette({ f, scale }: { f: Fig; scale: number }) {
           ? "url(#elev-hatch)"
           : "var(--paper)";
   const cls = `yard-fig${f.hers ? " yard-fig--hers" : ""}${kind === "vine" ? " yard-fig--vine" : ""}`;
-
-  if (kind === "tall-tree" || kind === "tree") {
-    const trunkFrac = kind === "tree" ? 0.42 : 0.5;
-    const ry = (h * (1 - trunkFrac)) / 2;
-    return (
-      <g className={cls}>
-        <line x1={cx} y1={g} x2={cx} y2={g - h + ry} className="yard-fig-trunk" />
-        <ellipse cx={cx} cy={g - h + ry} rx={w / 2} ry={ry} fill={fill} />
-      </g>
-    );
-  }
-  if (kind === "root") {
-    return (
-      <g className={cls}>
-        <path d={tuft(cx, g, h, w)} fill={fill} />
-        <line x1={cx} y1={g} x2={cx} y2={g + 22} className="yard-taproot" />
-      </g>
-    );
-  }
-  const d =
-    kind === "shrub"
-      ? dome(cx, g, h, w)
-      : kind === "herb"
-        ? tuft(cx, g, h, w)
-        : kind === "ground"
-          ? `M${cx - w / 2} ${g} Q${cx} ${g - 2 * h} ${cx + w / 2} ${g} Z`
-          : column(cx, g, h, w);
   return (
     <g className={cls}>
-      <path d={d} fill={fill} />
+      {fig.trunk && (
+        <line
+          x1={fig.trunk[0][0]}
+          y1={fig.trunk[0][1]}
+          x2={fig.trunk[1][0]}
+          y2={fig.trunk[1][1]}
+          className="yard-fig-trunk"
+        />
+      )}
+      <path d={fig.body} fill={fill} />
+      {fig.taproot && (
+        <line
+          x1={fig.taproot[0][0]}
+          y1={fig.taproot[0][1]}
+          x2={fig.taproot[1][0]}
+          y2={fig.taproot[1][1]}
+          className="yard-taproot"
+        />
+      )}
     </g>
   );
 }

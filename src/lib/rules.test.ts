@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 import { mergeById, photoKeys } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
-import { archetypeOf, parseMetres, standing, tickStep } from "./elevation";
+import { archetypeOf, figurePaths, parseMetres, standing, tickStep, type Archetype } from "./elevation";
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
@@ -254,6 +254,19 @@ test("every guild layer has a figure, and no plant wears one its record lacks", 
     assert.notEqual(archetypeOf(l), "plain", `${l} must have a shape of its own`);
   assert.equal(archetypeOf(null), "plain");
   assert.equal(archetypeOf("Nonsense"), "plain", "an unrecorded layer is the plain column, never a tree's crown");
+});
+
+// One geometry serves the screen and the exported sheet, so the figure a
+// client is handed is the figure she saw; this pins that every archetype
+// actually draws, and that only the layers which reach beyond the fill do.
+test("every archetype draws, and only trees carry trunks, only roots reach down", () => {
+  const kinds: Archetype[] = ["tall-tree", "tree", "shrub", "vine", "herb", "ground", "root", "plain"];
+  for (const k of kinds) {
+    const fig = figurePaths(k, 500, 520, 100, 60);
+    assert.ok(fig.body.length > 0 && !fig.body.includes("NaN"), `${k} must draw a clean body`);
+    assert.equal(fig.trunk !== undefined, k === "tall-tree" || k === "tree", `${k}: trunk`);
+    assert.equal(fig.taproot !== undefined, k === "root", `${k}: taproot`);
+  }
 });
 
 test("the height rule stays readable at any yard's scale", () => {
