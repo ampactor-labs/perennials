@@ -120,6 +120,60 @@
   opacity: 0.7;
 }
 
+/* the elevation: recorded heights standing on a ground line */
+.yard-elev {
+  cursor: default;
+}
+.yard-horizon {
+  stroke: var(--line-strong);
+  stroke-width: 2;
+}
+/* the spine glyph's below-ground wash, at sheet size */
+.yard-earth {
+  fill: var(--sepia);
+  opacity: 0.08;
+}
+.yard-elev-tick line {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+.yard-elev-tick text {
+  fill: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 19px;
+}
+.yard-fig ellipse,
+.yard-fig path {
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+}
+.yard-fig-trunk {
+  stroke: var(--ink-soft);
+  stroke-width: 4;
+}
+/* the vine climbs dashed, as the guild spine draws it */
+.yard-fig--vine path {
+  stroke-dasharray: 6 5;
+}
+/* a height she measured wears her ink */
+.yard-fig--hers ellipse,
+.yard-fig--hers path,
+.yard-fig--hers .yard-fig-trunk {
+  stroke: var(--sepia);
+}
+.yard-token--dim .yard-fig {
+  opacity: 0.35;
+}
+/* the root reaches below the line, dashed, hers-coloured like the spine's dot */
+.yard-taproot {
+  stroke: var(--sepia);
+  stroke-width: 2.5;
+  stroke-dasharray: 4 4;
+}
+.yard-viewseg {
+  margin-top: var(--sp-3);
+}
+
 .yard-rose-face {
   fill: var(--paper);
   stroke: var(--line);

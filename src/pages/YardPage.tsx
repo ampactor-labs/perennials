@@ -16,7 +16,9 @@ import {
   useYards,
 } from "@/lib/yards";
 import { exportYard } from "@/lib/yardExport";
+import { standing } from "@/lib/elevation";
 import { AddMine } from "@/components/AddMine";
+import { ElevationView, type Fig } from "@/components/ElevationView";
 import { YardCanvas, type Mode, type TokenView } from "@/components/YardCanvas";
 import { YearScrubber } from "@/components/YearScrubber";
 import { Thumb } from "@/components/Thumb";
@@ -45,6 +47,7 @@ export function YardPage() {
   const { mine } = useMine();
 
   const [mode, setMode] = useState<Mode>("move");
+  const [view, setView] = useState<"sheet" | "elevation">("sheet");
   const [armedId, setArmedId] = useState<number | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [slot, setSlot] = useState<BloomSlot | null>(null);
@@ -140,6 +143,25 @@ export function YardPage() {
     };
   });
 
+  /* ---- the same plants, standing: what elevation draws ----------------- */
+
+  // Height and width resolve by the lane rule in metres: the record's value
+  // is never overwritten, hers counts exactly where the record is silent, and
+  // a plant with neither stays a mark on the line rather than growing a shape.
+  const figs: Fig[] = yard.plants.map((pl, i) => {
+    const p = byId.get(pl.id);
+    const h = standing(p?.height ?? null, mineFor(mine, pl.id, "height")?.text);
+    const w = standing(p?.width ?? null, mineFor(mine, pl.id, "width")?.text);
+    return {
+      ...tokens[i],
+      depth: pl.y,
+      layer: p?.layer ?? null,
+      height: h?.m ?? null,
+      hers: h?.hers ?? false,
+      width: w?.m ?? null,
+    };
+  });
+
   /* ---- coverage, printed because a partial facet must ----------------- */
 
   const placed = yard.plants.length;
@@ -161,6 +183,19 @@ export function YardPage() {
     const m = tokens.filter((t) => t.show === "match").length;
     const u = tokens.filter((t) => t.show === "unrecorded").length;
     return `${m} of ${placed} recorded as ${showValue}${u > 0 ? `; ${u} not in our data` : ""}.`;
+  })();
+
+  // An empty yard has no side to see; the toggle only appears with a plant on
+  // the sheet, and losing the last plant lands her back on the paper.
+  const projection = placed > 0 ? view : "sheet";
+
+  const elevLine = (() => {
+    if (projection !== "elevation") return null;
+    const withH = figs.filter((f) => f.height !== null).length;
+    const yours = figs.filter((f) => f.hers).length;
+    if (withH === 0)
+      return "No height in our sources for any of these; each stands unmeasured on the line. Tap a mark to add yours.";
+    return `${withH} of ${placed} stand at a known height${yours ? `, ${yours} by your hand` : ""}; the rest hold the line unmeasured. Shapes follow the layer, not the plant.`;
   })();
 
   /* ---- the client questions this yard can be asked -------------------- */
@@ -296,21 +331,45 @@ export function YardPage() {
         </div>
       )}
 
-      <YardCanvas
-        yard={yard}
-        underlay={underlayUrl}
-        tokens={tokens}
-        mode={mode}
-        sel={sel}
-        armed={armedId !== null}
-        onPlace={onPlace}
-        onLabelAt={onLabelAt}
-        onStroke={onStroke}
-        onSelect={setSel}
-        onMove={onMove}
-        onNorth={onNorth}
-        onRing={onRing}
-      />
+      {placed > 0 && (
+        <div className="seg yard-viewseg" role="group" aria-label="Projection">
+          <button
+            aria-pressed={projection === "sheet"}
+            className={projection === "sheet" ? "on" : ""}
+            onClick={() => setView("sheet")}
+          >
+            Sheet
+          </button>
+          <button
+            aria-pressed={projection === "elevation"}
+            className={projection === "elevation" ? "on" : ""}
+            onClick={() => setView("elevation")}
+          >
+            Elevation
+          </button>
+        </div>
+      )}
+
+      {projection === "sheet" ? (
+        <YardCanvas
+          yard={yard}
+          underlay={underlayUrl}
+          tokens={tokens}
+          mode={mode}
+          sel={sel}
+          armed={armedId !== null}
+          onPlace={onPlace}
+          onLabelAt={onLabelAt}
+          onStroke={onStroke}
+          onSelect={setSel}
+          onMove={onMove}
+          onNorth={onNorth}
+          onRing={onRing}
+        />
+      ) : (
+        <ElevationView figs={figs} sel={sel} onSelect={setSel} />
+      )}
+      {elevLine && <p className="yard-coverage">{elevLine}</p>}
 
       {placed > 0 && <YearScrubber slot={slot} onSlot={setSlot} />}
       {bloomLine && <p className="yard-coverage">{bloomLine}</p>}
@@ -356,6 +415,8 @@ export function YardPage() {
         </div>
       )}
 
+      {projection === "sheet" && (
+      <>
       <div className="yard-tools">
         <div className="seg" role="group" aria-label="Tool">
           {(
@@ -415,10 +476,12 @@ export function YardPage() {
           </>
         )}
       </div>
+      </>
+      )}
 
       {note && <p className="yard-note">{note}</p>}
 
-      {mode === "label" && pendingLabel && (
+      {projection === "sheet" && mode === "label" && pendingLabel && (
         <div className="yard-labelrow">
           <input
             className="note-input"
@@ -439,7 +502,8 @@ export function YardPage() {
         </div>
       )}
 
-      {mode === "place" &&
+      {projection === "sheet" &&
+        mode === "place" &&
         (keptPlants.length === 0 ? (
           <p className="yard-coverage">
             Nothing kept yet. <Link to="/">Find some plants</Link> and press Keep; they become
@@ -462,7 +526,7 @@ export function YardPage() {
             ))}
           </div>
         ))}
-      {mode === "place" && armedId !== null && (
+      {projection === "sheet" && mode === "place" && armedId !== null && (
         <p className="yard-coverage">Tap the sheet to place. Tap again for a drift.</p>
       )}
 
@@ -542,6 +606,27 @@ export function YardPage() {
                       field="attracts"
                       label="Flower visitors"
                       value={mineFor(mine, selPlant.id, "attracts")?.text}
+                    />
+                  </span>
+                )}
+              </div>
+              <div className="attr-row">
+                <span className="attr-label">Height</span>
+                {selPlant.height != null ? (
+                  <span>{selPlant.height} m</span>
+                ) : (
+                  // Elevation is where an unmeasured plant is felt: it stands
+                  // on the line with no figure. The blank is offered here
+                  // because this panel is open when she is looking at that.
+                  <span className="chip-row">
+                    {!mineFor(mine, selPlant.id, "height") && (
+                      <span className="attr-absent">Not in our sources.</span>
+                    )}
+                    <AddMine
+                      id={selPlant.id}
+                      field="height"
+                      label="Height"
+                      value={mineFor(mine, selPlant.id, "height")?.text}
                     />
                   </span>
                 )}

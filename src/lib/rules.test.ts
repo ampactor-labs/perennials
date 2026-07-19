@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 
 import { mergeById, photoKeys } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
+import { archetypeOf, parseMetres, standing, tickStep } from "./elevation";
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
@@ -224,6 +225,46 @@ test("an unparseable hardiness leaves the plant where it was", () => {
   const p = { ...plant(null), id: 1 } as Plant;
   const hers = indexMine([mine(1, "hardiness", "dies in a hard frost")], {}).get(1);
   assert.equal(hardyBand(p, 6, hers), 1, "her words stay on the page and out of the sort");
+});
+
+/* ---- the elevation: size is a claim, so only measurements make one ----- */
+
+test("her height counts when it is a measurement and never when it is a sentence", () => {
+  assert.equal(parseMetres("2"), 2, "a bare number is metres, as the record prints them");
+  assert.equal(parseMetres("2.5 m"), 2.5);
+  assert.equal(parseMetres("2,5"), 2.5);
+  assert.equal(parseMetres("250 cm"), 2.5);
+  assert.equal(parseMetres("6 ft"), 1.83, "feet are arithmetic, not invention");
+  assert.equal(parseMetres("8'"), 2.44);
+  assert.equal(parseMetres("taller than the shed"), null, "a sentence is not a measurement");
+  assert.equal(parseMetres("0"), null);
+  assert.equal(parseMetres("1800"), null, "no plant is 1.8km tall; a typo must not flatten the scale");
+});
+
+test("the record's height is never overwritten, and absence never invents one", () => {
+  assert.deepEqual(standing(12, "3"), { m: 12, hers: false }, "her value fills silence, it does not overwrite");
+  assert.deepEqual(standing(null, "3"), { m: 3, hers: true });
+  assert.equal(standing(null, "waist high"), null, "her words stay on the page and off the scale");
+  assert.equal(standing(null, undefined), null);
+  assert.equal(standing(0, undefined), null, "a recorded zero is a gap, not a measurement");
+});
+
+test("every guild layer has a figure, and no plant wears one its record lacks", () => {
+  for (const l of ["Tall trees", "Trees", "Shrubs", "Vines", "Herbs", "Ground cover", "Roots"])
+    assert.notEqual(archetypeOf(l), "plain", `${l} must have a shape of its own`);
+  assert.equal(archetypeOf(null), "plain");
+  assert.equal(archetypeOf("Nonsense"), "plain", "an unrecorded layer is the plain column, never a tree's crown");
+});
+
+test("the height rule stays readable at any yard's scale", () => {
+  assert.equal(tickStep(1.2), 0.25);
+  assert.equal(tickStep(3), 0.5);
+  assert.equal(tickStep(6), 1);
+  assert.equal(tickStep(10), 2);
+  assert.equal(tickStep(25), 5);
+  assert.equal(tickStep(80), 10);
+  for (const m of [0.4, 1.5, 4, 9, 28, 120])
+    assert.ok(Math.floor(m / tickStep(m)) <= 13, `${m}m must not print a wall of ticks`);
 });
 
 /* ---- the backup carries every photo her stores point at ---------------- */
