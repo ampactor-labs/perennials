@@ -43,6 +43,12 @@
 .yard-paper {
   fill: var(--paper);
 }
+/* her photo of the ground: washed toward the paper, because saturated colour
+   only ever encodes plant data, and because ink must stay legible over it */
+.yard-underlay {
+  opacity: 0.5;
+  filter: saturate(0.2) contrast(0.95);
+}
 
 /* her hand: everything sepia, like the notes it joins */
 .yard-line,
@@ -212,6 +218,17 @@
   align-items: center;
   gap: var(--sp-2);
   margin-top: var(--sp-2);
+}
+
+.yard-underlay-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.yard-underlay-row .yard-coverage {
+  margin-top: 0;
 }
 
 .yard-ask {

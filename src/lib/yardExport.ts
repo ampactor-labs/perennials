@@ -1,6 +1,7 @@
 import type { Plant } from "@/data/model";
 import type { BloomSlot } from "./bloom";
 import type { TokenView } from "@/components/YardCanvas";
+import { blobToDataUrl, getPhoto } from "./photos";
 import { SHEET_H, SHEET_W, pathD, type Yard } from "./yards";
 import { shareFiles } from "./share";
 
@@ -11,9 +12,11 @@ import { shareFiles } from "./share";
  * baked in as literal hex (a specimen sheet, not a screenshot of dark mode)
  * and a footer that keeps the picture honest on its own: "Diagram, not to
  * scale", the coverage line, and the source attribution (CC BY-SA is a licence
- * term on a shared file, not a nicety). No photographs go in, so the canvas
- * never taints and the raster works with no signal. Alongside the PNG rides a
- * plain-text plant list, the format guaranteed to outlive the app.
+ * term on a shared file, not a nicety). No source photographs go in, so the
+ * canvas never taints and the raster works with no signal; her own ground
+ * photo is a local blob, taints nothing and needs no signal, so it rides in
+ * as a data URL, washed the way the screen washes it. Alongside the PNG rides
+ * a plain-text plant list, the format guaranteed to outlive the app.
  */
 
 // tokens.css, light theme, as literals: the exported file has no stylesheet.
@@ -73,6 +76,7 @@ function sheetSvg(
   tokens: TokenView[],
   slot: BloomSlot | null,
   bloomLine: string | null,
+  ground: string | null,
 ): string {
   const H = SHEET_H + FOOT;
   const strokes = yard.strokes
@@ -102,14 +106,16 @@ function sheetSvg(
     ${bloomLine ? `<text x="40" y="${SHEET_H + 104}" font-family="${SANS}" font-size="22" fill="${C.inkSoft}">${esc(bloomLine)}</text>` : ""}
     <text x="40" y="${SHEET_H + 140}" font-family="${SANS}" font-size="20" fill="${C.inkFaint}">Data: Permapeople (CC BY-SA 4.0) · GloBI (CC BY 4.0) · USDA PLANTS (public domain)</text>`;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SHEET_W} ${H}" width="${SHEET_W}" height="${H}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${SHEET_W} ${H}" width="${SHEET_W}" height="${H}">
     <defs>
       <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <rect width="7" height="7" fill="${C.paper}"/>
         <line x1="0" y1="0" x2="0" y2="7" stroke="${C.inkFaint}" stroke-width="1.6"/>
       </pattern>
+      <filter id="wash"><feColorMatrix type="saturate" values="0.2"/></filter>
     </defs>
     <rect width="${SHEET_W}" height="${H}" fill="${C.paper}"/>
+    ${ground ? `<image href="${ground}" xlink:href="${ground}" x="0" y="0" width="${SHEET_W}" height="${SHEET_H}" preserveAspectRatio="xMidYMid meet" opacity="0.5" filter="url(#wash)"/>` : ""}
     <rect x="1" y="1" width="${SHEET_W - 2}" height="${SHEET_H - 2}" fill="none" stroke="${C.line}" stroke-width="2"/>
     ${strokes}
     ${tokens.map(tokenSvg).join("")}
@@ -158,8 +164,20 @@ export async function exportYard(
     type: "text/plain",
   });
 
+  // The ground fetch fails on its own: an unreadable photo costs the sheet its
+  // backdrop, never the sheet.
+  let ground: string | null = null;
+  if (yard.underlay) {
+    try {
+      const blob = await getPhoto(yard.underlay);
+      if (blob) ground = await blobToDataUrl(blob);
+    } catch {
+      ground = null;
+    }
+  }
+
   try {
-    const svg = sheetSvg(yard, tokens, extra.slot, extra.bloomLine);
+    const svg = sheetSvg(yard, tokens, extra.slot, extra.bloomLine, ground);
     const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
     const img = new Image();
     await new Promise((res, rej) => {

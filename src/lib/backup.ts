@@ -19,7 +19,7 @@ import { readZone, writeZone } from "./homeZone";
 import { readKept, writeKept, type Kept } from "./kept";
 import { MINE_FIELDS, readMine, writeMine, type Mine, type MineField } from "./mine";
 import { noteDate, readNotes, writeNotes, type Note } from "./notes";
-import { getPhoto, restorePhoto } from "./photos";
+import { blobToDataUrl, getPhoto, restorePhoto } from "./photos";
 import { readSeen, writeSeen, type Seen } from "./seen";
 import { readTheme, writeTheme, type ThemePref } from "./settings";
 import { readSpots, writeSpots, type Spot } from "./spots";
@@ -39,7 +39,8 @@ export type Backup = {
   mine: Mine[];
   zone: number | null;
   theme: ThemePref | null;
-  /** photo key -> data URL. Only the ones her mine records actually point at. */
+  /** photo key -> data URL. Only the ones her stores actually point at: mine
+   *  records, and the ground under a yard. */
   photos: Record<string, string>;
 };
 
@@ -61,27 +62,29 @@ const asArray = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
 /* ---- out ------------------------------------------------------------- */
 
-const blobToDataUrl = (blob: Blob): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result));
-    fr.onerror = () => reject(fr.error);
-    fr.readAsDataURL(blob);
-  });
+/** Every photo key her stores point at: her plant photos, and the ground under
+ *  each yard. The backup must carry exactly these, and each of them once; this
+ *  is a pure function because rules.test.ts pins that. */
+export function photoKeys(mine: Mine[], yards: Yard[]): string[] {
+  const keys = mine.filter((m) => m.field === "photo").map((m) => m.text);
+  for (const y of yards) if (y.underlay) keys.push(y.underlay);
+  return [...new Set(keys)];
+}
 
 /**
  * Read every store, and every photo those stores point at.
  *
- * A mine record whose blob has been evicted is kept and its photo is skipped:
- * the record is still hers, and exporting a key with no image behind it is how
+ * A record whose blob has been evicted is kept and its photo is skipped: the
+ * record is still hers, and exporting a key with no image behind it is how
  * you get an import that looks fine and shows a hole.
  */
 export async function buildBackup(): Promise<Backup> {
   const mine = readMine();
+  const yards = readYards();
   const photos: Record<string, string> = {};
-  for (const m of mine.filter((m) => m.field === "photo")) {
-    const blob = await getPhoto(m.text);
-    if (blob) photos[m.text] = await blobToDataUrl(blob);
+  for (const key of photoKeys(mine, yards)) {
+    const blob = await getPhoto(key);
+    if (blob) photos[key] = await blobToDataUrl(blob);
   }
   return {
     format: BACKUP_FORMAT,
@@ -91,7 +94,7 @@ export async function buildBackup(): Promise<Backup> {
     notes: readNotes(),
     seen: readSeen(),
     spots: readSpots(),
-    yards: readYards(),
+    yards,
     mine,
     zone: readZone(),
     theme: readTheme(),
@@ -352,7 +355,9 @@ export function backupText(data: Dataset | null, b: Backup): string {
   if (b.yards.length) {
     out.push("", `YARDS (${b.yards.length})`);
     for (const y of b.yards) {
-      out.push(`${y.name} · ${y.plants.length} placed · ${y.strokes.length} drawn`);
+      out.push(
+        `${y.name} · ${y.plants.length} placed · ${y.strokes.length} drawn${y.underlay ? " · your photo under it" : ""}`,
+      );
       for (const pl of y.plants) out.push(`  ${pl.name}${pl.r ? ` (ring ${pl.r})` : ""}`);
     }
   }

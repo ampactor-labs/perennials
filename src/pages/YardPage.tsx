@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
 import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, type BloomSlot } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
 import { mineFor, useMine } from "@/lib/mine";
+import { deletePhoto, putPhoto, useMinePhoto } from "@/lib/photos";
 import { seenSlots, useSeen } from "@/lib/seen";
 import {
   MAX_LABEL,
@@ -54,8 +55,11 @@ export function YardPage() {
   const [past, setPast] = useState<Yard[]>([]);
   const [note, setNote] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [laying, setLaying] = useState(false);
+  const pickGround = useRef<HTMLInputElement>(null);
 
   const yard = yards.find((y) => y.id === id);
+  const underlayUrl = useMinePhoto(yard?.underlay);
   if (state.status !== "ready" || !yard) {
     return (
       <div className="page wrap">
@@ -78,7 +82,10 @@ export function YardPage() {
     const prev = past[past.length - 1];
     if (!prev) return;
     setPast((p) => p.slice(0, -1));
-    setSaved(put(prev));
+    // Undo un-draws her ink; it never swaps the paper. The ground rides
+    // outside the snapshots, so undoing past a photo change cannot resurrect
+    // a key whose blob is already deleted, or detach one she just laid.
+    setSaved(put({ ...prev, underlay: yard.underlay }));
     setSel(null);
   };
 
@@ -171,6 +178,29 @@ export function YardPage() {
   const say = (m: string) => {
     setNote(m);
     window.setTimeout(() => setNote(null), 4000);
+  };
+
+  /* ---- the ground under the ink --------------------------------------- */
+
+  // Not a commit(): the photo is the sheet's ground, not a stroke, so it skips
+  // the undo stack, and undo() carries the live ground forward. That is what
+  // makes the eager blob delete safe: no snapshot can bring a dropped key back.
+  const setUnderlay = (key: string | undefined) => {
+    const old = yard.underlay;
+    setSaved(put({ ...yard, underlay: key }));
+    if (old && old !== key) void deletePhoto(old);
+  };
+
+  const layGround = async (file: File | undefined) => {
+    if (!file) return;
+    setLaying(true);
+    try {
+      setUnderlay(await putPhoto(file));
+    } catch {
+      say("That image couldn't be read.");
+    } finally {
+      setLaying(false);
+    }
   };
 
   const onPlace = (p: Pt) => {
@@ -268,6 +298,7 @@ export function YardPage() {
 
       <YardCanvas
         yard={yard}
+        underlay={underlayUrl}
         tokens={tokens}
         mode={mode}
         sel={sel}
@@ -352,6 +383,37 @@ export function YardPage() {
         <button className="btn btn--sm" onClick={undo} disabled={past.length === 0}>
           Undo
         </button>
+      </div>
+
+      <div className="yard-underlay-row">
+        {/* No `capture` here, unlike the plant close-up: the picture of a yard
+            is as likely to be in the gallery, shot from the porch, as taken on
+            the spot, and capture would lock her out of choosing it. */}
+        <input
+          ref={pickGround}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            void layGround(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+        <button
+          className="btn btn--ghost btn--sm"
+          onClick={() => pickGround.current?.click()}
+          disabled={laying}
+        >
+          {laying ? "Saving…" : yard.underlay ? "Replace the photo" : "Lay a photo under the sheet"}
+        </button>
+        {yard.underlay && (
+          <>
+            <button className="linkish note-delete" onClick={() => setUnderlay(undefined)}>
+              Remove it
+            </button>
+            <span className="yard-coverage">Your photo, faded under the ink. Undo never touches it.</span>
+          </>
+        )}
       </div>
 
       {note && <p className="yard-note">{note}</p>}

@@ -85,6 +85,15 @@ async function shrink(file: Blob): Promise<Blob> {
 
 const newKey = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+/** A photo as text, for the backup file and the exported sheet. */
+export const blobToDataUrl = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result));
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+
 /** Store a photo, returning the key that goes in the mine store. Throws when the
  *  quota says no, so the caller can tell her rather than dropping it silently. */
 export async function putPhoto(file: Blob): Promise<string> {

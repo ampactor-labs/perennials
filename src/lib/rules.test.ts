@@ -8,7 +8,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 
-import { mergeById } from "./backup";
+import { mergeById, photoKeys } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
@@ -224,6 +224,26 @@ test("an unparseable hardiness leaves the plant where it was", () => {
   const p = { ...plant(null), id: 1 } as Plant;
   const hers = indexMine([mine(1, "hardiness", "dies in a hard frost")], {}).get(1);
   assert.equal(hardyBand(p, 6, hers), 1, "her words stay on the page and out of the sort");
+});
+
+/* ---- the backup carries every photo her stores point at ---------------- */
+
+// A key exported without its image, or an image left behind by the export, is
+// an import that looks fine and shows a hole. Two stores hold keys now (her
+// plant photos, the ground under a yard), so the collection is one pure
+// function and this rule watches it.
+test("the backup collects her plant photos and every yard's ground, once each", () => {
+  const hers = [mine(1, "photo", "pA"), mine(2, "bloomColor", "cream")];
+  const yards = [
+    { id: "y1", underlay: "pB" },
+    { id: "y2" },
+    { id: "y3", underlay: "pA" },
+  ] as never[];
+  assert.deepEqual(
+    photoKeys(hers, yards).sort(),
+    ["pA", "pB"],
+    "her typed values carry no blob, a yard without a ground adds nothing, and a key two stores share rides once",
+  );
 });
 
 /* ---- the restore: a merge never costs her an entry -------------------- */

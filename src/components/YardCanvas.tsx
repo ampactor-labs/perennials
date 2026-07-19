@@ -50,6 +50,7 @@ type Gesture =
 
 export function YardCanvas({
   yard,
+  underlay,
   tokens,
   mode,
   sel,
@@ -63,6 +64,9 @@ export function YardCanvas({
   onRing,
 }: {
   yard: Yard;
+  /** A live URL for her photo of the ground, or null. The page resolves the
+   *  key; the canvas only lays the image under the ink. */
+  underlay: string | null;
   tokens: TokenView[];
   mode: Mode;
   sel: string | null;
@@ -265,6 +269,21 @@ export function YardCanvas({
       </defs>
 
       <rect x="0" y="0" width={SHEET_W} height={SHEET_H} className="yard-paper" />
+
+      {/* her photo of the ground, washed toward the paper. The wash is the
+          tokens.css rule doing double duty: saturated colour only ever encodes
+          plant data, and a faded print is also what her ink stays legible on. */}
+      {underlay && (
+        <image
+          href={underlay}
+          x="0"
+          y="0"
+          width={SHEET_W}
+          height={SHEET_H}
+          preserveAspectRatio="xMidYMid meet"
+          className="yard-underlay"
+        />
+      )}
 
       {/* her hand: beds, lines, labels, all sepia */}
       {yard.strokes.map((s) =>

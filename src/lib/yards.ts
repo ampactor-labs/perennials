@@ -13,6 +13,7 @@
 // clear the origin budget with room to spare.
 import { useCallback, useSyncExternalStore } from "react";
 import { createLocalStore } from "./localStore";
+import { deletePhoto } from "./photos";
 
 export const SHEET_W = 1000;
 export const SHEET_H = 1414; // portrait, √2: the paper she holds
@@ -44,6 +45,10 @@ export type Yard = {
   at: number;
   /** Compass: degrees clockwise from up. Hers, not data. */
   north: number;
+  /** Her photo of the ground, as its key in IndexedDB (lib/photos.ts). Only
+   *  the key lives here: an image in this record would eat the localStorage
+   *  budget that keeps a hundred yards safe. */
+  underlay?: string;
   strokes: Stroke[];
   plants: Placed[];
 };
@@ -163,6 +168,7 @@ function cleanYard(raw: unknown): Yard | null {
     name: y.name.slice(0, 80),
     at: int(y.at) ? y.at : 0,
     north: int(y.north) ? y.north : 0,
+    ...(typeof y.underlay === "string" && y.underlay ? { underlay: y.underlay } : {}),
     strokes: Array.isArray(y.strokes)
       ? y.strokes.map(cleanStroke).filter((s): s is Stroke => s !== null).slice(0, MAX_STROKES)
       : [],
@@ -208,6 +214,10 @@ export function useYards() {
   }, []);
 
   const remove = useCallback((id: string) => {
+    // The ground goes with the sketch, or IndexedDB keeps a photo she can no
+    // longer see or reach; the same bargain mine.ts makes for a plant photo.
+    const gone = store.read().find((y) => y.id === id);
+    if (gone?.underlay) void deletePhoto(gone.underlay);
     store.write(store.read().filter((y) => y.id !== id));
   }, []);
 
