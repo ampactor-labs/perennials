@@ -281,6 +281,13 @@
   gap: var(--sp-2);
   margin-top: var(--sp-2);
 }
+
+.yard-findrow {
+  margin-top: var(--sp-3);
+}
+.yard-findrow input {
+  width: 100%;
+}
 .yard-underlay-row .yard-coverage {
   margin-top: 0;
 }

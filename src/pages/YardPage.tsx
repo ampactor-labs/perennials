@@ -55,6 +55,7 @@ export function YardPage() {
   const [pendingLabel, setPendingLabel] = useState<Pt | null>(null);
   const [labelText, setLabelText] = useState("");
   const [saved, setSaved] = useState(true);
+  const [findText, setFindText] = useState("");
   const [past, setPast] = useState<Yard[]>([]);
   const [note, setNote] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -297,6 +298,34 @@ export function YardPage() {
     .map((k) => byId.get(k.id))
     .filter((p): p is Plant => p !== undefined);
 
+  /* ---- the tray: her shortlist by default, the whole guide on request --- */
+
+  // The same index the omnibox reads, so "mouse melon" places Melothria
+  // scabra here too. Keeping was never a requirement of placing; it was only
+  // ever the tray's source, and now it is the tray's default instead.
+  const finding = findText.trim().length >= 2;
+  const found: Plant[] = finding
+    ? state.data.index
+        .search(findText, { prefix: true, fuzzy: 0.15, combineWith: "AND" })
+        .slice(0, 12)
+        .map((r) => byId.get(r.id as number))
+        .filter((p): p is Plant => p !== undefined)
+    : [];
+
+  const tray = (p: Plant) => (
+    <button
+      key={p.id}
+      className={armedId === p.id ? "yard-plant on" : "yard-plant"}
+      onClick={() => setArmedId(armedId === p.id ? null : p.id)}
+      aria-pressed={armedId === p.id}
+    >
+      <span className="yard-plant-thumb">
+        <Thumb id={p.id} has={!!p.thumb} sizes="32px" />
+      </span>
+      {short(p.name)}
+    </button>
+  );
+
   return (
     <div className="page wrap yard">
       <div className="detail-top">
@@ -502,30 +531,34 @@ export function YardPage() {
         </div>
       )}
 
-      {projection === "sheet" &&
-        mode === "place" &&
-        (keptPlants.length === 0 ? (
-          <p className="yard-coverage">
-            Nothing kept yet. <Link to="/">Find some plants</Link> and press Keep; they become
-            this tray.
-          </p>
-        ) : (
-          <div className="yard-tray">
-            {keptPlants.map((p) => (
-              <button
-                key={p.id}
-                className={armedId === p.id ? "yard-plant on" : "yard-plant"}
-                onClick={() => setArmedId(armedId === p.id ? null : p.id)}
-                aria-pressed={armedId === p.id}
-              >
-                <span className="yard-plant-thumb">
-                  <Thumb id={p.id} has={!!p.thumb} sizes="32px" />
-                </span>
-                {short(p.name)}
-              </button>
-            ))}
+      {projection === "sheet" && mode === "place" && (
+        <>
+          <div className="yard-findrow">
+            <input
+              className="note-input"
+              style={{ padding: "var(--sp-1) var(--sp-2)" }}
+              value={findText}
+              placeholder="Any plant in the guide…"
+              aria-label="Find a plant to place"
+              onChange={(e) => setFindText(e.target.value)}
+            />
           </div>
-        ))}
+          {finding ? (
+            found.length > 0 ? (
+              <div className="yard-tray">{found.map(tray)}</div>
+            ) : (
+              <p className="yard-coverage">Nothing in the guide answers to that.</p>
+            )
+          ) : keptPlants.length > 0 ? (
+            <div className="yard-tray">{keptPlants.map(tray)}</div>
+          ) : (
+            <p className="yard-coverage">
+              Type a name above; any plant in the guide places. Plants you{" "}
+              <Link to="/">Keep</Link> wait here as a tray.
+            </p>
+          )}
+        </>
+      )}
       {projection === "sheet" && mode === "place" && armedId !== null && (
         <p className="yard-coverage">Tap the sheet to place. Tap again for a drift.</p>
       )}
