@@ -38,7 +38,7 @@ Photos are resized by the API (`/img/<id>/<width>.webp`, 64 to 800). Permapeople
 
 ## Stack
 
-Vite, React, TypeScript. MiniSearch for the name index, built on idle rather than on load. Faceted filtering and the live counts are plain in-memory JS, one pass over the catalogue per interaction. `vite-plugin-pwa` (Workbox) precaches the shell and runtime-caches the data and photos. three.js draws the yard's 3D model and rides in a lazy chunk that loads only when a Model view mounts; the service worker precaches it, so the model still raises offline, and the guide's own bundle stays under 100KB gzipped. The look is a hand-rolled CSS design system, a herbarium specimen catalog in light and dark, whose one rule is that saturated colour only ever encodes plant data; the chrome stays ink on paper.
+Vite, React, TypeScript. MiniSearch for the name index, built on idle rather than on load. Faceted filtering and the live counts are plain in-memory JS, one pass over the catalogue per interaction. `vite-plugin-pwa` (Workbox) precaches the shell and runtime-caches the data and photos. three.js draws the yard's 3D model and rides in a lazy 139KB-gzipped chunk that loads only when a Model view mounts; the service worker precaches it, so the model still raises offline, and the guide's own bundle stays near 100KB gzipped without it. The look is a hand-rolled CSS design system, a herbarium specimen catalog in light and dark, whose one rule is that saturated colour only ever encodes plant data; the chrome stays ink on paper.
 
 ## Run
 

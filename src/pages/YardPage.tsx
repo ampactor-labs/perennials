@@ -108,6 +108,13 @@ export function YardPage() {
   // painted her own sheet. Every read below goes through ACCESS now.
   const { byId, mine: herIndex } = state.data;
 
+  // Her kept plants, resolved once: the Place tray's default, and what the sun
+  // checks each bed's light against. Declared here because the bed-shade lines
+  // read it well before the tray does.
+  const keptPlants = kept
+    .map((k) => byId.get(k.id))
+    .filter((p): p is Plant => p !== undefined);
+
   const commit = (next: Yard) => {
     setPast((p) => [...p.slice(-49), yard]);
     setSaved(put(next));
@@ -426,10 +433,6 @@ export function YardPage() {
 
   const selected = sel ? yard.plants.find((pl) => pl.uid === sel) : null;
   const selPlant = selected ? byId.get(selected.id) : undefined;
-
-  const keptPlants = kept
-    .map((k) => byId.get(k.id))
-    .filter((p): p is Plant => p !== undefined);
 
   /* ---- the tray: her shortlist by default, the whole guide on request --- */
 
