@@ -17,9 +17,10 @@ import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
 import { outsideRecord, phenologyLine } from "./phenology";
+import { admitYard, parseYardFile, YARD_FORMAT } from "./yardFile";
 import { ACCESS } from "./query";
 import { seenSlots } from "./seen";
-import { commitStroke, MAX_PTS, SHEET_H, SHEET_W } from "./yards";
+import { commitStroke, MAX_PTS, SHEET_H, SHEET_W, type Yard } from "./yards";
 import type { Plant } from "@/data/model";
 
 const plant = (h: Plant["hardiness"]) => ({ hardiness: h }) as Plant;
@@ -368,6 +369,52 @@ test("the backup collects her plant photos and every yard's ground, once each", 
     ["pA", "pB"],
     "her typed values carry no blob, a yard without a ground adds nothing, and a key two stores share rides once",
   );
+});
+
+/* ---- a yard travels as a file, and never costs her one ----------------- */
+
+// A client opens a plan on the phone that already holds their own gardens. The
+// one rule this must never break is that the import cannot overwrite a yard she
+// has; admitYard is where that lives, so it is pinned here.
+const aYard = (id: string, name = "y"): Yard =>
+  ({ v: 1, id, name, at: 1, north: 0, strokes: [], plants: [] }) as Yard;
+
+test("an imported yard whose id collides is admitted fresh, never over hers", () => {
+  const mine = [aYard("y1", "mine"), aYard("y2", "also mine")];
+  const incoming = aYard("y1", "theirs");
+  const out = admitYard(mine, incoming, "y-fresh");
+  assert.equal(out.length, 3, "a collision must add, never replace");
+  assert.deepEqual(out[0], mine[0], "her colliding yard is left byte-identical");
+  assert.deepEqual(out[1], mine[1], "and the rest of hers untouched");
+  assert.equal(out[2].id, "y-fresh", "the newcomer takes the fresh id");
+  assert.equal(out[2].name, "theirs", "and keeps everything else it arrived with");
+});
+
+test("an imported yard with no collision keeps its own id", () => {
+  const out = admitYard([aYard("y1")], aYard("y9", "new"), "y-fresh");
+  assert.equal(out.length, 2);
+  assert.equal(out[1].id, "y9", "no clash, no rename");
+});
+
+test("a yard file bounces garbage and admits a well-formed one", () => {
+  assert.equal(parseYardFile("not json"), null);
+  assert.equal(parseYardFile(JSON.stringify({ format: "something-else", v: 1 })), null);
+  assert.equal(
+    parseYardFile(JSON.stringify({ format: YARD_FORMAT, v: 1, yard: { name: "no id" } })),
+    null,
+    "a yard without an id is not a yard",
+  );
+  const good = JSON.stringify({
+    format: YARD_FORMAT,
+    v: 1,
+    at: "2026-07-19",
+    yard: aYard("y1", "Sunny bed"),
+    photos: {},
+  });
+  const f = parseYardFile(good);
+  assert.ok(f, "a well-formed file parses");
+  assert.equal(f!.yard.name, "Sunny bed");
+  assert.equal(f!.yard.id, "y1");
 });
 
 /* ---- the restore: a merge never costs her an entry -------------------- */

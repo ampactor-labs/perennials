@@ -22,6 +22,7 @@ import {
   useYards,
 } from "@/lib/yards";
 import { exportYard } from "@/lib/yardExport";
+import { buildYardFile, yardFileText } from "@/lib/yardFile";
 import { standing } from "@/lib/elevation";
 import { AddMine } from "@/components/AddMine";
 import { ElevationView, grownM, type Fig } from "@/components/ElevationView";
@@ -477,7 +478,15 @@ export function YardPage() {
         />
         <button
           className="btn btn--sm"
-          onClick={() => exportYard(yard, tokens, { slot, bloomLine, placedPlants, figs })}
+          onClick={async () =>
+            exportYard(yard, tokens, {
+              slot,
+              bloomLine,
+              placedPlants,
+              figs,
+              yardFile: yardFileText(await buildYardFile(yard)),
+            })
+          }
         >
           Share
         </button>

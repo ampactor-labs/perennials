@@ -163,7 +163,10 @@ function cleanPlaced(raw: unknown): Placed | null {
   };
 }
 
-function cleanYard(raw: unknown): Yard | null {
+/** Sanitize one yard on the way in, enforcing every cap. Exported for the
+ *  yard-file importer, which admits a yard from outside this phone and must
+ *  bounce a malformed one exactly as a restore does. */
+export function sanitizeYard(raw: unknown): Yard | null {
   const y = raw as Yard;
   if (typeof y?.id !== "string" || typeof y?.name !== "string") return null;
   return {
@@ -184,7 +187,7 @@ function cleanYard(raw: unknown): Yard | null {
 }
 
 const store = createLocalStore<Yard[]>("perennials.yards.v1", [], (raw) =>
-  Array.isArray(raw) ? raw.map(cleanYard).filter((y): y is Yard => y !== null) : null,
+  Array.isArray(raw) ? raw.map(sanitizeYard).filter((y): y is Yard => y !== null) : null,
 );
 
 /** Read and replace the whole store, for lib/backup.ts. It goes through the

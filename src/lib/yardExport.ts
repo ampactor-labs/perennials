@@ -250,6 +250,9 @@ export async function exportYard(
     bloomLine: string | null;
     placedPlants: Plant[];
     figs: Fig[];
+    /** The importable yard, as JSON text. Rides alongside the picture and the
+     *  list so one Share hands a client a sheet to read and a file to open. */
+    yardFile?: string;
   },
 ): Promise<void> {
   const stamp = new Date().toISOString().slice(0, 10);
@@ -257,6 +260,10 @@ export async function exportYard(
   const txt = new File([plantListText(yard, extra.placedPlants)], `${base}.txt`, {
     type: "text/plain",
   });
+  const files: File[] = [txt];
+  if (extra.yardFile) {
+    files.push(new File([extra.yardFile], `${base}.json`, { type: "application/json" }));
+  }
 
   // The ground fetch fails on its own: an unreadable photo costs the sheet its
   // backdrop, never the sheet.
@@ -287,9 +294,9 @@ export async function exportYard(
     const png = await new Promise<Blob>((res, rej) =>
       canvas.toBlob((b) => (b ? res(b) : rej(new Error("raster failed"))), "image/png"),
     );
-    await shareFiles([new File([png], `${base}.png`, { type: "image/png" }), txt]);
+    await shareFiles([new File([png], `${base}.png`, { type: "image/png" }), ...files]);
   } catch {
-    // A raster can fail in odd browsers; the plant list must still get out.
-    await shareFiles([txt]);
+    // A raster can fail in odd browsers; the list and the file must still get out.
+    await shareFiles(files);
   }
 }
