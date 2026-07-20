@@ -9,6 +9,7 @@ import {
   tickStep,
   TOP_Y,
 } from "@/lib/elevation";
+import { growthBand } from "@/lib/growth";
 
 /**
  * The elevation: the same placed plants, standing. Read-only on purpose; the
@@ -30,16 +31,37 @@ export type Fig = TokenView & {
   /** The height is her measurement, so the figure wears her ink. */
   hers: boolean;
   width: number | null;
+  /** The record's pace word (or hers), for the years axis; null bands nothing. */
+  growth: string | null;
+  /** Her photo of this plant, by key, for the model to stand up. */
+  photo?: string;
 };
+
+/** Height standing at year N: the band's middle when a pace is recorded,
+ *  mature when none is (the coverage line owns that gap), mature when the
+ *  years axis is off. */
+export function grownM(f: Fig, years: number | null): number {
+  if (f.height === null || years === null) return f.height ?? 0;
+  const band = growthBand(f.growth, years);
+  return band ? f.height * ((band.lo + band.hi) / 2) : f.height;
+}
 
 const TOKEN_R = 16;
 
-function Silhouette({ f, scale }: { f: Fig; scale: number }) {
+function Silhouette({ f, scale, years }: { f: Fig; scale: number; years: number | null }) {
   if (f.height === null || scale <= 0) return null;
   const kind = archetypeOf(f.layer);
-  const h = f.height * scale;
-  const w = Math.max(18, (f.width ?? f.height * CROWN_RATIO[kind]) * scale);
+  const nowM = grownM(f, years);
+  const h = Math.max(2, nowM * scale);
+  const w = Math.max(18, (f.width ?? f.height * CROWN_RATIO[kind]) * scale * (f.height > 0 ? nowM / f.height : 1));
   const fig = figurePaths(kind, f.x, GROUND_Y, h, w);
+  // The years axis draws today solid and mature as a ghost behind it, so the
+  // gap between them is the drawing, not a caption.
+  const matureW = Math.max(18, (f.width ?? f.height * CROWN_RATIO[kind]) * scale);
+  const ghost =
+    years !== null && nowM < f.height - 0.01
+      ? figurePaths(kind, f.x, GROUND_Y, f.height * scale, matureW)
+      : null;
   const fill =
     f.state === "fill"
       ? f.fill
@@ -51,6 +73,7 @@ function Silhouette({ f, scale }: { f: Fig; scale: number }) {
   const cls = `yard-fig${f.hers ? " yard-fig--hers" : ""}${kind === "vine" ? " yard-fig--vine" : ""}`;
   return (
     <g className={cls}>
+      {ghost && <path d={ghost.body} className="yard-fig-ghost" />}
       {fig.trunk && (
         <line
           x1={fig.trunk[0][0]}
@@ -77,10 +100,14 @@ function Silhouette({ f, scale }: { f: Fig; scale: number }) {
 export function ElevationView({
   figs,
   sel,
+  years,
   onSelect,
 }: {
   figs: Fig[];
   sel: string | null;
+  /** Years since planting, or null for the mature view. The rule's scale
+   *  stays pinned to mature heights so the axis never rescales mid-scrub. */
+  years: number | null;
   onSelect: (uid: string | null) => void;
 }) {
   const measured = figs.filter((f) => f.height !== null);
@@ -156,7 +183,7 @@ export function ElevationView({
                 : "var(--paper)";
         return (
           <g key={f.uid} className={f.show === "other" ? "yard-token yard-token--dim" : "yard-token"}>
-            <Silhouette f={f} scale={scale} />
+            <Silhouette f={f} scale={scale} years={years} />
             {f.show === "match" && (
               <circle cx={f.x} cy={GROUND_Y} r={TOKEN_R + 11} className="yard-show" />
             )}

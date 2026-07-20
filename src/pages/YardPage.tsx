@@ -4,10 +4,15 @@ import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
 import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, type BloomSlot } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
+import { latFromDevice, useLat, writeLat } from "@/lib/latitude";
 import { mineFor, useMine } from "@/lib/mine";
 import { deletePhoto, putPhoto, useMinePhoto } from "@/lib/photos";
 import { ACCESS } from "@/lib/query";
 import { seenSlots, useSeen } from "@/lib/seen";
+import { useSpots } from "@/lib/spots";
+import { blockerOf, dayForSlot, directHours, lightTier } from "@/lib/sun";
+import { archetypeOf } from "@/lib/elevation";
+import { growthBand } from "@/lib/growth";
 import {
   MAX_LABEL,
   MAX_PLANTS,
@@ -19,7 +24,7 @@ import {
 import { exportYard } from "@/lib/yardExport";
 import { standing } from "@/lib/elevation";
 import { AddMine } from "@/components/AddMine";
-import { ElevationView, type Fig } from "@/components/ElevationView";
+import { ElevationView, grownM, type Fig } from "@/components/ElevationView";
 import { YardCanvas, type Mode, type TokenView } from "@/components/YardCanvas";
 import { YearScrubber } from "@/components/YearScrubber";
 import { Thumb } from "@/components/Thumb";
@@ -52,6 +57,8 @@ export function YardPage() {
   const { kept } = useKept();
   const { seen } = useSeen();
   const { mine } = useMine();
+  const { save: saveSpot } = useSpots();
+  const lat = useLat();
 
   const [mode, setMode] = useState<Mode>("move");
   const [view, setView] = useState<"sheet" | "elevation" | "model">("sheet");
@@ -63,6 +70,12 @@ export function YardPage() {
   const [labelText, setLabelText] = useState("");
   const [saved, setSaved] = useState(true);
   const [findText, setFindText] = useState("");
+  const [years, setYears] = useState<number | null>(null);
+  const [hour, setHour] = useState(14);
+  const [walk, setWalk] = useState(false);
+  const [latBusy, setLatBusy] = useState(false);
+  const [latDraft, setLatDraft] = useState("");
+  const [spanDraft, setSpanDraft] = useState("");
   const [past, setPast] = useState<Yard[]>([]);
   const [note, setNote] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -166,17 +179,20 @@ export function YardPage() {
   // a plant with neither stays a mark on the line rather than growing a shape.
   const figs: Fig[] = yard.plants.map((pl, i) => {
     const p = byId.get(pl.id);
+    const her = herIndex.get(pl.id);
     const h = standing(p?.height ?? null, mineFor(mine, pl.id, "height")?.text);
     const w = standing(p?.width ?? null, mineFor(mine, pl.id, "width")?.text);
     return {
       ...tokens[i],
       depth: pl.y,
-      // Through ACCESS, so a layer she filled shapes the figure where the
-      // record is silent; the record's own layer always speaks first.
-      layer: p ? (asList(ACCESS.layer(p, herIndex.get(pl.id)))[0] ?? null) : null,
+      // Through ACCESS, so a layer or pace she filled shapes the figure where
+      // the record is silent; the record's own value always speaks first.
+      layer: p ? (asList(ACCESS.layer(p, her))[0] ?? null) : null,
       height: h?.m ?? null,
       hers: h?.hers ?? false,
       width: w?.m ?? null,
+      growth: p ? (asList(ACCESS.growth(p, her))[0] ?? null) : null,
+      ...(her?.photo ? { photo: her.photo } : {}),
     };
   });
 
@@ -206,6 +222,101 @@ export function YardPage() {
   // An empty yard has no side to see; the toggle only appears with a plant on
   // the sheet, and losing the last plant lands her back on the paper.
   const projection = placed > 0 ? view : "sheet";
+
+  /* ---- the sun: derived shade, only from numbers that are hers --------- */
+
+  const sunReady = lat !== null && !!yard.span;
+
+  // The catalogue's own spellings for the three tiers, so a derived value
+  // lands in the bucket the sources already use and filters like one.
+  const lightWord = (tier: "full" | "part" | "shade"): string => {
+    const values = (state.data.facets.light ?? []).map((v) => v.value);
+    if (tier === "full")
+      return values.find((v) => v.toLowerCase().includes("full sun")) ?? "Full sun";
+    if (tier === "part")
+      return values.find((v) => v.toLowerCase().includes("part")) ?? "Partial sun/shade";
+    return (
+      values.find((v) => {
+        const t = v.toLowerCase();
+        return t.includes("shade") && !t.includes("part") && !t.includes("sun");
+      }) ?? "Full shade"
+    );
+  };
+
+  const bedLines = (() => {
+    if (projection !== "model" || lat === null || !yard.span) return [];
+    const upm = 1000 / yard.span;
+    const day = dayForSlot(slot, lat);
+    // What stands casts: the year-scrubbed heights, hers and the record's.
+    const blockers = figs
+      .filter((f) => f.height !== null)
+      .map((f) => blockerOf(archetypeOf(f.layer), f.x, f.depth, grownM(f, years), f.width, upm));
+    const labels = yard.strokes.filter((s) => s.k === "label");
+    return yard.strokes
+      .filter((s) => s.k === "area")
+      .slice(0, 8)
+      .map((bed, i) => {
+        const cx = bed.pts.reduce((a, p) => a + p[0], 0) / bed.pts.length;
+        const cz = bed.pts.reduce((a, p) => a + p[1], 0) / bed.pts.length;
+        let name = `Bed ${i + 1}`;
+        let best = 300;
+        for (const l of labels) {
+          if (l.k !== "label") continue;
+          const d = Math.hypot(l.at[0] - cx, l.at[1] - cz);
+          if (d < best) {
+            best = d;
+            name = l.text;
+          }
+        }
+        const hours = directHours(cx, cz, lat, day, yard.north, blockers);
+        const word = lightWord(lightTier(hours));
+        const fit = keptPlants.filter((p) =>
+          asList(ACCESS.light(p, herIndex.get(p.id))).includes(word),
+        ).length;
+        return { id: bed.id, name, hours, word, fit };
+      });
+  })();
+
+  const saveBedSpot = (b: { name: string; word: string }) => {
+    saveSpot(`${b.name} (${(slot ?? "Early Summer").toLowerCase()} sun)`, {
+      atoms: [{ kind: "facet", key: "light", value: b.word }],
+      text: "",
+      view: "list",
+    });
+    say(`Saved "${b.name}" to your spots; it applies like any site.`);
+  };
+
+  const askLat = async () => {
+    setLatBusy(true);
+    const v = await latFromDevice();
+    setLatBusy(false);
+    if (v === null) return say("This phone won't say where it is; type your latitude instead.");
+    if (!writeLat(v)) say("This phone's storage refused the save.");
+  };
+  const setLatManual = () => {
+    const n = Number(latDraft);
+    if (!Number.isFinite(n) || Math.abs(n) > 90 || latDraft.trim() === "")
+      return say("A latitude runs from -90 to 90.");
+    writeLat(n);
+    setLatDraft("");
+  };
+  const setSpanManual = () => {
+    const n = Number(spanDraft);
+    if (!Number.isFinite(n) || n < 2 || n > 2000 || spanDraft.trim() === "")
+      return say("A sheet spans a couple of metres to a couple of thousand.");
+    commit({ ...yard, span: Math.round(n) });
+    setSpanDraft("");
+  };
+
+  // The years axis: how many growing figures actually have a recorded pace.
+  const paceLine = (() => {
+    if (years === null || projection === "sheet") return null;
+    const growing = figs.filter((f) => f.height !== null);
+    if (growing.length === 0) return null;
+    const paced = growing.filter((f) => growthBand(f.growth, 1) !== null).length;
+    const rest = growing.length - paced;
+    return `${paced} of ${growing.length} figures have a recorded pace and grow between a cautious and a generous reading of it${rest > 0 ? `; ${rest} stand at mature size, their pace not in our data` : ""}.`;
+  })();
 
   const elevLine = (() => {
     if (projection === "sheet") return null;
@@ -419,18 +530,149 @@ export function YardPage() {
           onRing={onRing}
         />
       ) : projection === "elevation" ? (
-        <ElevationView figs={figs} sel={sel} onSelect={setSel} />
+        <ElevationView figs={figs} sel={sel} years={years} onSelect={setSel} />
       ) : (
         <Suspense fallback={<p className="yard-coverage">Raising the model…</p>}>
-          <YardModel yard={yard} figs={figs} underlay={underlayUrl} sel={sel} onSelect={setSel} />
+          <YardModel
+            yard={yard}
+            figs={figs}
+            underlay={underlayUrl}
+            sel={sel}
+            years={years}
+            sun={lat !== null && yard.span ? { lat, day: dayForSlot(slot, lat), hour } : null}
+            walk={walk}
+            onSelect={setSel}
+          />
         </Suspense>
       )}
       {elevLine && <p className="yard-coverage">{elevLine}</p>}
       {projection === "model" && (
-        <p className="yard-coverage">
-          The ground is your sheet and claims no scale; heights are true to one another, and the
-          corner post is the tallest plant's measure. Drag to walk around it.
-        </p>
+        <div className="yard-sun-row">
+          <p className="yard-coverage" style={{ flex: 1, minWidth: 0, marginTop: 0 }}>
+            {yard.span
+              ? `The ground is your sheet at the span you gave it, about ${yard.span} m across; heights stand in the same metres.`
+              : "The ground is your sheet and claims no scale; heights are true to one another, and the corner post is the tallest plant's measure."}
+          </p>
+          <button
+            className={walk ? "btn btn--sm" : "btn btn--ghost btn--sm"}
+            onClick={() => setWalk((v) => !v)}
+            aria-pressed={walk}
+          >
+            {walk ? "Look from above" : "Walk in"}
+          </button>
+        </div>
+      )}
+
+      {projection !== "sheet" && placed > 0 && (
+        <div className="yard-years">
+          <button
+            className={years === null ? "btn btn--sm" : "btn btn--ghost btn--sm"}
+            onClick={() => setYears(null)}
+            aria-pressed={years === null}
+          >
+            Mature
+          </button>
+          <input
+            className="yard-slider"
+            type="range"
+            min={0}
+            max={25}
+            step={1}
+            value={years ?? 25}
+            aria-label="Years since planting"
+            onChange={(e) => setYears(Number(e.target.value))}
+          />
+          <span className="yard-coverage yard-years-label">
+            {years === null ? "at recorded mature size" : years === 0 ? "the year it goes in" : `year ${years}`}
+          </span>
+        </div>
+      )}
+      {paceLine && <p className="yard-coverage">{paceLine}</p>}
+
+      {projection === "model" && (
+        <section className="yard-sun">
+          {!sunReady ? (
+            <>
+              <p className="yard-coverage">
+                The sun needs two numbers of yours: your latitude, and about how many metres this
+                sheet spans. Nothing is cast without them, and nothing is guessed.
+              </p>
+              {lat === null ? (
+                <div className="yard-sun-row">
+                  <button className="btn btn--ghost btn--sm" disabled={latBusy} onClick={() => void askLat()}>
+                    {latBusy ? "Asking…" : "Use where I'm standing"}
+                  </button>
+                  <input
+                    className="note-input yard-sun-input"
+                    inputMode="numeric"
+                    value={latDraft}
+                    placeholder="or latitude, e.g. 43"
+                    aria-label="Your latitude in degrees"
+                    onChange={(e) => setLatDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && setLatManual()}
+                  />
+                  <button className="btn btn--sm" onClick={setLatManual}>
+                    Set
+                  </button>
+                  <span className="yard-coverage">Kept to the whole degree; the sun can't tell finer.</span>
+                </div>
+              ) : (
+                <p className="yard-coverage">Latitude {lat}°.</p>
+              )}
+              {!yard.span && (
+                <div className="yard-sun-row">
+                  <input
+                    className="note-input yard-sun-input"
+                    inputMode="numeric"
+                    value={spanDraft}
+                    placeholder="sheet width in metres"
+                    aria-label="About how many metres across is this sheet"
+                    onChange={(e) => setSpanDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && setSpanManual()}
+                  />
+                  <button className="btn btn--sm" onClick={setSpanManual}>
+                    Set
+                  </button>
+                  <span className="yard-coverage">Your estimate; it also puts the model to scale.</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="yard-sun-row">
+                <input
+                  className="yard-slider"
+                  type="range"
+                  min={5}
+                  max={21}
+                  step={0.5}
+                  value={hour}
+                  aria-label="Hour of the day, solar time"
+                  onChange={(e) => setHour(Number(e.target.value))}
+                />
+                <span className="yard-coverage yard-years-label">
+                  {`${Math.floor(hour)}:${hour % 1 ? "30" : "00"} · ${slot ?? "Early Summer"} sun at ${lat}°`}
+                </span>
+              </div>
+              {bedLines.map((b) => (
+                <p key={b.id} className="yard-coverage yard-bed-line">
+                  <b>{b.name}</b>: about {b.hours}h direct — {b.word}.
+                  {keptPlants.length > 0 && ` ${b.fit} of your kept plants are recorded for it.`}{" "}
+                  <button className="linkish" onClick={() => saveBedSpot(b)}>
+                    Save as spot
+                  </button>
+                </p>
+              ))}
+              {bedLines.length === 0 && (
+                <p className="yard-coverage">Draw a bed on the sheet and the sun will read it.</p>
+              )}
+              <p className="yard-coverage">
+                Crowns as drawn, heights as recorded, sampled on the half hour: an estimate for
+                planning a bed, not a survey.
+              </p>
+            </>
+          )}
+        </section>
       )}
 
       {placed > 0 && <YearScrubber slot={slot} onSlot={setSlot} />}

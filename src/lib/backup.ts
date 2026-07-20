@@ -17,6 +17,7 @@
 import type { Dataset } from "@/data/store";
 import { readZone, writeZone } from "./homeZone";
 import { readKept, writeKept, type Kept } from "./kept";
+import { readLat, writeLat } from "./latitude";
 import { MINE_FIELDS, readMine, writeMine, type Mine, type MineField } from "./mine";
 import { noteDate, readNotes, writeNotes, type Note } from "./notes";
 import { blobToDataUrl, getPhoto, restorePhoto } from "./photos";
@@ -38,6 +39,8 @@ export type Backup = {
   yards: Yard[];
   mine: Mine[];
   zone: number | null;
+  /** Her latitude, whole degrees, for the sun. Old backups carry none. */
+  lat: number | null;
   theme: ThemePref | null;
   /** photo key -> data URL. Only the ones her stores actually point at: mine
    *  records, and the ground under a yard. */
@@ -97,6 +100,7 @@ export async function buildBackup(): Promise<Backup> {
     yards,
     mine,
     zone: readZone(),
+    lat: readLat(),
     theme: readTheme(),
     photos,
   };
@@ -150,6 +154,7 @@ export function parseBackup(text: string): Backup | null {
         fields.has(m?.field as MineField),
     ),
     zone: typeof b.zone === "number" ? b.zone : null,
+    lat: typeof b.lat === "number" ? b.lat : null,
     theme:
       b.theme === "light" || b.theme === "dark" || b.theme === "system" ? b.theme : null,
     photos:
@@ -253,6 +258,7 @@ export async function restoreBackup(b: Backup, mode: Mode): Promise<Restored> {
     writeYards(yards),
     writeMine(mine),
     b.zone === null || writeZone(b.zone),
+    b.lat === null || writeLat(b.lat),
     b.theme === null || writeTheme(b.theme),
   ];
 

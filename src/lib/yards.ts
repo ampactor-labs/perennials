@@ -49,6 +49,10 @@ export type Yard = {
    *  the key lives here: an image in this record would eat the localStorage
    *  budget that keeps a hundred yards safe. */
   underlay?: string;
+  /** Roughly how many metres the sheet spans, her estimate. The one number
+   *  that turns the napkin computable: with it (and her latitude) the sun
+   *  casts and the model stands at true scale. Absent, nothing is guessed. */
+  span?: number;
   strokes: Stroke[];
   plants: Placed[];
 };
@@ -169,6 +173,7 @@ function cleanYard(raw: unknown): Yard | null {
     at: int(y.at) ? y.at : 0,
     north: int(y.north) ? y.north : 0,
     ...(typeof y.underlay === "string" && y.underlay ? { underlay: y.underlay } : {}),
+    ...(int(y.span) && y.span >= 2 && y.span <= 2000 ? { span: Math.round(y.span) } : {}),
     strokes: Array.isArray(y.strokes)
       ? y.strokes.map(cleanStroke).filter((s): s is Stroke => s !== null).slice(0, MAX_STROKES)
       : [],

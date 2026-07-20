@@ -159,6 +159,14 @@
 .yard-fig--hers .yard-fig-trunk {
   stroke: var(--sepia);
 }
+/* mature size, behind the year's growth: the room it will take */
+.yard-fig-ghost {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 5;
+  opacity: 0.6;
+}
 .yard-token--dim .yard-fig {
   opacity: 0.35;
 }
@@ -187,6 +195,46 @@
   display: block;
   width: 100% !important;
   height: 100% !important;
+}
+
+/* the years axis and the sun controls, under the standing yard */
+.yard-years {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+.yard-years-label {
+  margin-top: 0;
+  white-space: nowrap;
+}
+.yard-slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--green);
+  height: var(--tap);
+}
+.yard-sun {
+  margin-top: var(--sp-2);
+}
+.yard-sun-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.yard-sun-input {
+  flex: 1;
+  min-width: 8ch;
+  padding: var(--sp-1) var(--sp-2);
+}
+.yard-bed-line {
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--line);
+}
+.yard-bed-line:last-of-type {
+  border-bottom: none;
 }
 
 .yard-rose-face {

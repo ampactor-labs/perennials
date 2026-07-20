@@ -11,6 +11,8 @@ import assert from "node:assert/strict";
 import { mergeById, photoKeys } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
 import { archetypeOf, figurePaths, parseMetres, standing, tickStep, type Archetype } from "./elevation";
+import { growthBand } from "./growth";
+import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit } from "./sun";
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
@@ -278,6 +280,73 @@ test("the height rule stays readable at any yard's scale", () => {
   assert.equal(tickStep(80), 10);
   for (const m of [0.4, 1.5, 4, 9, 28, 120])
     assert.ok(Math.floor(m / tickStep(m)) <= 13, `${m}m must not print a wall of ticks`);
+});
+
+/* ---- the sun: computed like the sky, never guessed --------------------- */
+
+test("the computed sun behaves like the sky", () => {
+  // Equinox noon at latitude 40: altitude 90 - 40, sun due south.
+  const eq = sunAt(40, 80, 12);
+  assert.ok(Math.abs(eq.altitude - 50) < 1.5, `equinox noon altitude ${eq.altitude}`);
+  assert.ok(Math.abs(eq.azimuth - 180) < 3, `equinox noon azimuth ${eq.azimuth}`);
+  // Summer noon stands higher than winter noon, and both are daylight.
+  const summer = sunAt(40, 172, 12).altitude;
+  const winter = sunAt(40, 355, 12).altitude;
+  assert.ok(summer > winter + 40, "the seasons must move the sun");
+  // South of the equator the noon sun hangs north.
+  const south = sunAt(-35, 355, 12).azimuth;
+  assert.ok(south < 10 || south > 350, `southern noon azimuth ${south}`);
+});
+
+test("a season word falls on opposite days across the equator", () => {
+  assert.notEqual(dayForSlot("Mid Summer", 40), dayForSlot("Mid Summer", -35));
+});
+
+test("a crown shades near ground, spares far ground, and shades farther in winter", () => {
+  // An 8m tree on a sheet spanning 100m (10 units per metre), north up.
+  const tree = [blockerOf("tree", 500, 500, 8, 6, 10)];
+  const noonSummer = sunAt(40, 172, 12);
+  const noonWinter = sunAt(40, 355, 12);
+  assert.equal(sunlit(500, 485, noonSummer, 0, tree), false, "just north of the tree is shade");
+  assert.equal(sunlit(500, 100, noonSummer, 0, tree), true, "forty metres out is open sun");
+  assert.equal(sunlit(500, 420, noonSummer, 0, tree), true, "the high sun clears eight metres");
+  assert.equal(sunlit(500, 420, noonWinter, 0, tree), false, "the low sun does not");
+  assert.equal(sunlit(500, 500, noonSummer, 0, tree), false, "under the crown is shade");
+});
+
+test("open ground reads full sun; a June day at 40N carries it easily", () => {
+  const hours = directHours(500, 700, 40, 166, 0, []);
+  assert.ok(hours >= 10, `open June ground got ${hours}h`);
+  assert.equal(lightTier(hours), "full");
+  assert.equal(lightTier(5.5), "part");
+  assert.equal(lightTier(3), "part");
+  assert.equal(lightTier(2.5), "shade");
+});
+
+/* ---- growth: a pace in three words is a band, not a curve -------------- */
+
+test("a recorded pace grows monotonically toward mature and never past it", () => {
+  for (const word of ["Slow", "Moderate", "Fast"]) {
+    let last = 0;
+    for (const y of [0, 2, 5, 10, 20, 40]) {
+      const b = growthBand(word, y);
+      assert.ok(b, `${word} must band`);
+      assert.ok(b.lo <= b.hi, "the cautious reading never outruns the generous one");
+      assert.ok(b.hi <= 1.000001, "nothing grows past its recorded mature height");
+      assert.ok(b.hi >= last, "growth does not run backwards");
+      last = b.hi;
+    }
+  }
+  const fast = growthBand("Fast", 7)!;
+  assert.ok(fast.hi >= 0.9, "fast at seven years is nearly grown");
+  assert.ok(growthBand("Fast", 5)!.hi > growthBand("Slow", 5)!.hi, "fast outpaces slow");
+});
+
+test("an unrecorded pace bands nothing; the caller says the gap instead", () => {
+  assert.equal(growthBand(null, 5), null);
+  assert.equal(growthBand(undefined, 5), null);
+  assert.equal(growthBand("vigorous, they say", 5), null);
+  assert.deepEqual(growthBand("Fast", 0), { lo: 0, hi: 0 }, "the year it goes in, it is a sapling");
 });
 
 /* ---- the backup carries every photo her stores point at ---------------- */
