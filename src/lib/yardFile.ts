@@ -103,7 +103,7 @@ export function admitYard(existing: Yard[], incoming: Yard, freshId: string): Ya
 export async function importYardFile(
   text: string,
   now: number,
-): Promise<{ name: string; plants: number } | null> {
+): Promise<{ name: string; plants: number; saved: boolean } | null> {
   const f = parseYardFile(text);
   if (!f) return null;
   let yard: Yard = { ...f.yard, at: now };
@@ -127,7 +127,10 @@ export async function importYardFile(
     }
   }
 
+  // writeYards says whether the disk took it. A client importing a plan into
+  // a full phone that is told "Opened" while nothing persisted is the silent
+  // loss the rest of the app refuses, so the flag rides back to the page.
   const existing = readYards();
-  writeYards(admitYard(existing, yard, freshKey("y", now)));
-  return { name: yard.name, plants: yard.plants.length };
+  const saved = writeYards(admitYard(existing, yard, freshKey("y", now)));
+  return { name: yard.name, plants: yard.plants.length, saved };
 }

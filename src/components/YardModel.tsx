@@ -407,9 +407,12 @@ export function YardModel({
           // Her photograph stands in the plant's place: an upright standee at
           // the plant's height, both faces showing. An invisible archetype
           // mass casts the shadow, so the shade she sees still matches the
-          // crown the numbers are computed from.
+          // crown the numbers are computed from. depthWrite is off as well as
+          // colorWrite: writing depth but not colour would let this invisible
+          // mass occlude the very photo it stands in front of, while shadow
+          // casting comes from castShadow through the shadow pass regardless.
           const shadowMat = keep(
-            new THREE.MeshLambertMaterial({ colorWrite: false }),
+            new THREE.MeshLambertMaterial({ colorWrite: false, depthWrite: false }),
           );
           for (const m of buildBody(kind, h, wUnits, shadowMat, null)) {
             (m as THREE.Mesh).receiveShadow = false;

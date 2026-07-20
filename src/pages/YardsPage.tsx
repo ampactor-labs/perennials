@@ -41,9 +41,11 @@ export function YardsPage() {
     if (!file) return;
     const got = await importYardFile(await file.text(), Date.now());
     setNote(
-      got
-        ? `Opened “${got.name}” · ${got.plants} ${got.plants === 1 ? "plant" : "plants"}.`
-        : "That file isn't a yard.",
+      !got
+        ? "That file isn't a yard."
+        : got.saved
+          ? `Opened “${got.name}” · ${got.plants} ${got.plants === 1 ? "plant" : "plants"}.`
+          : `Opened “${got.name}”, but this phone's storage is full, so it lives in this session only. Free some space and open it again.`,
     );
   };
 
