@@ -2,6 +2,7 @@ import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
 import { herValue } from "@/lib/mine";
 import { BackupPanel } from "@/components/BackupPanel";
+import { InstallHint } from "@/components/InstallHint";
 import { IconAlert } from "@/components/icons";
 
 /**
@@ -117,6 +118,8 @@ export function AboutPage() {
           </span>
         </div>
       </section>
+
+      <InstallHint />
 
       <BackupPanel />
 

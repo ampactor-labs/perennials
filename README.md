@@ -22,11 +22,12 @@ Live at [ampactor.dev/perennials](https://ampactor.dev/perennials/).
 
 ## The data
 
-Three sources, and the app says which is which.
+Three sources of open data, and the app says which is which — and a fourth that is yours, kept apart from all three.
 
 - **[Permapeople](https://permapeople.org)** (CC BY-SA 4.0). The plants, their descriptions, photos, and most attributes. It serves 65 fields; the transform reads 21. Twice now the thing I went looking for elsewhere was already sitting in a field nobody had read: the 800px photographs, and the alternate names.
 - **[GloBI](https://www.globalbioticinteractions.org)** (CC BY 4.0). Flower visitors, from published field observations. Who *actually* turns up at the blooms, rather than who a gardening book supposes might.
 - **[USDA PLANTS](https://plants.usda.gov)** (public domain). Bloom colour and bloom period.
+- **You.** Notes, bloom dates seen with your own eyes, photos, heights, and any blank the other three left — the fourth source, in your browser only, rendered in your own ink and never attributed to the others. See [Your data](#your-data).
 
 It's real data, so it's uneven, and the interface is built to admit that rather than paper over it. Absence is never dressed up as a fact. A plant with no recorded flower visitors says so, and says that it is not the same as none. Filtering by hardiness quietly excludes the 2,788 plants nobody has recorded a zone for, so the rail says that too. Cautions are shown in the source's exact words, because "Toxic" and "Toxic fruits" are not the same sentence to someone standing over an asparagus bed.
 
@@ -35,6 +36,14 @@ Coverage is reported for the search you are actually running, not for the world.
 The app fetches its dataset from an API of its own (see [`server/`](server/)): a Node service on Postgres, hosted on Railway. It re-pulls Permapeople weekly and re-verifies a few plants an hour against GloBI and USDA, which cycles the whole catalogue in about ten weeks. The catalogue comes down compressed, under a megabyte, once; after that the service worker serves it and the app works with no signal. The Permapeople key lives in the API's environment, never in the browser and never in this repo.
 
 Photos are resized by the API (`/img/<id>/<width>.webp`, 64 to 800). Permapeople's CDN has no image service, so without this every 56-pixel thumbnail was a full-resolution JPEG. It serves two images per plant, a 300px `thumb` and an 800px `title`, and the pipeline read only the small one for a long time; that, not the compression, is why the plant page used to look soft.
+
+## Your data
+
+Everything you write — the kept list, notes, bloom marks, spots, yards, your filled-in values, your photos — lives in this origin's `localStorage` and one IndexedDB database, on your device and nowhere else. There is no account and no server-side copy, which is the privacy property, and it means the backup is the sync: save the `.json` on one phone, open it on another, and the second phone is your guide.
+
+Updates don't touch any of it. The front end is a service-worker PWA (`registerType: "autoUpdate"`): when a new version ships, it downloads in the background and the page reloads itself once to pick it up — no hard refresh, no cache to clear. The service worker only ever manages its own asset caches; it never reads or clears your `localStorage` or IndexedDB, so a deploy is invisible to your data.
+
+The real way to lose local data is the browser reclaiming storage — iOS especially clears a tab's storage after about a week of not visiting. Two things guard against it: **install the app** to your home screen (Field notes offers this; an installed PWA is granted persistent storage and is exempt from that sweep), and **save a copy** now and then (Field notes → Your copy). The app already requests persistent storage the first time you write anything.
 
 ## Stack
 
@@ -63,13 +72,13 @@ src/data/       model (types), store (fetch, cache, lazy name index, her
 src/lib/        query (facets, one-pass evaluation, live counts), constraints
                 (the atom model + URL codec), suggest (the omnibox grammar),
                 spots, bloom, img, hardiness, homeZone; hers: mine, notes,
-                seen, kept, photos, backup; the yard: yards, elevation,
-                yardExport
+                seen, kept, photos, backup, latitude, phenology; the yard:
+                yards, elevation, growth, sun, yardExport, yardFile
 src/state/      search (constraints in; results, counts and trail out)
 src/components/ Omnibox, Trail, FacetRail, SpotBar, ResultGrid, PlantCard,
-                GuildView, Thumb, Layout; the yard: YardCanvas, ElevationView,
-                YardModel, YearScrubber; hers: AddMine, NotePanel,
-                BloomCalendar, SeenMark, BackupPanel
+                GuildView, Thumb, Layout, InstallHint; the yard: YardCanvas,
+                ElevationView, YardModel, YearScrubber; hers: AddMine,
+                NotePanel, BloomCalendar, SeenMark, BackupPanel
 src/pages/      Browse, Plant, Kept, Yards, Yard, About
 src/styles/     tokens, base, app, browse, detail, kept, yard
 server/         the data API: pull, transform, enrich, ingest, resize, serve

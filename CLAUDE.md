@@ -51,7 +51,7 @@ won't. The one thing her values may never do is claim to be a source's.
 
 The yard (`lib/yards.ts`, `pages/YardPage.tsx`) is her sheet with the record performing
 on top, in three projections: plan, elevation, model. In the vertical two, size is a
-claim, so a plant with no height in our data draws no figure and stands as a mark on the
+claim, so a plant with no height in our data draws no figure and stays a mark on the
 line; heights parse through `lib/elevation.ts` (record first, hers where it is silent),
 and figures are the recorded guild layer's archetype, never a shape invented per plant.
 The exported sheet re-renders plan and elevation from the same geometry with the licence
@@ -79,20 +79,35 @@ The tests cover the rules the guide turns on and nothing else: what a hardiness
 record means, that a plant we have no measurement for never sorts below one the record rules
 out, that a month lands on exactly one of USDA's nine season words, that a stroke
 cannot grow past its cap, that restoring a backup never costs her an entry, and that her
-own values reach the guide without ever wearing a source's name. They exist because "a lone
-hardiness number is a floor, not a one-zone window" was wrong for months and dropped Red
-mulberry and hardy kiwi out of a zone-6 search, and nothing was watching. Put a rule here
-the day you rely on it.
+own values reach the guide without ever wearing a source's name. The yard adds its own:
+that only a real measurement stands a figure up (a plant with no height draws no body),
+that a growth pace is a band and never a single line, that the computed sun behaves like
+the sky, that her witnessed bloom dates are compared to the record without either being
+called wrong, and that importing a yard file can never overwrite a yard she already has.
+They exist because "a lone hardiness number is a floor, not a one-zone window" was wrong for
+months and dropped Red mulberry and hardy kiwi out of a zone-6 search, and nothing was
+watching. Put a rule here the day you rely on it.
 
 ## Her copy is the sync
 
-Field notes writes two files: a `.json` that restores all eight stores including her
-photos, and a `.txt` that outlives the app. Import the `.json` on another machine and
-that machine has her guide; there is no account, no server-side user data and no PII
-anywhere in this project, and that is a feature to defend rather than a gap to close.
-Restore defaults to merge (newest wins per entry), because the realistic restore is her
-second device and wiping the phone she is holding would be data loss wearing a feature's
-clothes.
+Field notes writes two files: a `.json` that restores every store, her photos included,
+and a `.txt` that outlives the app. Import the `.json` on another machine and that machine
+has her guide; there is no account, no server-side user data and no PII anywhere in this
+project, and that is a feature to defend rather than a gap to close. Restore defaults to
+merge (newest wins per entry), because the realistic restore is her second device and
+wiping the phone she is holding would be data loss wearing a feature's clothes. A single
+yard travels the same way (`lib/yardFile.ts`), and its import can never overwrite a yard
+she has: a colliding id is admitted fresh.
+
+Her data lives only in this origin's `localStorage` (nine `perennials.*.v1` keys) and one
+IndexedDB database (`perennials-photos`), so a code deploy or a service-worker update never
+touches it; updates swap the precached shell and reload once (`registerType: "autoUpdate"`,
+no hard refresh), and Workbox only ever clears Cache Storage. The one way to lose her data
+in code is to rename a store key without a migration, so don't: add optional fields (as
+`span`, `underlay` and `lat` were added), never bump a `.v1`. The real-world loss vector is
+the browser evicting script storage; the app asks for `persist()` on her first write, the
+Field-notes install hint reduces how often eviction bites, and her backup is the floor under
+all of it.
 
 **Do not run `tsc --noEmit`.** `tsconfig.json` is a solution-style config (`"files": []`
 plus project references), so a bare `tsc --noEmit` compiles nothing and exits 0 no matter
