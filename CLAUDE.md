@@ -54,8 +54,12 @@ on top, in three projections: plan, elevation, model. In the vertical two, size 
 claim, so a plant with no height in our data draws no figure and stays a mark on the
 line; heights parse through `lib/elevation.ts` (record first, hers where it is silent),
 and figures are the recorded guild layer's archetype, never a shape invented per plant.
-The exported sheet re-renders plan and elevation from the same geometry with the licence
-line baked in.
+The land is hers too: ground marks are spot heights she taps onto the sheet, and
+`lib/ground.ts` is the one interpolator every projection reads — exact at her marks,
+settling level where she set none — so the elevation sections the same surface the
+model drapes over, each figure carries one footing, and the computed sun climbs the
+same field the eye sees. The exported sheet re-renders plan and elevation from the
+same geometry with the licence line baked in.
 
 ## Layout
 
@@ -82,7 +86,9 @@ cannot grow past its cap, that restoring a backup never costs her an entry, and 
 own values reach the guide without ever wearing a source's name. The yard adds its own:
 that only a real measurement stands a figure up (a plant with no height draws no body),
 that a growth pace is a band and never a single line, that the computed sun behaves like
-the sky, that her witnessed bloom dates are compared to the record without either being
+the sky, that the ground passes exactly through the heights she set and settles level
+beyond them (a bank costs the bed behind it its winter sun; a distant molehill costs
+nothing), that her witnessed bloom dates are compared to the record without either being
 called wrong, and that importing a yard file can never overwrite a yard she already has.
 They exist because "a lone hardiness number is a floor, not a one-zone window" was wrong for
 months and dropped Red mulberry and hardy kiwi out of a zone-6 search, and nothing was

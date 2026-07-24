@@ -399,7 +399,7 @@ test("the section's scale fits the tallest reach and the deepest dip", () => {
   const s = sectionOf(marks, [4.6]);
   assert.ok(s.scale > 0);
   assert.ok(s.top * s.scale <= 520 - 36 + 1e-9, "the tallest reach stays on the page");
-  assert.ok(-s.bottom * s.scale <= 600 - 520 - 24 + 1e-9, "the dip stays inside the band");
+  assert.ok(-s.bottom * s.scale <= 600 - 520 - 44 + 1e-9, "the dip leaves room for its name");
   // With nothing standing and nothing shaped, there is nothing to scale.
   assert.equal(sectionOf([], []).scale, 0);
 });

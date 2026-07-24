@@ -138,7 +138,9 @@ export function sectionOf(
   for (const m of reaches) if (m > top) top = m;
   const bottom = Math.min(0, r.min);
   const sUp = top > 0 ? (GROUND_Y - TOP_Y) / top : Infinity;
-  const sDown = bottom < 0 ? (ELEV_H - GROUND_Y - 24) / -bottom : Infinity;
+  // The room below the datum keeps space for the deepest figure's name,
+  // which hangs 40 units under its mark.
+  const sDown = bottom < 0 ? (ELEV_H - GROUND_Y - 44) / -bottom : Infinity;
   const scale = sUp === Infinity && sDown === Infinity ? 0 : Math.min(sUp, sDown);
   return { scale, top, bottom, skyline: marks.length ? groundSkyline(marks) : null };
 }
