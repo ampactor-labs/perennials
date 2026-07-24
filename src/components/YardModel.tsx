@@ -2,20 +2,26 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { archetypeOf, CROWN_RATIO } from "@/lib/elevation";
+import { groundAt, groundRange, levelLabel } from "@/lib/ground";
 import { getPhoto } from "@/lib/photos";
 import { sunAt } from "@/lib/sun";
 import { pathD, SHEET_H, SHEET_W, type Yard } from "@/lib/yards";
 import { grownM, type Fig } from "./ElevationView";
 
 /**
- * The model: the sheet laid flat and the record standing on it, in the round.
+ * The model: the sheet laid over her land and the record standing on it, in
+ * the round.
  *
  * Every rule the elevation keeps holds here, because the third projection is
  * not a third vocabulary. The ground IS her sheet: the same paper, her ink
- * and her washed photo drawn onto its texture. A plant with no height in our
- * data is a flat mark on the ground, never a body; figures are the layer's
- * archetype at the record's height, in her ink when the measurement is hers;
- * bloom colour is the only saturated thing in the scene.
+ * and her washed photo drawn onto its texture — and when she has shaped the
+ * land (lib/ground.ts), the sheet drapes over that shape: the same surface
+ * the elevation sections, at the same metres, with every figure standing at
+ * its own footing. A yard she never shaped lies flat, exactly as it always
+ * did. A plant with no height in our data is a flat mark on the ground,
+ * never a body; figures are the layer's archetype at the record's height,
+ * in her ink when the measurement is hers; bloom colour is the only
+ * saturated thing in the scene.
  *
  * Three things the sheet cannot do live here. The years axis grows each figure
  * along its recorded pace, drawing today solid with mature behind it as a
@@ -84,8 +90,14 @@ export function YardModel({
   const scaleFor = () => {
     const measured = figs.filter((f) => f.height !== null);
     const maxM = measured.length ? Math.max(...measured.map((f) => f.height!)) : 0;
-    const K = yard.span ? 1000 / yard.span : maxM > 0 ? TOP_UNITS / maxM : 0;
-    return { K, maxM };
+    // With no span, the tallest measured thing — plant or landform — takes
+    // the top of the scene, and the corner post says its metres; everything
+    // else stays true to it. The same bargain as ever, now shared with the
+    // ground.
+    const range = groundRange(yard.ground);
+    const tallest = Math.max(maxM, range.max, -range.min);
+    const K = yard.span ? 1000 / yard.span : tallest > 0 ? TOP_UNITS / tallest : 0;
+    return { K, tallest };
   };
 
   /* ---- the stage, once ------------------------------------------------- */
@@ -265,6 +277,19 @@ export function YardModel({
           g.stroke(p2);
         }
       }
+      // her heights, the benchmarks the sheet draws, on the draped paper too
+      for (const gm of yard.ground ?? []) {
+        const [bx, by] = gm.at;
+        g.fillStyle = sepia;
+        g.beginPath();
+        g.moveTo(bx, by);
+        g.lineTo(bx - 9, by - 15);
+        g.lineTo(bx + 9, by - 15);
+        g.closePath();
+        g.fill();
+        g.font = "italic 22px Georgia, serif";
+        g.fillText(levelLabel(gm.m), bx + 14, by - 4);
+      }
       tex.needsUpdate = true;
     };
     paint(null);
@@ -278,11 +303,30 @@ export function YardModel({
       img.src = underlay;
     }
 
-    const ground = new THREE.Mesh(
-      keep(new THREE.PlaneGeometry(SHEET_W, SHEET_H).rotateX(-Math.PI / 2)),
-      keep(new THREE.MeshLambertMaterial({ map: tex })),
+    // The sheet drapes over the land she shaped: the plane subdivides and
+    // each vertex stands at the surface's height, in the same scale the
+    // figures use, so a figure's feet and the ground under them agree. An
+    // unshaped yard keeps the single flat quad it always was.
+    const { K, tallest } = scaleFor();
+    const marks = yard.ground ?? [];
+    const groundGeo = keep(
+      new THREE.PlaneGeometry(
+        SHEET_W,
+        SHEET_H,
+        marks.length ? 72 : 1,
+        marks.length ? 100 : 1,
+      ).rotateX(-Math.PI / 2),
     );
+    if (marks.length && K > 0) {
+      const pos = groundGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        pos.setY(i, groundAt(marks, pos.getX(i) + HALF_W, pos.getZ(i) + HALF_H) * K);
+      }
+      groundGeo.computeVertexNormals();
+    }
+    const ground = new THREE.Mesh(groundGeo, keep(new THREE.MeshLambertMaterial({ map: tex })));
     ground.receiveShadow = true;
+    ground.castShadow = marks.length > 0; // a bank shades what stands behind it
     w.content.add(ground);
 
     /* the calendar's hatch, for a bloom the record is silent on */
@@ -387,11 +431,11 @@ export function YardModel({
       return parts;
     };
 
-    const { K, maxM } = scaleFor();
-
     for (const f of figs) {
       const spot = new THREE.Group();
-      spot.position.set(f.x - HALF_W, 0, f.depth - HALF_H);
+      // The figure stands on its footing — the elevation's own number, so
+      // the two projections cannot disagree about where a plant's feet are.
+      spot.position.set(f.x - HALF_W, f.footing * K, f.depth - HALF_H);
       spot.userData.uid = f.uid;
 
       let top = 0;
@@ -504,19 +548,20 @@ export function YardModel({
     }
 
     // The measure, only when the sheet has no span of its own: a post at the
-    // far corner as tall as the tallest plant, saying its metres. With a span,
+    // far corner as tall as the tallest measured thing — plant or landform —
+    // saying its metres, its feet on the ground of that corner. With a span,
     // the coverage line already states the scale and the post is redundant.
-    if (maxM > 0 && !yard.span) {
+    if (tallest > 0 && !yard.span) {
       const post = new THREE.Group();
-      post.position.set(-HALF_W + 50, 0, -HALF_H + 50);
+      post.position.set(-HALF_W + 50, groundAt(marks, 50, 50) * K, -HALF_H + 50);
       const pole = new THREE.Mesh(
-        keep(new THREE.CylinderGeometry(2.5, 2.5, maxM * K)),
+        keep(new THREE.CylinderGeometry(2.5, 2.5, tallest * K)),
         keep(new THREE.MeshLambertMaterial({ color: new THREE.Color(inkSoft) })),
       );
-      pole.position.y = (maxM * K) / 2;
+      pole.position.y = (tallest * K) / 2;
       post.add(pole);
-      const rule = nameSprite(`${Math.round(maxM * 100) / 100} m`);
-      rule.position.y = maxM * K + 26;
+      const rule = nameSprite(`${Math.round(tallest * 100) / 100} m`);
+      rule.position.y = tallest * K + 26;
       post.add(rule);
       w.content.add(post);
     }
@@ -581,17 +626,19 @@ export function YardModel({
     const { K } = scaleFor();
     if (walk) {
       const eye = yard.span ? EYE_M * K : 40;
-      // Stand at the near edge (max sheet Y = +HALF_H), look toward the middle
-      // at eye height. Orbit still works; she is just standing in the yard.
-      w.camera.position.set(0, Math.max(eye, 12), HALF_H + 120);
-      w.controls.target.set(0, Math.max(eye, 12), 0);
+      // Stand at the near edge (max sheet Y = +HALF_H), on the ground that
+      // edge actually has, look toward the middle at eye height. Orbit still
+      // works; she is just standing in her yard.
+      const under = groundAt(yard.ground, SHEET_W / 2, SHEET_H) * K;
+      w.camera.position.set(0, under + Math.max(eye, 12), HALF_H + 120);
+      w.controls.target.set(0, under + Math.max(eye, 12), 0);
     } else {
       w.camera.position.set(650, 620, 1500);
       w.controls.target.set(0, 90, 0);
     }
     w.controls.update();
     w.render();
-  }, [walk, yard.span, figs.length]);
+  }, [walk, yard.span, figs.length, yard.ground]);
 
   if (failed) {
     return (

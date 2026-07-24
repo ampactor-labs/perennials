@@ -12,13 +12,15 @@ import { seenSlots, useSeen } from "@/lib/seen";
 import { useSpots } from "@/lib/spots";
 import { blockerOf, dayForSlot, directHours, lightTier } from "@/lib/sun";
 import { archetypeOf } from "@/lib/elevation";
-import { groundAt, parseLevel } from "@/lib/ground";
+import { groundAt, groundRange, parseLevel } from "@/lib/ground";
 import { growthBand } from "@/lib/growth";
 import {
   MAX_GROUND,
   MAX_LABEL,
   MAX_PLANTS,
   MAX_STROKES,
+  SHEET_H,
+  SHEET_W,
   type Pt,
   type Yard,
   useYards,
@@ -269,10 +271,23 @@ export function YardPage() {
     if (projection !== "model" || lat === null || !yard.span) return [];
     const upm = 1000 / yard.span;
     const day = dayForSlot(slot, lat);
-    // What stands casts: the year-scrubbed heights, hers and the record's.
+    // What stands casts: the year-scrubbed heights, hers and the record's,
+    // each crown starting from the ground under its plant — and the land
+    // itself, when she has shaped it, in the same units.
     const blockers = figs
       .filter((f) => f.height !== null)
-      .map((f) => blockerOf(archetypeOf(f.layer), f.x, f.depth, grownM(f, years), f.width, upm));
+      .map((f) =>
+        blockerOf(archetypeOf(f.layer), f.x, f.depth, grownM(f, years), f.width, upm, f.footing),
+      );
+    const terrain =
+      marks.length > 0
+        ? {
+            at: (x: number, z: number) => groundAt(marks, x, z) * upm,
+            maxY: groundRange(marks).max * upm,
+            w: SHEET_W,
+            h: SHEET_H,
+          }
+        : undefined;
     const labels = yard.strokes.filter((s) => s.k === "label");
     return yard.strokes
       .filter((s) => s.k === "area")
@@ -290,7 +305,7 @@ export function YardPage() {
             name = l.text;
           }
         }
-        const hours = directHours(cx, cz, lat, day, yard.north, blockers);
+        const hours = directHours(cx, cz, lat, day, yard.north, blockers, terrain);
         const word = lightWord(lightTier(hours));
         const fit = keptPlants.filter((p) =>
           asList(ACCESS.light(p, herIndex.get(p.id))).includes(word),
@@ -792,8 +807,8 @@ export function YardPage() {
         <div className="yard-sun-row">
           <p className="yard-coverage" style={{ flex: 1, minWidth: 0, marginTop: 0 }}>
             {yard.span
-              ? `The ground is your sheet at the span you gave it, about ${yard.span} m across; heights stand in the same metres.`
-              : "The ground is your sheet and claims no scale; heights are true to one another, and the corner post is the tallest plant's measure."}
+              ? `The ground is your sheet at the span you gave it, about ${yard.span} m across; heights${marks.length ? ", the land's included," : ""} stand in the same metres.`
+              : "The ground is your sheet and claims no scale; heights are true to one another, and the corner post carries the tallest measure."}
           </p>
           <button
             className={walk ? "btn btn--sm" : "btn btn--ghost btn--sm"}
@@ -909,8 +924,9 @@ export function YardPage() {
                 <p className="yard-coverage">Draw a bed on the sheet and the sun will read it.</p>
               )}
               <p className="yard-coverage">
-                Crowns as drawn, heights as recorded, sampled on the half hour: an estimate for
-                planning a bed, not a survey.
+                {marks.length
+                  ? "Crowns and the land as you drew them, heights as recorded, sampled on the half hour: an estimate for planning a bed, not a survey."
+                  : "Crowns as drawn, heights as recorded, sampled on the half hour: an estimate for planning a bed, not a survey."}
               </p>
             </>
           )}
