@@ -68,6 +68,24 @@
   font-style: italic;
   font-size: 26px;
 }
+/* a height she set: a surveyor's benchmark, its point at the measured spot */
+.yard-bench path {
+  fill: color-mix(in srgb, var(--sepia) 30%, transparent);
+  stroke: var(--sepia);
+  stroke-width: 2;
+}
+.yard-bench text {
+  fill: var(--sepia);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 22px;
+}
+.yard-bench--on path {
+  fill: var(--sepia);
+}
+.yard-canvas--ground {
+  cursor: crosshair;
+}
 
 /* the placed plants */
 .yard-mark {

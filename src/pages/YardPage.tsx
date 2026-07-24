@@ -12,8 +12,10 @@ import { seenSlots, useSeen } from "@/lib/seen";
 import { useSpots } from "@/lib/spots";
 import { blockerOf, dayForSlot, directHours, lightTier } from "@/lib/sun";
 import { archetypeOf } from "@/lib/elevation";
+import { parseLevel } from "@/lib/ground";
 import { growthBand } from "@/lib/growth";
 import {
+  MAX_GROUND,
   MAX_LABEL,
   MAX_PLANTS,
   MAX_STROKES,
@@ -69,6 +71,8 @@ export function YardPage() {
   const [show, setShow] = useState<string>("");
   const [pendingLabel, setPendingLabel] = useState<Pt | null>(null);
   const [labelText, setLabelText] = useState("");
+  const [pendingGround, setPendingGround] = useState<{ at: Pt; id: string | null } | null>(null);
+  const [groundText, setGroundText] = useState("");
   const [saved, setSaved] = useState(true);
   const [findText, setFindText] = useState("");
   const [years, setYears] = useState<number | null>(null);
@@ -128,6 +132,8 @@ export function YardPage() {
     // a key whose blob is already deleted, or detach one she just laid.
     setSaved(put({ ...prev, underlay: yard.underlay }));
     setSel(null);
+    // The mark that question was about may just have been un-drawn.
+    setPendingGround(null);
   };
 
   /* ---- how each placed plant draws ----------------------------------- */
@@ -227,9 +233,13 @@ export function YardPage() {
     return `${m} of ${placed} recorded as ${showValue}${u > 0 ? `; ${u} not in our data` : ""}.`;
   })();
 
-  // An empty yard has no side to see; the toggle only appears with a plant on
-  // the sheet, and losing the last plant lands her back on the paper.
-  const projection = placed > 0 ? view : "sheet";
+  // An empty yard has no side to see; the toggle appears once anything
+  // stands — a plant, or ground she has shaped — and losing the last of
+  // both lands her back on the paper. Shaping the land before planting it
+  // is the honest order of the work, so the land alone earns the views.
+  const marks = yard.ground ?? [];
+  const standable = placed > 0 || marks.length > 0;
+  const projection = standable ? view : "sheet";
 
   /* ---- the sun: derived shade, only from numbers that are hers --------- */
 
@@ -326,8 +336,16 @@ export function YardPage() {
     return `${paced} of ${growing.length} figures have a recorded pace and grow between a cautious and a generous reading of it${rest > 0 ? `; ${rest} stand at mature size, their pace not in our data` : ""}.`;
   })();
 
+  // The ground's own coverage: how many heights shape it, and what the
+  // surface between them claims. Printed under every view that draws the
+  // shape; the sheet's Ground tool carries its own working hint instead.
+  const groundLine =
+    marks.length > 0 && projection !== "sheet"
+      ? `The ground bends through the ${marks.length === 1 ? "one height" : `${marks.length} heights`} you set and settles level where you set none — your estimate, not a survey.`
+      : null;
+
   const elevLine = (() => {
-    if (projection === "sheet") return null;
+    if (projection === "sheet" || placed === 0) return null;
     const where = projection === "elevation" ? "the line" : "the ground";
     const withH = figs.filter((f) => f.height !== null).length;
     const yours = figs.filter((f) => f.hers).length;
@@ -409,6 +427,51 @@ export function YardPage() {
     commit({ ...yard, strokes: [...yard.strokes, { k: "label", id: uid(), at: pendingLabel, text }] });
     setPendingLabel(null);
   };
+
+  // Her heights. A tap on paper asks for a new one; a tap on a mark reopens
+  // it, prefilled, with Remove on offer; a drag moves it and its number rides
+  // along. All whole-yard commits, so undo un-draws the land like ink.
+  const onGroundAt = (p: Pt, id: string | null) => {
+    if (id) {
+      const gm = marks.find((g) => g.id === id);
+      if (!gm) return;
+      setPendingGround({ at: gm.at, id });
+      setGroundText(String(gm.m));
+      return;
+    }
+    if (marks.length >= MAX_GROUND) {
+      return say(`This sheet holds ${MAX_GROUND} heights. Move one, or remove one you can spare.`);
+    }
+    setPendingGround({ at: p, id: null });
+    setGroundText("");
+  };
+
+  const addGround = () => {
+    if (!pendingGround) return;
+    const m = parseLevel(groundText);
+    if (m === null) {
+      return say("A height is metres up or down from your zero: 1.5, -0.5, 60 cm.");
+    }
+    commit({
+      ...yard,
+      ground: pendingGround.id
+        ? marks.map((g) => (g.id === pendingGround.id ? { ...g, m } : g))
+        : [...marks, { id: uid(), at: pendingGround.at, m }],
+    });
+    setPendingGround(null);
+  };
+
+  const removeGround = () => {
+    if (pendingGround?.id) {
+      const rest = marks.filter((g) => g.id !== pendingGround.id);
+      const { ground: _gone, ...bare } = yard;
+      commit(rest.length ? { ...bare, ground: rest } : bare);
+    }
+    setPendingGround(null);
+  };
+
+  const onGroundMove = (id: string, p: Pt) =>
+    commit({ ...yard, ground: marks.map((g) => (g.id === id ? { ...g, at: p } : g)) });
 
   const onMove = (u: string, p: Pt) =>
     commit({
@@ -504,7 +567,7 @@ export function YardPage() {
         </div>
       )}
 
-      {placed > 0 && (
+      {standable && (
         <div className="seg yard-viewseg" role="group" aria-label="Projection">
           {(
             [
@@ -540,6 +603,9 @@ export function YardPage() {
           onMove={onMove}
           onNorth={onNorth}
           onRing={onRing}
+          groundSel={pendingGround?.id ?? null}
+          onGround={onGroundAt}
+          onGroundMove={onGroundMove}
         />
       ) : projection === "elevation" ? (
         <ElevationView figs={figs} sel={sel} years={years} onSelect={setSel} />
@@ -558,6 +624,166 @@ export function YardPage() {
         </Suspense>
       )}
       {elevLine && <p className="yard-coverage">{elevLine}</p>}
+      {groundLine && <p className="yard-coverage">{groundLine}</p>}
+
+      {/* The sheet's workbench rides directly under the paper: switching
+          tools, laying the photo, and answering a tool's question all happen
+          where the thumb already is, not below the year scrubber. The
+          reading controls — the scrubber, the ask — follow after. */}
+      {projection === "sheet" && (
+        <>
+          <div className="yard-tools">
+            <div className="seg" role="group" aria-label="Tool">
+              {(
+                [
+                  ["move", "Move"],
+                  ["draw", "Draw"],
+                  ["area", "Bed"],
+                  ["label", "Label"],
+                  ["ground", "Ground"],
+                  ["place", "Place"],
+                ] as [Mode, string][]
+              ).map(([m, label]) => (
+                <button
+                  key={m}
+                  aria-pressed={mode === m}
+                  className={mode === m ? "on" : ""}
+                  onClick={() => {
+                    setMode(m);
+                    setPendingLabel(null);
+                    setPendingGround(null);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button className="btn btn--sm" onClick={undo} disabled={past.length === 0}>
+              Undo
+            </button>
+          </div>
+
+          {mode === "label" && pendingLabel && (
+            <div className="yard-labelrow">
+              <input
+                className="note-input"
+                style={{ padding: "var(--sp-1) var(--sp-2)" }}
+                value={labelText}
+                autoFocus
+                maxLength={MAX_LABEL}
+                placeholder="shed, wet corner, gate…"
+                onChange={(e) => setLabelText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addLabel()}
+              />
+              <button className="btn btn--primary btn--sm" onClick={addLabel}>
+                Add
+              </button>
+              <button className="btn btn--ghost btn--sm" onClick={() => setPendingLabel(null)}>
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {mode === "ground" && pendingGround && (
+            <div className="yard-labelrow">
+              <input
+                className="note-input"
+                style={{ padding: "var(--sp-1) var(--sp-2)" }}
+                value={groundText}
+                autoFocus
+                placeholder="metres up or down: 1.5, -0.5, 60 cm…"
+                aria-label="Height at this spot, in metres"
+                onChange={(e) => setGroundText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addGround()}
+              />
+              <button className="btn btn--primary btn--sm" onClick={addGround}>
+                {pendingGround.id ? "Save" : "Set"}
+              </button>
+              {pendingGround.id && (
+                <button className="linkish note-delete" onClick={removeGround}>
+                  Remove
+                </button>
+              )}
+              <button className="btn btn--ghost btn--sm" onClick={() => setPendingGround(null)}>
+                Cancel
+              </button>
+            </div>
+          )}
+          {mode === "ground" && !pendingGround && (
+            <p className="yard-coverage">
+              {marks.length === 0
+                ? "Tap where you know a rise or a dip and give it a height in metres; 0 is the level you stand on. A few heights shape the whole ground, and the side and model views stand on it."
+                : "Tap paper for a new height, a triangle to change or remove one, or drag it to move it."}
+            </p>
+          )}
+
+          {mode === "place" && (
+            <>
+              <div className="yard-findrow">
+                <input
+                  className="note-input"
+                  style={{ padding: "var(--sp-1) var(--sp-2)" }}
+                  value={findText}
+                  placeholder="Any plant in the guide…"
+                  aria-label="Find a plant to place"
+                  onChange={(e) => setFindText(e.target.value)}
+                />
+              </div>
+              {finding ? (
+                found.length > 0 ? (
+                  <div className="yard-tray">{found.map(tray)}</div>
+                ) : (
+                  <p className="yard-coverage">Nothing in the guide answers to that.</p>
+                )
+              ) : keptPlants.length > 0 ? (
+                <div className="yard-tray">{keptPlants.map(tray)}</div>
+              ) : (
+                <p className="yard-coverage">
+                  Type a name above; any plant in the guide places. Plants you{" "}
+                  <Link to="/">Keep</Link> wait here as a tray.
+                </p>
+              )}
+              {armedId !== null && (
+                <p className="yard-coverage">Tap the sheet to place. Tap again for a drift.</p>
+              )}
+            </>
+          )}
+
+          <div className="yard-underlay-row">
+            {/* No `capture` here, unlike the plant close-up: the picture of a yard
+                is as likely to be in the gallery, shot from the porch, as taken on
+                the spot, and capture would lock her out of choosing it. */}
+            <input
+              ref={pickGround}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                void layGround(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <button
+              className="btn btn--ghost btn--sm"
+              onClick={() => pickGround.current?.click()}
+              disabled={laying}
+            >
+              {laying ? "Saving…" : yard.underlay ? "Replace the photo" : "Lay a photo under the sheet"}
+            </button>
+            {yard.underlay && (
+              <>
+                <button className="linkish note-delete" onClick={() => setUnderlay(undefined)}>
+                  Remove it
+                </button>
+                <span className="yard-coverage">Your photo, faded under the ink. Undo never touches it.</span>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {note && <p className="yard-note">{note}</p>}
+
       {projection === "model" && (
         <div className="yard-sun-row">
           <p className="yard-coverage" style={{ flex: 1, minWidth: 0, marginTop: 0 }}>
@@ -729,125 +955,6 @@ export function YardPage() {
           </select>
           {showLine && <p className="yard-coverage">{showLine}</p>}
         </div>
-      )}
-
-      {projection === "sheet" && (
-      <>
-      <div className="yard-tools">
-        <div className="seg" role="group" aria-label="Tool">
-          {(
-            [
-              ["move", "Move"],
-              ["draw", "Draw"],
-              ["area", "Bed"],
-              ["label", "Label"],
-              ["place", "Place"],
-            ] as [Mode, string][]
-          ).map(([m, label]) => (
-            <button
-              key={m}
-              aria-pressed={mode === m}
-              className={mode === m ? "on" : ""}
-              onClick={() => {
-                setMode(m);
-                setPendingLabel(null);
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <button className="btn btn--sm" onClick={undo} disabled={past.length === 0}>
-          Undo
-        </button>
-      </div>
-
-      <div className="yard-underlay-row">
-        {/* No `capture` here, unlike the plant close-up: the picture of a yard
-            is as likely to be in the gallery, shot from the porch, as taken on
-            the spot, and capture would lock her out of choosing it. */}
-        <input
-          ref={pickGround}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(e) => {
-            void layGround(e.target.files?.[0]);
-            e.target.value = "";
-          }}
-        />
-        <button
-          className="btn btn--ghost btn--sm"
-          onClick={() => pickGround.current?.click()}
-          disabled={laying}
-        >
-          {laying ? "Saving…" : yard.underlay ? "Replace the photo" : "Lay a photo under the sheet"}
-        </button>
-        {yard.underlay && (
-          <>
-            <button className="linkish note-delete" onClick={() => setUnderlay(undefined)}>
-              Remove it
-            </button>
-            <span className="yard-coverage">Your photo, faded under the ink. Undo never touches it.</span>
-          </>
-        )}
-      </div>
-      </>
-      )}
-
-      {note && <p className="yard-note">{note}</p>}
-
-      {projection === "sheet" && mode === "label" && pendingLabel && (
-        <div className="yard-labelrow">
-          <input
-            className="note-input"
-            style={{ padding: "var(--sp-1) var(--sp-2)" }}
-            value={labelText}
-            autoFocus
-            maxLength={MAX_LABEL}
-            placeholder="shed, wet corner, gate…"
-            onChange={(e) => setLabelText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addLabel()}
-          />
-          <button className="btn btn--primary btn--sm" onClick={addLabel}>
-            Add
-          </button>
-          <button className="btn btn--ghost btn--sm" onClick={() => setPendingLabel(null)}>
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {projection === "sheet" && mode === "place" && (
-        <>
-          <div className="yard-findrow">
-            <input
-              className="note-input"
-              style={{ padding: "var(--sp-1) var(--sp-2)" }}
-              value={findText}
-              placeholder="Any plant in the guide…"
-              aria-label="Find a plant to place"
-              onChange={(e) => setFindText(e.target.value)}
-            />
-          </div>
-          {finding ? (
-            found.length > 0 ? (
-              <div className="yard-tray">{found.map(tray)}</div>
-            ) : (
-              <p className="yard-coverage">Nothing in the guide answers to that.</p>
-            )
-          ) : keptPlants.length > 0 ? (
-            <div className="yard-tray">{keptPlants.map(tray)}</div>
-          ) : (
-            <p className="yard-coverage">
-              Type a name above; any plant in the guide places. Plants you{" "}
-              <Link to="/">Keep</Link> wait here as a tray.
-            </p>
-          )}
-        </>
-      )}
-      {projection === "sheet" && mode === "place" && armedId !== null && (
-        <p className="yard-coverage">Tap the sheet to place. Tap again for a drift.</p>
       )}
 
       {selected && (

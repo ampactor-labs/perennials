@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { levelLabel } from "@/lib/ground";
 import { SHEET_H, SHEET_W, commitStroke, pathD, type Pt, type Yard } from "@/lib/yards";
 
 /**
@@ -32,7 +33,7 @@ export type TokenView = {
   gone: boolean;
 };
 
-export type Mode = "move" | "draw" | "area" | "label" | "place";
+export type Mode = "move" | "draw" | "area" | "label" | "place" | "ground";
 
 const ROSE = { x: SHEET_W - 80, y: 90, r: 48 };
 const TOKEN_R = 16;
@@ -46,7 +47,8 @@ type Gesture =
   | { t: "draw"; pts: Pt[] }
   | { t: "drag"; uid: string; start: [number, number]; moved: boolean; at?: Pt }
   | { t: "north"; deg?: number }
-  | { t: "ring"; uid: string; r?: number };
+  | { t: "ring"; uid: string; r?: number }
+  | { t: "bench"; id: string; start: [number, number]; moved: boolean; at?: Pt };
 
 export function YardCanvas({
   yard,
@@ -62,6 +64,9 @@ export function YardCanvas({
   onMove,
   onNorth,
   onRing,
+  groundSel,
+  onGround,
+  onGroundMove,
 }: {
   yard: Yard;
   /** A live URL for her photo of the ground, or null. The page resolves the
@@ -79,6 +84,13 @@ export function YardCanvas({
   onMove: (uid: string, p: Pt) => void;
   onNorth: (deg: number) => void;
   onRing: (uid: string, r: number) => void;
+  /** The ground mark whose height is being asked about, highlighted so the
+   *  input row and the sheet agree on which one. */
+  groundSel: string | null;
+  /** A tap in Ground mode: on open paper (id null, asking a new height) or on
+   *  an existing mark (asking to change it). */
+  onGround: (p: Pt, id: string | null) => void;
+  onGroundMove: (id: string, p: Pt) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -87,6 +99,7 @@ export function YardCanvas({
     drag?: { uid: string; at: Pt };
     north?: number;
     ring?: { uid: string; r: number };
+    bench?: { id: string; at: Pt };
   }>({});
 
   const toPt = (e: React.PointerEvent): Pt => {
@@ -126,6 +139,25 @@ export function YardCanvas({
     }
     if (mode === "place") {
       if (armed) onPlace([Math.round(p[0]), Math.round(p[1])]);
+      return;
+    }
+    if (mode === "ground") {
+      // An existing mark answers first: a tap opens its height, a drag moves
+      // it. Open paper asks for a new one.
+      let hit: string | null = null;
+      let hitD = 42;
+      for (const g of yard.ground ?? []) {
+        const d = dist(p, g.at);
+        if (d < hitD) {
+          hitD = d;
+          hit = g.id;
+        }
+      }
+      if (hit) {
+        gesture.current = { t: "bench", id: hit, start: [e.clientX, e.clientY], moved: false };
+      } else {
+        onGround([Math.round(p[0]), Math.round(p[1])], null);
+      }
       return;
     }
 
@@ -173,6 +205,16 @@ export function YardCanvas({
       }
       return;
     }
+    if (g.t === "bench") {
+      if (!g.moved && Math.hypot(e.clientX - g.start[0], e.clientY - g.start[1]) > 8) {
+        g.moved = true;
+      }
+      if (g.moved) {
+        g.at = p;
+        setLive({ bench: { id: g.id, at: p } });
+      }
+      return;
+    }
     if (g.t === "north") {
       const deg = (Math.atan2(p[0] - ROSE.x, -(p[1] - ROSE.y)) * 180) / Math.PI;
       g.deg = Math.round(deg / 15) * 15;
@@ -217,6 +259,19 @@ export function YardCanvas({
         ]);
       } else {
         onSelect(g.uid);
+      }
+      return;
+    }
+    if (g.t === "bench") {
+      setLive({});
+      if (g.moved && g.at) {
+        onGroundMove(g.id, [
+          Math.round(Math.max(0, Math.min(SHEET_W, g.at[0]))),
+          Math.round(Math.max(0, Math.min(SHEET_H, g.at[1]))),
+        ]);
+      } else {
+        const gm = (yard.ground ?? []).find((x) => x.id === g.id);
+        if (gm) onGround(gm.at, gm.id);
       }
       return;
     }
@@ -305,6 +360,20 @@ export function YardCanvas({
           className={mode === "area" ? "yard-area" : "yard-line"}
         />
       )}
+
+      {/* her heights: benchmark triangles, the point at the measured spot.
+          Her hand like a label, so they wear her ink in every mode. */}
+      {(yard.ground ?? []).map((g) => {
+        const at = live.bench?.id === g.id ? live.bench.at : g.at;
+        return (
+          <g key={g.id} className={groundSel === g.id ? "yard-bench yard-bench--on" : "yard-bench"}>
+            <path d={`M${at[0]} ${at[1]} L${at[0] - 9} ${at[1] - 15} L${at[0] + 9} ${at[1] - 15} Z`} />
+            <text x={at[0] + 14} y={at[1] - 4}>
+              {levelLabel(g.m)}
+            </text>
+          </g>
+        );
+      })}
 
       {/* the placed plants */}
       {tokens.map((t) => {
