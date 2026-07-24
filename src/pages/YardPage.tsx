@@ -12,7 +12,7 @@ import { seenSlots, useSeen } from "@/lib/seen";
 import { useSpots } from "@/lib/spots";
 import { blockerOf, dayForSlot, directHours, lightTier } from "@/lib/sun";
 import { archetypeOf } from "@/lib/elevation";
-import { parseLevel } from "@/lib/ground";
+import { groundAt, parseLevel } from "@/lib/ground";
 import { growthBand } from "@/lib/growth";
 import {
   MAX_GROUND,
@@ -112,6 +112,10 @@ export function YardPage() {
   // painted her own sheet. Every read below goes through ACCESS now.
   const { byId, mine: herIndex } = state.data;
 
+  // The land she shaped, read once here so every projection stands each
+  // plant on the same footing (lib/ground.ts is the one interpolator).
+  const marks = yard.ground ?? [];
+
   // Her kept plants, resolved once: the Place tray's default, and what the sun
   // checks each bed's light against. Declared here because the bed-shade lines
   // read it well before the tray does.
@@ -199,6 +203,7 @@ export function YardPage() {
     return {
       ...tokens[i],
       depth: pl.y,
+      footing: groundAt(marks, pl.x, pl.y),
       // Through ACCESS, so a layer or pace she filled shapes the figure where
       // the record is silent; the record's own value always speaks first.
       layer: p ? (asList(ACCESS.layer(p, her))[0] ?? null) : null,
@@ -237,7 +242,6 @@ export function YardPage() {
   // stands — a plant, or ground she has shaped — and losing the last of
   // both lands her back on the paper. Shaping the land before planting it
   // is the honest order of the work, so the land alone earns the views.
-  const marks = yard.ground ?? [];
   const standable = placed > 0 || marks.length > 0;
   const projection = standable ? view : "sheet";
 
@@ -608,7 +612,7 @@ export function YardPage() {
           onGroundMove={onGroundMove}
         />
       ) : projection === "elevation" ? (
-        <ElevationView figs={figs} sel={sel} years={years} onSelect={setSel} />
+        <ElevationView figs={figs} ground={marks} sel={sel} years={years} onSelect={setSel} />
       ) : (
         <Suspense fallback={<p className="yard-coverage">Raising the model…</p>}>
           <YardModel

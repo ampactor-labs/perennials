@@ -146,6 +146,11 @@
   stroke: var(--line-strong);
   stroke-width: 2;
 }
+/* with a shaped ground the line is the zero rule, not the surface */
+.yard-horizon--datum {
+  stroke-dasharray: 6 6;
+  opacity: 0.7;
+}
 /* the spine glyph's below-ground wash, at sheet size */
 .yard-earth {
   fill: var(--sepia);

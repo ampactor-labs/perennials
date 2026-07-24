@@ -7,19 +7,26 @@ import {
   figurePaths,
   GROUND_Y,
   tickStep,
-  TOP_Y,
 } from "@/lib/elevation";
+import { earthPathD, sectionOf } from "@/lib/ground";
 import { growthBand } from "@/lib/growth";
+import type { GroundMark } from "@/lib/yards";
 
 /**
- * The elevation: the same placed plants, standing. Read-only on purpose; the
- * sheet is where her hand works, this is where the record performs. A tap
- * selects, nothing else, so there is no gesture arbitration to get wrong.
+ * The elevation: the same placed plants, standing — a section through the
+ * one yard, not a second drawing of it. Read-only on purpose; the sheet is
+ * where her hand works, this is where the record performs. A tap selects,
+ * nothing else, so there is no gesture arbitration to get wrong.
  *
  * Every mark keeps the sheet's vocabulary exactly: state fill, witness ring,
  * show ring, dashed when gone, name below. What elevation adds is the one
  * thing the sheet cannot say, and only for plants whose height is known: a
  * layer-shaped figure at that height, in her ink when the measurement is hers.
+ *
+ * When she has shaped the ground (lib/ground.ts), the earth stops being a
+ * band and becomes the land's own skyline; every figure stands at its
+ * footing, so a tree in a dip starts low and a bed on a bank starts high.
+ * The horizon line stays put as the zero the rule measures from.
  */
 
 export type Fig = TokenView & {
@@ -33,6 +40,11 @@ export type Fig = TokenView & {
   width: number | null;
   /** The record's pace word (or hers), for the years axis; null bands nothing. */
   growth: string | null;
+  /** The ground under the plant, metres from the level she calls zero: her
+   *  shaped land read at this spot, 0 on a sheet she never shaped. The page
+   *  computes it once (lib/ground.ts) so every projection stands the plant
+   *  on the same footing. */
+  footing: number;
   /** Her photo of this plant, by key, for the model to stand up. */
   photo?: string;
 };
@@ -48,19 +60,31 @@ export function grownM(f: Fig, years: number | null): number {
 
 const TOKEN_R = 16;
 
-function Silhouette({ f, scale, years }: { f: Fig; scale: number; years: number | null }) {
+function Silhouette({
+  f,
+  gy,
+  scale,
+  years,
+}: {
+  f: Fig;
+  /** Where this figure's ground stands, view units: the datum line bent by
+   *  its footing. */
+  gy: number;
+  scale: number;
+  years: number | null;
+}) {
   if (f.height === null || scale <= 0) return null;
   const kind = archetypeOf(f.layer);
   const nowM = grownM(f, years);
   const h = Math.max(2, nowM * scale);
   const w = Math.max(18, (f.width ?? f.height * CROWN_RATIO[kind]) * scale * (f.height > 0 ? nowM / f.height : 1));
-  const fig = figurePaths(kind, f.x, GROUND_Y, h, w);
+  const fig = figurePaths(kind, f.x, gy, h, w);
   // The years axis draws today solid and mature as a ghost behind it, so the
   // gap between them is the drawing, not a caption.
   const matureW = Math.max(18, (f.width ?? f.height * CROWN_RATIO[kind]) * scale);
   const ghost =
     years !== null && nowM < f.height - 0.01
-      ? figurePaths(kind, f.x, GROUND_Y, f.height * scale, matureW)
+      ? figurePaths(kind, f.x, gy, f.height * scale, matureW)
       : null;
   const fill =
     f.state === "fill"
@@ -99,11 +123,14 @@ function Silhouette({ f, scale, years }: { f: Fig; scale: number; years: number 
 
 export function ElevationView({
   figs,
+  ground,
   sel,
   years,
   onSelect,
 }: {
   figs: Fig[];
+  /** The heights she set; empty is the flat band the view always drew. */
+  ground: GroundMark[];
   sel: string | null;
   /** Years since planting, or null for the mature view. The rule's scale
    *  stays pinned to mature heights so the axis never rescales mid-scrub. */
@@ -111,12 +138,17 @@ export function ElevationView({
   onSelect: (uid: string | null) => void;
 }) {
   const measured = figs.filter((f) => f.height !== null);
-  const maxM = measured.length ? Math.max(...measured.map((f) => f.height!)) : 0;
-  const scale = maxM > 0 ? (GROUND_Y - TOP_Y) / maxM : 0;
-  const step = maxM > 0 ? tickStep(maxM) : 0;
+  const { scale, top, bottom, skyline } = sectionOf(
+    ground,
+    measured.map((f) => f.footing + f.height!),
+  );
+  const step = scale > 0 ? tickStep(Math.max(top, -bottom)) : 0;
   const ticks =
     step > 0
-      ? Array.from({ length: Math.floor(maxM / step + 1e-9) }, (_, i) => (i + 1) * step)
+      ? [
+          ...Array.from({ length: Math.floor(top / step + 1e-9) }, (_, i) => (i + 1) * step),
+          ...Array.from({ length: Math.floor(-bottom / step + 1e-9) }, (_, i) => -(i + 1) * step),
+        ]
       : [];
   // Far first: low on the sheet reads as near, so it paints last and in front.
   const ordered = [...figs].sort((a, b) => a.depth - b.depth);
@@ -158,8 +190,13 @@ export function ElevationView({
       </defs>
 
       <rect x="0" y="0" width={ELEV_W} height={ELEV_H} className="yard-paper" />
-      {/* the spine glyph's below-ground wash, at sheet size */}
-      <rect x="0" y={GROUND_Y} width={ELEV_W} height={ELEV_H - GROUND_Y} className="yard-earth" />
+      {/* the spine glyph's below-ground wash — the flat band she never shaped,
+          or the skyline of the land she did */}
+      {skyline ? (
+        <path d={earthPathD(skyline, scale, GROUND_Y, ELEV_H)} className="yard-earth" />
+      ) : (
+        <rect x="0" y={GROUND_Y} width={ELEV_W} height={ELEV_H - GROUND_Y} className="yard-earth" />
+      )}
 
       {ticks.map((m) => (
         <g key={m} className="yard-elev-tick">
@@ -170,9 +207,19 @@ export function ElevationView({
         </g>
       ))}
 
-      <line x1="0" x2={ELEV_W} y1={GROUND_Y} y2={GROUND_Y} className="yard-horizon" />
+      {/* With a shaped ground this is the datum, not the surface: the zero
+          the rule and her heights measure from, dashed so it reads as a rule
+          line wherever the land leaves it. */}
+      <line
+        x1="0"
+        x2={ELEV_W}
+        y1={GROUND_Y}
+        y2={GROUND_Y}
+        className={skyline ? "yard-horizon yard-horizon--datum" : "yard-horizon"}
+      />
 
       {ordered.map((f) => {
+        const gy = GROUND_Y - f.footing * scale;
         const fill =
           f.state === "fill"
             ? f.fill
@@ -183,24 +230,24 @@ export function ElevationView({
                 : "var(--paper)";
         return (
           <g key={f.uid} className={f.show === "other" ? "yard-token yard-token--dim" : "yard-token"}>
-            <Silhouette f={f} scale={scale} years={years} />
+            <Silhouette f={f} gy={gy} scale={scale} years={years} />
             {f.show === "match" && (
-              <circle cx={f.x} cy={GROUND_Y} r={TOKEN_R + 11} className="yard-show" />
+              <circle cx={f.x} cy={gy} r={TOKEN_R + 11} className="yard-show" />
             )}
             {f.witness && (
-              <circle cx={f.x} cy={GROUND_Y} r={TOKEN_R + 6} className="yard-witness" />
+              <circle cx={f.x} cy={gy} r={TOKEN_R + 6} className="yard-witness" />
             )}
             {sel === f.uid && (
-              <circle cx={f.x} cy={GROUND_Y} r={TOKEN_R + 17} className="yard-sel" />
+              <circle cx={f.x} cy={gy} r={TOKEN_R + 17} className="yard-sel" />
             )}
             <circle
               cx={f.x}
-              cy={GROUND_Y}
+              cy={gy}
               r={TOKEN_R}
               fill={fill}
               className={f.gone ? "yard-mark yard-mark--gone" : "yard-mark"}
             />
-            <text x={f.x} y={GROUND_Y + TOKEN_R + 24} className="yard-name">
+            <text x={f.x} y={gy + TOKEN_R + 24} className="yard-name">
               {f.label}
             </text>
           </g>

@@ -2,9 +2,10 @@ import type { Plant } from "@/data/model";
 import type { BloomSlot } from "./bloom";
 import type { TokenView } from "@/components/YardCanvas";
 import type { Fig } from "@/components/ElevationView";
-import { archetypeOf, CROWN_RATIO, ELEV_H, figurePaths, GROUND_Y, tickStep, TOP_Y } from "./elevation";
+import { archetypeOf, CROWN_RATIO, ELEV_H, figurePaths, GROUND_Y, tickStep } from "./elevation";
+import { earthPathD, levelLabel, sectionOf } from "./ground";
 import { blobToDataUrl, getPhoto } from "./photos";
-import { SHEET_H, SHEET_W, pathD, type Yard } from "./yards";
+import { SHEET_H, SHEET_W, pathD, type GroundMark, type Yard } from "./yards";
 import { shareFiles } from "./share";
 
 /**
@@ -78,39 +79,52 @@ function tokenSvg(t: TokenView): string {
   return parts.join("");
 }
 
-/** The elevation band, and the line that keeps it honest. Empty when no
- *  placed plant has a height: a band of bare marks would say nothing the
- *  plan doesn't already say. */
-function elevationBand(figs: Fig[], y0: number): { svg: string; standLine: string } | null {
+/** The elevation band, and the lines that keep it honest. Empty when no
+ *  placed plant has a height and the ground is unshaped: a band of bare
+ *  marks on a flat line would say nothing the plan doesn't already say.
+ *  A shaped ground earns the band by itself — the land's section is the
+ *  claim the plan cannot draw. */
+function elevationBand(
+  figs: Fig[],
+  y0: number,
+  ground: GroundMark[],
+): { svg: string; standLine: string | null; groundLine: string | null } | null {
   const measured = figs.filter((f) => f.height !== null);
-  if (measured.length === 0) return null;
-  const maxM = Math.max(...measured.map((f) => f.height!));
-  const K = (GROUND_Y - TOP_Y) / maxM;
-  const step = tickStep(maxM);
+  if (measured.length === 0 && ground.length === 0) return null;
+  const { scale: K, top, bottom, skyline } = sectionOf(
+    ground,
+    measured.map((f) => f.footing + f.height!),
+  );
+  const step = K > 0 ? tickStep(Math.max(top, -bottom)) : 0;
   const g0 = y0 + GROUND_Y;
   const parts: string[] = [];
 
   parts.push(
     `<rect x="1" y="${y0 + 1}" width="${SHEET_W - 2}" height="${ELEV_H - 2}" fill="none" stroke="${C.line}" stroke-width="2"/>`,
-    `<rect x="2" y="${g0}" width="${SHEET_W - 4}" height="${ELEV_H - GROUND_Y - 2}" fill="${C.sepia}" opacity="0.08"/>`,
+    skyline
+      ? `<path d="${earthPathD(skyline, K, g0, y0 + ELEV_H - 2)}" fill="${C.sepia}" opacity="0.08"/>`
+      : `<rect x="2" y="${g0}" width="${SHEET_W - 4}" height="${ELEV_H - GROUND_Y - 2}" fill="${C.sepia}" opacity="0.08"/>`,
   );
-  for (let i = 1; i * step <= maxM + 1e-9; i++) {
-    const ty = g0 - i * step * K;
+  const tick = (m: number) => {
+    const ty = g0 - m * K;
     parts.push(
       `<line x1="14" x2="30" y1="${ty}" y2="${ty}" stroke="${C.line}" stroke-width="1.5"/>`,
-      `<text x="36" y="${ty + 7}" font-family="${SANS}" font-size="19" fill="${C.inkFaint}">${Math.round(i * step * 100) / 100} m</text>`,
+      `<text x="36" y="${ty + 7}" font-family="${SANS}" font-size="19" fill="${C.inkFaint}">${Math.round(m * 100) / 100} m</text>`,
     );
-  }
+  };
+  for (let i = 1; i * step <= top + 1e-9; i++) tick(i * step);
+  for (let i = 1; -i * step >= bottom - 1e-9; i++) tick(-i * step);
   parts.push(
-    `<line x1="1" x2="${SHEET_W - 1}" y1="${g0}" y2="${g0}" stroke="${C.inkSoft}" stroke-width="2"/>`,
+    `<line x1="1" x2="${SHEET_W - 1}" y1="${g0}" y2="${g0}" stroke="${C.inkSoft}" stroke-width="2"${skyline ? ' stroke-dasharray="6 6" opacity="0.7"' : ""}/>`,
   );
 
   for (const f of [...figs].sort((a, b) => a.depth - b.depth)) {
+    const gy = g0 - f.footing * K;
     if (f.height !== null) {
       const kind = archetypeOf(f.layer);
       const h = f.height * K;
       const w = Math.max(18, (f.width ?? f.height * CROWN_RATIO[kind]) * K);
-      const fig = figurePaths(kind, f.x, g0, h, w);
+      const fig = figurePaths(kind, f.x, gy, h, w);
       const fill =
         f.state === "fill" && f.fill
           ? f.fill
@@ -136,16 +150,23 @@ function elevationBand(figs: Fig[], y0: number): { svg: string; standLine: strin
       }
       parts.push(`</g>`);
     }
-    // The same mark it is on the plan, standing on the line; the spacing ring
-    // stays with the plan, where its units mean something.
-    parts.push(tokenSvg({ ...f, y: g0, ring: undefined }));
+    // The same mark it is on the plan, standing on its footing; the spacing
+    // ring stays with the plan, where its units mean something.
+    parts.push(tokenSvg({ ...f, y: gy, ring: undefined }));
   }
 
   const withH = measured.length;
   const yours = figs.filter((f) => f.hers).length;
   const rest = figs.length - withH;
-  const standLine = `${withH} of ${figs.length} stand at a known height${yours ? `, ${yours} by your hand` : ""}${rest > 0 ? "; the rest hold the line unmeasured" : ""}. Shapes follow the layer, not the plant.`;
-  return { svg: parts.join(""), standLine };
+  const standLine =
+    figs.length > 0
+      ? `${withH} of ${figs.length} stand at a known height${yours ? `, ${yours} by your hand` : ""}${rest > 0 ? "; the rest hold the line unmeasured" : ""}. Shapes follow the layer, not the plant.`
+      : null;
+  const groundLine =
+    ground.length > 0
+      ? `The ground bends through the ${ground.length === 1 ? "one height" : `${ground.length} heights`} you set and settles level where you set none — your estimate, not a survey.`
+      : null;
+  return { svg: parts.join(""), standLine, groundLine };
 }
 
 function sheetSvg(
@@ -171,7 +192,16 @@ function sheetSvg(
     <text y="-6" text-anchor="middle" font-family="${SANS}" font-size="20" fill="${C.inkSoft}">N</text>
   </g>`;
 
-  const band = elevationBand(figs, SHEET_H + BAND_GAP);
+  // Her heights on the plan, the benchmarks she drew them as.
+  const benches = (yard.ground ?? [])
+    .map(
+      (g) =>
+        `<path d="M${g.at[0]} ${g.at[1]} L${g.at[0] - 9} ${g.at[1] - 15} L${g.at[0] + 9} ${g.at[1] - 15} Z" fill="${C.sepia}" fill-opacity="0.3" stroke="${C.sepia}" stroke-width="2"/>` +
+        `<text x="${g.at[0] + 14}" y="${g.at[1] - 4}" font-family="${SERIF}" font-style="italic" font-size="22" fill="${C.sepia}">${esc(levelLabel(g.m))}</text>`,
+    )
+    .join("");
+
+  const band = elevationBand(figs, SHEET_H + BAND_GAP, yard.ground ?? []);
   const base = SHEET_H + (band ? BAND_GAP + ELEV_H : 0);
 
   const date = new Date().toLocaleDateString(undefined, {
@@ -180,7 +210,9 @@ function sheetSvg(
     year: "numeric",
   });
   const title = `${yard.name} · ${date} · Diagram, not to scale${slot ? ` · ${slot}` : ""}`;
-  const rows = [bloomLine, band?.standLine ?? null].filter((s): s is string => !!s);
+  const rows = [bloomLine, band?.standLine ?? null, band?.groundLine ?? null].filter(
+    (s): s is string => !!s,
+  );
   const attrY = base + 104 + 38 * rows.length;
   const height = attrY + 40;
   const foot = [
@@ -205,6 +237,7 @@ function sheetSvg(
     ${ground ? `<image href="${ground}" xlink:href="${ground}" x="0" y="0" width="${SHEET_W}" height="${SHEET_H}" preserveAspectRatio="xMidYMid meet" opacity="0.5" filter="url(#wash)"/>` : ""}
     <rect x="1" y="1" width="${SHEET_W - 2}" height="${SHEET_H - 2}" fill="none" stroke="${C.line}" stroke-width="2"/>
     ${strokes}
+    ${benches}
     ${tokens.map(tokenSvg).join("")}
     ${rose}
     ${band?.svg ?? ""}
