@@ -11,8 +11,9 @@ import assert from "node:assert/strict";
 import { mergeById, photoKeys } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
 import { archetypeOf, figurePaths, parseMetres, standing, tickStep, type Archetype } from "./elevation";
+import { earthPathD, groundAt, groundRange, groundSkyline, parseLevel, sectionOf } from "./ground";
 import { growthBand } from "./growth";
-import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit } from "./sun";
+import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit, type Terrain } from "./sun";
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
@@ -20,7 +21,16 @@ import { outsideRecord, phenologyLine } from "./phenology";
 import { admitYard, parseYardFile, YARD_FORMAT } from "./yardFile";
 import { ACCESS } from "./query";
 import { seenSlots } from "./seen";
-import { commitStroke, MAX_PTS, SHEET_H, SHEET_W, type Yard } from "./yards";
+import {
+  commitStroke,
+  MAX_GROUND,
+  MAX_PTS,
+  sanitizeYard,
+  SHEET_H,
+  SHEET_W,
+  type GroundMark,
+  type Yard,
+} from "./yards";
 import type { Plant } from "@/data/model";
 
 const plant = (h: Plant["hardiness"]) => ({ hardiness: h }) as Plant;
@@ -323,6 +333,126 @@ test("open ground reads full sun; a June day at 40N carries it easily", () => {
   assert.equal(lightTier(5.5), "part");
   assert.equal(lightTier(3), "part");
   assert.equal(lightTier(2.5), "shade");
+});
+
+/* ---- the ground: her heights become a surface, honestly ---------------- */
+
+const mark = (x: number, y: number, m: number, id = `g${x}-${y}`): GroundMark => ({
+  id,
+  at: [x, y],
+  m,
+});
+
+test("a ground height counts when it is a measurement and never when it is a sentence", () => {
+  assert.equal(parseLevel("1.5"), 1.5);
+  assert.equal(parseLevel("+2"), 2);
+  assert.equal(parseLevel("-0.5"), -0.5);
+  assert.equal(parseLevel("0"), 0, "a level pin is a real measurement");
+  assert.equal(parseLevel("50 cm"), 0.5);
+  assert.equal(parseLevel("1,5"), 1.5);
+  assert.equal(parseLevel("3 ft"), 0.91);
+  assert.equal(parseLevel("steep by the fence"), null);
+  assert.equal(parseLevel("1000"), null, "past a cliff's worth it is a typo");
+});
+
+test("no marks claim flat: the ground is the sheet's own zero everywhere", () => {
+  assert.equal(groundAt([], 500, 700), 0);
+  assert.equal(groundAt(undefined, 10, 10), 0);
+  assert.deepEqual(groundRange([]), { min: 0, max: 0 });
+  assert.equal(sectionOf([], []).skyline, null);
+});
+
+test("the ground passes exactly through every height she set", () => {
+  const marks = [mark(200, 300, 2), mark(800, 1100, -0.5), mark(500, 700, 0.75)];
+  for (const g of marks) assert.equal(groundAt(marks, g.at[0], g.at[1]), g.m);
+});
+
+test("between her marks the ground stays between them, and never overshoots", () => {
+  const marks = [mark(200, 300, 2), mark(800, 1100, -0.5)];
+  for (let x = 0; x <= SHEET_W; x += 100) {
+    for (let y = 0; y <= SHEET_H; y += 140) {
+      const v = groundAt(marks, x, y);
+      assert.ok(v <= 2 + 1e-9 && v >= -0.5 - 1e-9, `(${x},${y}) read ${v}`);
+    }
+  }
+});
+
+test("where she marked nothing the ground settles back to level", () => {
+  const one = [mark(100, 100, 2)];
+  const far = groundAt(one, 900, 1300);
+  assert.ok(far < 0.5, `a lone mark must not float the far corner (${far})`);
+  assert.ok(groundAt(one, 130, 100) > 1.8, "near the mark her number rules");
+});
+
+test("the skyline crests where the ground does, whatever depth the crest hides at", () => {
+  const marks = [mark(500, 900, 3)];
+  const sky = groundSkyline(marks, 100);
+  assert.equal(Math.max(...sky), 3, "the mark's own crest shows side-on");
+  assert.ok(sky[0] < 1, "the unmarked edge stays near level");
+  const d = earthPathD(sky, 100, 520, 600);
+  assert.ok(d.startsWith("M0 600") && d.endsWith("Z") && !d.includes("NaN"));
+});
+
+test("the section's scale fits the tallest reach and the deepest dip", () => {
+  // A 2m crest, a 1m dip, and a plant reaching 4m above its footing.
+  const marks = [mark(300, 300, 2), mark(700, 900, -1)];
+  const s = sectionOf(marks, [4.6]);
+  assert.ok(s.scale > 0);
+  assert.ok(s.top * s.scale <= 520 - 36 + 1e-9, "the tallest reach stays on the page");
+  assert.ok(-s.bottom * s.scale <= 600 - 520 - 24 + 1e-9, "the dip stays inside the band");
+  // With nothing standing and nothing shaped, there is nothing to scale.
+  assert.equal(sectionOf([], []).scale, 0);
+});
+
+test("a yard admits only well-formed ground marks, capped, and old yards stay untouched", () => {
+  const base = { v: 1, id: "y1", name: "home", at: 1, north: 0, strokes: [], plants: [] };
+  const clean = sanitizeYard({
+    ...base,
+    ground: [
+      mark(100, 100, 1.5),
+      { id: "bad", at: [100], m: 1 },
+      { id: "typo", at: [10, 10], m: 999 },
+      { id: 7, at: [10, 10], m: 1 },
+    ],
+  });
+  assert.deepEqual(clean?.ground, [mark(100, 100, 1.5, "g100-100")]);
+  const many = sanitizeYard({
+    ...base,
+    ground: Array.from({ length: 80 }, (_, i) => mark(i, i, 1, `g${i}`)),
+  });
+  assert.equal(many?.ground?.length, MAX_GROUND);
+  const flat = sanitizeYard(base);
+  assert.ok(flat && !("ground" in flat), "a yard that never shaped its ground gains no key");
+});
+
+test("a bank between the winter sun and a bed shades it; the flat sheet does not", () => {
+  // 20m span (50 units per metre), north up the sheet. A 5m bank just south
+  // of a bed pinned level at zero; at 40N the winter sun never clears it.
+  const upm = 50;
+  const marks = [mark(500, 700, 0), mark(300, 760, 5), mark(500, 760, 5), mark(700, 760, 5)];
+  const terrain: Terrain = {
+    at: (x, z) => groundAt(marks, x, z) * upm,
+    maxY: 5 * upm,
+    w: SHEET_W,
+    h: SHEET_H,
+  };
+  const winter = dayForSlot("Winter", 40);
+  const flat = directHours(500, 700, 40, winter, 0, []);
+  assert.ok(flat > 0, "the flat sheet sees some winter sun");
+  assert.equal(directHours(500, 700, 40, winter, 0, [], terrain), 0, "behind the bank it sees none");
+  // Open ground far from any mark keeps the sky it always had.
+  const open = [mark(100, 100, 1)];
+  const openTerrain: Terrain = {
+    at: (x, z) => groundAt(open, x, z) * upm,
+    maxY: 1 * upm,
+    w: SHEET_W,
+    h: SHEET_H,
+  };
+  assert.equal(
+    directHours(900, 1300, 40, winter, 0, [], openTerrain),
+    directHours(900, 1300, 40, winter, 0, []),
+    "a far corner is not shaded by a distant molehill",
+  );
 });
 
 /* ---- growth: a pace in three words is a band, not a curve -------------- */

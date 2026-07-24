@@ -38,6 +38,17 @@ export type Placed = {
   r?: number;
 };
 
+/** A height she set on the ground itself: this point stands `m` metres above
+ *  (or below, negative) the level she calls zero. Hers entirely — no source
+ *  records the shape of her land — and the one kind of mark all three
+ *  projections read: the sheet shows it, the elevation sections through it,
+ *  the model stands on it (lib/ground.ts is the one interpolator). */
+export type GroundMark = {
+  id: string;
+  at: Pt;
+  m: number;
+};
+
 export type Yard = {
   v: 1;
   id: string;
@@ -53,6 +64,10 @@ export type Yard = {
    *  that turns the napkin computable: with it (and her latitude) the sun
    *  casts and the model stands at true scale. Absent, nothing is guessed. */
   span?: number;
+  /** The shape of her land, as the heights she set. Absent or empty, the
+   *  ground is the flat sheet it always was, and no projection claims a
+   *  slope nobody measured. */
+  ground?: GroundMark[];
   strokes: Stroke[];
   plants: Placed[];
 };
@@ -63,6 +78,10 @@ export const MAX_STROKES = 200;
 export const MAX_PTS = 240;
 export const MAX_PLANTS = 150;
 export const MAX_LABEL = 60;
+export const MAX_GROUND = 40;
+/** |metres| a ground height may claim. Past a cliff's worth it is a typo, and
+ *  a typo must not fold every real rise and dip flat on the shared scale. */
+export const LEVEL_LIMIT = 200;
 
 /* ---- geometry: the pen budget --------------------------------------- */
 
@@ -150,6 +169,13 @@ function cleanStroke(raw: unknown): Stroke | null {
   return null;
 }
 
+function cleanGround(raw: unknown): GroundMark | null {
+  const g = raw as GroundMark;
+  if (typeof g?.id !== "string" || !isPt(g.at) || !int(g.m)) return null;
+  if (Math.abs(g.m) > LEVEL_LIMIT) return null;
+  return { id: g.id, at: g.at, m: Math.round(g.m * 100) / 100 };
+}
+
 function cleanPlaced(raw: unknown): Placed | null {
   const p = raw as Placed;
   if (typeof p?.uid !== "string" || !int(p?.id) || !int(p?.x) || !int(p?.y)) return null;
@@ -169,6 +195,9 @@ function cleanPlaced(raw: unknown): Placed | null {
 export function sanitizeYard(raw: unknown): Yard | null {
   const y = raw as Yard;
   if (typeof y?.id !== "string" || typeof y?.name !== "string") return null;
+  const ground = Array.isArray(y.ground)
+    ? y.ground.map(cleanGround).filter((g): g is GroundMark => g !== null).slice(0, MAX_GROUND)
+    : [];
   return {
     v: 1,
     id: y.id,
@@ -177,6 +206,7 @@ export function sanitizeYard(raw: unknown): Yard | null {
     north: int(y.north) ? y.north : 0,
     ...(typeof y.underlay === "string" && y.underlay ? { underlay: y.underlay } : {}),
     ...(int(y.span) && y.span >= 2 && y.span <= 2000 ? { span: Math.round(y.span) } : {}),
+    ...(ground.length ? { ground } : {}),
     strokes: Array.isArray(y.strokes)
       ? y.strokes.map(cleanStroke).filter((s): s is Stroke => s !== null).slice(0, MAX_STROKES)
       : [],

@@ -61,7 +61,9 @@ export type Blocker = { x: number; z: number; cy: number; rx: number; ry: number
 
 /** The crown a figure raises, in sheet units, given her span (units per
  *  metre). Trunks don't shade beds; crowns do, so the tree layers lift the
- *  ellipsoid and everything else fills from the ground up. */
+ *  ellipsoid and everything else fills from the ground up. `baseM` is the
+ *  ground under the plant: a crown on a bank starts its shading from the
+ *  bank's height, not the datum's. */
 export function blockerOf(
   kind: Archetype,
   x: number,
@@ -69,15 +71,51 @@ export function blockerOf(
   heightM: number,
   widthM: number | null,
   upm: number,
+  baseM = 0,
 ): Blocker {
   const h = heightM * upm;
+  const base = baseM * upm;
   const w = (widthM ?? heightM * CROWN_RATIO[kind]) * upm;
   if (kind === "tall-tree" || kind === "tree") {
     const trunkFrac = kind === "tree" ? 0.42 : 0.5;
     const ry = (h * (1 - trunkFrac)) / 2;
-    return { x, z, cy: h - ry, rx: w / 2, ry };
+    return { x, z, cy: base + h - ry, rx: w / 2, ry };
   }
-  return { x, z, cy: h / 2, rx: w / 2, ry: h / 2 };
+  return { x, z, cy: base + h / 2, rx: w / 2, ry: h / 2 };
+}
+
+/** The land as an occluder: the ground's height (sheet units) at a sheet
+ *  point, its crest, and the sheet's own bounds — past them the march stops,
+ *  because the sheet claims nothing about ground it does not hold. */
+export type Terrain = {
+  at: (x: number, z: number) => number;
+  maxY: number;
+  w: number;
+  h: number;
+};
+
+/** Does the land itself stand between this point and the sun? A coarse march
+ *  along the sun ray over the height field, in the same sheet units the
+ *  crowns use. The small tolerance keeps a point from shading itself on the
+ *  slope it stands on. */
+function groundShades(
+  px: number,
+  pz: number,
+  py: number,
+  dx: number,
+  dy: number,
+  dz: number,
+  t: Terrain,
+): boolean {
+  for (let s = 24; s <= 2600; s += 24) {
+    const y = py + dy * s;
+    if (y > t.maxY) return false;
+    const x = px + dx * s;
+    const z = pz + dz * s;
+    if (x < 0 || x > t.w || z < 0 || z > t.h) return false;
+    if (t.at(x, z) > y + 2) return true;
+  }
+  return false;
 }
 
 /** Sheet direction of a compass bearing, given her rose: `north` is degrees
@@ -87,22 +125,27 @@ const sheetDir = (bearing: number, north: number): [number, number] => {
   return [Math.sin(a), -Math.cos(a)];
 };
 
-/** Is this ground point in direct sun, or under some crown's ellipsoid? A ray
- *  is cast toward the sun and tested against each crown in scaled space. */
+/** Is this ground point in direct sun, or under some crown's ellipsoid — or,
+ *  when the yard has a shape, behind its own land? A ray is cast toward the
+ *  sun and tested against each crown in scaled space, then marched over the
+ *  height field. The point itself stands on the terrain, so a bed on a bank
+ *  is shaded by what clears the bank, not what clears the datum. */
 export function sunlit(
   px: number,
   pz: number,
   sun: { altitude: number; azimuth: number },
   north: number,
   blockers: Blocker[],
+  terrain?: Terrain,
 ): boolean {
   if (sun.altitude <= 0) return false;
   const [dx, dz] = sheetDir(sun.azimuth, north);
   const dy = Math.tan(sun.altitude * RAD);
+  const py = terrain ? terrain.at(px, pz) : 0;
   for (const b of blockers) {
     // Scale to the unit sphere: (x/rx, (y-cy)/ry, z/rx) relative to the crown.
     const ox = (px - b.x) / b.rx;
-    const oy = (0 - b.cy) / b.ry;
+    const oy = (py - b.cy) / b.ry;
     const oz = (pz - b.z) / b.rx;
     const vx = dx / b.rx;
     const vy = dy / b.ry;
@@ -118,6 +161,7 @@ export function sunlit(
     const t = (-B - Math.sqrt(disc)) / (2 * A);
     if (t > 0.001) return false;
   }
+  if (terrain && groundShades(px, pz, py, dx, dy, dz, terrain)) return false;
   return true;
 }
 
@@ -130,11 +174,12 @@ export function directHours(
   dayOfYear: number,
   north: number,
   blockers: Blocker[],
+  terrain?: Terrain,
 ): number {
   let halves = 0;
   for (let hour = 5; hour <= 21; hour += 0.5) {
     const sun = sunAt(latDeg, dayOfYear, hour);
-    if (sun.altitude > 0 && sunlit(px, pz, sun, north, blockers)) halves += 1;
+    if (sun.altitude > 0 && sunlit(px, pz, sun, north, blockers, terrain)) halves += 1;
   }
   return halves / 2;
 }
