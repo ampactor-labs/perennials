@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { archetypeOf, CROWN_RATIO } from "@/lib/elevation";
 import { groundAt, groundRange, levelLabel } from "@/lib/ground";
+import { speckle } from "@/lib/paper";
 import { getPhoto } from "@/lib/photos";
 import { sunAt } from "@/lib/sun";
 import { pathD, SHEET_H, SHEET_W, type Yard } from "@/lib/yards";
@@ -44,6 +45,16 @@ const EYE_M = 1.6; // eye height, metres, for the walk-in view
 const cssColor = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+/** What the render pass dresses each frame: standees turned to face the
+ *  eye, and name sprites stepped back with distance so the walk-in view is
+ *  a garden rather than a label cloud. The build effect fills these; the
+ *  stage's render() reads them. */
+type Dress = {
+  billboards: { group: THREE.Group; at: THREE.Vector3 }[];
+  /** w/h are the sprite's authored size; the render pass scales from them. */
+  labels: { sprite: THREE.Sprite; at: THREE.Vector3; w: number; h: number }[];
+};
+
 type World = {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -52,6 +63,7 @@ type World = {
   content: THREE.Group;
   sunLight: THREE.DirectionalLight;
   ambient: THREE.HemisphereLight;
+  dress: Dress;
   render: () => void;
 };
 
@@ -84,6 +96,10 @@ export function YardModel({
   const host = useRef<HTMLDivElement>(null);
   const world = useRef<World | null>(null);
   const [failed, setFailed] = useState(false);
+  // The scene bakes CSS colours at build time; when the theme moves (her
+  // toggle, or the system at dusk) this tick pokes a rebuild so the model
+  // repaints in the new ink instead of holding yesterday's.
+  const [themeTick, setThemeTick] = useState(0);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
@@ -154,7 +170,31 @@ export function YardModel({
     scene.add(content);
 
     // On-demand rendering: a continuous loop would idle her battery flat.
-    const render = () => renderer.render(scene, camera);
+    // The dressing pass rides inside it: photo standees turn to face the
+    // eye, and far names step back relative to how far she is looking.
+    const dress: Dress = { billboards: [], labels: [] };
+    const render = () => {
+      const cam = camera.position;
+      const camDist = cam.distanceTo(controls.target) || 1;
+      for (const b of dress.billboards) {
+        b.group.rotation.y = Math.atan2(cam.x - b.at.x, cam.z - b.at.z);
+      }
+      for (const l of dress.labels) {
+        const d = cam.distanceTo(l.at);
+        const ratio = d / camDist;
+        (l.sprite.material as THREE.SpriteMaterial).opacity = Math.max(
+          0.05,
+          Math.min(1, 1 - (ratio - 1.15) / 0.9),
+        );
+        // A sprite is world-sized, so at eye level a near name would fill
+        // the walk-in view: hold it to its share of the screen instead. The
+        // 1100 floor leaves the top-down view untouched — its labels all sit
+        // farther than that.
+        const s = Math.min(1, d / 1100);
+        l.sprite.scale.set(l.w * s, l.h * s, 1);
+      }
+      renderer.render(scene, camera);
+    };
     controls.addEventListener("change", render);
 
     const size = () => {
@@ -202,9 +242,19 @@ export function YardModel({
     renderer.domElement.addEventListener("pointerdown", onDown);
     renderer.domElement.addEventListener("pointerup", onUp);
 
-    world.current = { renderer, scene, camera, controls, content, sunLight, ambient, render };
+    // Watch both theme signals: her toggle stamps data-theme on the root,
+    // and the system flips prefers-color-scheme on its own schedule.
+    const mo = new MutationObserver(() => setThemeTick((t) => t + 1));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+    const onScheme = () => setThemeTick((t) => t + 1);
+    scheme.addEventListener("change", onScheme);
+
+    world.current = { renderer, scene, camera, controls, content, sunLight, ambient, dress, render };
     return () => {
       ro.disconnect();
+      mo.disconnect();
+      scheme.removeEventListener("change", onScheme);
       renderer.domElement.removeEventListener("pointerdown", onDown);
       renderer.domElement.removeEventListener("pointerup", onUp);
       controls.dispose();
@@ -228,11 +278,27 @@ export function YardModel({
     };
 
     const paper = cssColor("--paper");
+    const paperRaised = cssColor("--paper-raised");
+    const paperSunk = cssColor("--paper-sunk");
+    const lineCol = cssColor("--line");
     const ink = cssColor("--ink");
     const inkSoft = cssColor("--ink-soft");
     const inkFaint = cssColor("--ink-faint");
     const sepia = cssColor("--sepia");
     const green = cssColor("--green");
+    const pc = new THREE.Color(paper);
+    // Dark theme: lift the sheet one paper step so ink and shadow still read
+    // against it, and let the sun push a little harder (see the sun effect).
+    const isDark = (pc.r + pc.g + pc.b) / 3 < 0.5;
+
+    // The stage is a page: past the sheet the scene fades back into the
+    // paper it is drawn on. The sun effect keeps the fog's colour in step
+    // with the sky it sets.
+    w.scene.fog = new THREE.Fog(new THREE.Color(paper), 3600, 10000);
+
+    // Fresh dressing per build; render() reads these live.
+    w.dress.billboards.length = 0;
+    w.dress.labels.length = 0;
 
     /* the ground is her sheet: paper, washed photo, her ink, as a texture */
     const sheet = document.createElement("canvas");
@@ -245,8 +311,11 @@ export function YardModel({
 
     const paint = (img: HTMLImageElement | null) => {
       g.clearRect(0, 0, SHEET_W, SHEET_H);
-      g.fillStyle = paper;
+      g.fillStyle = isDark ? paperRaised : paper;
       g.fillRect(0, 0, SHEET_W, SHEET_H);
+      // The same tooth every SVG sheet carries, seeded so a repaint never
+      // shimmers; under the photo, because a print covers the paper.
+      speckle(g, SHEET_W, SHEET_H, ink);
       if (img) {
         const s = Math.min(SHEET_W / img.width, SHEET_H / img.height);
         const iw = img.width * s;
@@ -269,6 +338,10 @@ export function YardModel({
           const p2 = new Path2D(pathD(s.pts, s.k === "area"));
           if (s.k === "area") {
             g.save();
+            // the pooled edge under the pen line, as on the plan
+            g.globalAlpha = 0.1;
+            g.lineWidth = 9;
+            g.stroke(p2);
             g.globalAlpha = 0.13;
             g.fillStyle = sepia;
             g.fill(p2);
@@ -290,6 +363,10 @@ export function YardModel({
         g.font = "italic 22px Georgia, serif";
         g.fillText(levelLabel(gm.m), bx + 14, by - 4);
       }
+      // the sheet's own border, so the card has an edge in the round
+      g.strokeStyle = lineCol;
+      g.lineWidth = 3;
+      g.strokeRect(1.5, 1.5, SHEET_W - 3, SHEET_H - 3);
       tex.needsUpdate = true;
     };
     paint(null);
@@ -329,6 +406,15 @@ export function YardModel({
     ground.castShadow = marks.length > 0; // a bank shades what stands behind it
     w.content.add(ground);
 
+    // The sheet is a card on a table: a sunk mat under it gives the paper an
+    // edge to be seen from low angles, sitting under the lowest dip.
+    const board = new THREE.Mesh(
+      keep(new THREE.BoxGeometry(SHEET_W + 20, 12, SHEET_H + 20)),
+      keep(new THREE.MeshLambertMaterial({ color: new THREE.Color(paperSunk) })),
+    );
+    board.position.y = (marks.length ? groundRange(marks).min * K : 0) - 7;
+    w.content.add(board);
+
     /* the calendar's hatch, for a bloom the record is silent on */
     const hc = document.createElement("canvas");
     hc.width = hc.height = 24;
@@ -348,12 +434,38 @@ export function YardModel({
     hatch.repeat.set(3, 3);
     hatch.colorSpace = THREE.SRGBColorSpace;
 
+    // The toon ramp: a few steps of the same grey, so a lit crown reads as a
+    // printed illustration rather than moulded plastic. RGBA because the
+    // toon shader samples all three channels; a red-only ramp tints the lot.
+    const rampSteps = [96, 176, 232, 255];
+    const rampData = new Uint8Array(rampSteps.length * 4);
+    rampSteps.forEach((v, i) => rampData.set([v, v, v, 255], i * 4));
+    const ramp = keep(new THREE.DataTexture(rampData, rampSteps.length, 1, THREE.RGBAFormat));
+    ramp.minFilter = ramp.magFilter = THREE.NearestFilter;
+    ramp.needsUpdate = true;
+
     const bodyColor = (f: Fig) =>
       f.state === "fill" && f.fill ? f.fill : f.state === "ink" ? inkFaint : paper;
     const stateMaterial = (f: Fig) =>
       f.state === "hatch"
-        ? keep(new THREE.MeshLambertMaterial({ map: hatch }))
-        : keep(new THREE.MeshLambertMaterial({ color: new THREE.Color(bodyColor(f)) }));
+        ? keep(new THREE.MeshToonMaterial({ map: hatch, gradientMap: ramp }))
+        : keep(new THREE.MeshToonMaterial({ color: new THREE.Color(bodyColor(f)), gradientMap: ramp }));
+
+    // The ink line the elevation strokes around every figure, in the round:
+    // a back-face shell — no post-processing, so it survives the on-demand
+    // renderer. Sepia when the measurement is hers, full ink when selected.
+    const outlineMats = {
+      ink: keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(inkSoft), side: THREE.BackSide })),
+      hers: keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(sepia), side: THREE.BackSide })),
+      sel: keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(ink), side: THREE.BackSide })),
+    };
+    const outlineOf = (m: THREE.Mesh, mat: THREE.Material, grow: number) => {
+      const o = new THREE.Mesh(m.geometry, mat);
+      o.position.copy(m.position);
+      o.scale.copy(m.scale).multiplyScalar(grow);
+      o.castShadow = false;
+      return o;
+    };
 
     const flatRing = (rIn: number, rOut: number, color: string, y: number) => {
       const mesh = new THREE.Mesh(
@@ -468,7 +580,25 @@ export function YardModel({
           const plane = new THREE.Mesh(keep(new THREE.PlaneGeometry(1, 1)), photoMat);
           plane.position.y = h / 2;
           plane.scale.set(wUnits * 1.4, h, 1);
-          spot.add(plane);
+          // The print is mounted: a raised-paper border behind it, and the
+          // whole stand turns to face the eye each render (see Dress) — a
+          // specimen photo standing in the bed, not a floating rectangle.
+          const mountMat = keep(
+            new THREE.MeshBasicMaterial({
+              color: new THREE.Color(paperRaised),
+              side: THREE.DoubleSide,
+            }),
+          );
+          const mount = new THREE.Mesh(keep(new THREE.PlaneGeometry(1, 1)), mountMat);
+          mount.position.set(0, h / 2, -0.8);
+          mount.scale.set(wUnits * 1.4 * 1.08, h * 1.06, 1);
+          const stand = new THREE.Group();
+          stand.add(mount, plane);
+          spot.add(stand);
+          w.dress.billboards.push({
+            group: stand,
+            at: new THREE.Vector3(f.x - HALF_W, 0, f.depth - HALF_H),
+          });
           void getPhoto(f.photo).then((blob) => {
             if (dead || !blob) return;
             const url = URL.createObjectURL(blob);
@@ -485,15 +615,24 @@ export function YardModel({
               photoMat.needsUpdate = true;
               const aspect = img.width / img.height;
               plane.scale.set(h * aspect, h, 1);
+              mount.scale.set(h * aspect * 1.08, h * 1.06, 1);
               w.render();
             };
             img.src = url;
           });
         } else {
           const strokeMat = keep(
-            new THREE.MeshLambertMaterial({ color: new THREE.Color(f.hers ? sepia : inkSoft) }),
+            new THREE.MeshToonMaterial({
+              color: new THREE.Color(f.hers ? sepia : inkSoft),
+              gradientMap: ramp,
+            }),
           );
-          for (const m of buildBody(kind, h, wUnits, stateMaterial(f), strokeMat)) spot.add(m);
+          const oMat = sel === f.uid ? outlineMats.sel : f.hers ? outlineMats.hers : outlineMats.ink;
+          const grow = sel === f.uid ? 1.05 : 1.035;
+          for (const m of buildBody(kind, h, wUnits, stateMaterial(f), strokeMat)) {
+            spot.add(m);
+            spot.add(outlineOf(m as THREE.Mesh, oMat, grow));
+          }
         }
 
         // The years axis draws today solid and mature behind it as a ghost, so
@@ -534,6 +673,12 @@ export function YardModel({
       const name = nameSprite(f.label);
       name.position.y = top + 34;
       spot.add(name);
+      w.dress.labels.push({
+        sprite: name,
+        at: new THREE.Vector3(f.x - HALF_W, f.footing * K + top + 34, f.depth - HALF_H),
+        w: name.scale.x,
+        h: name.scale.y,
+      });
 
       if (f.show === "other") {
         spot.traverse((o) => {
@@ -569,34 +714,51 @@ export function YardModel({
     w.render();
     return () => {
       dead = true;
+      w.dress.billboards.length = 0;
+      w.dress.labels.length = 0;
       w.content.clear();
       junk.forEach((d) => d.dispose());
       urls.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [figs, underlay, sel, years, yard]);
+  }, [figs, underlay, sel, years, yard, themeTick]);
 
   /* ---- the sun: her latitude cast as light, or an even day ------------- */
 
   useEffect(() => {
     const w = world.current;
     if (!w) return;
+    const paper = new THREE.Color(cssColor("--paper"));
+    const isDark = (paper.r + paper.g + paper.b) / 3 < 0.5;
+    // Dark paper eats contrast; the sun pushes a little harder there so lit
+    // and shaded ground still separate.
+    const boost = isDark ? 1.2 : 1;
+    const setSky = (c: THREE.Color) => {
+      w.scene.background = c;
+      if (w.scene.fog) w.scene.fog.color.copy(c);
+    };
+    w.ambient.groundColor.copy(paper);
     if (!sun) {
       // No span, or she hasn't said where she is: an even, sourceless day, so
       // nothing on the ground reads as a shadow that was never computed.
       w.sunLight.castShadow = false;
-      w.sunLight.intensity = 0.9;
+      w.sunLight.color.set(0xffffff);
+      w.sunLight.intensity = 0.9 * boost;
       w.sunLight.position.set(600, 1400, 400);
+      w.ambient.color.set(0xffffff);
       w.ambient.intensity = 1.0;
+      setSky(paper);
       w.render();
       return;
     }
     const pos = sunAt(sun.lat, sun.day, sun.hour);
     if (pos.altitude <= 0) {
-      // Below the horizon: dusk. No direct light, a low ambient; the bed lines
-      // already say the hour is dark.
+      // Below the horizon: a real dusk. The page itself cools and darkens,
+      // the fog follows, and no direct light is faked.
       w.sunLight.castShadow = false;
       w.sunLight.intensity = 0;
+      w.ambient.color.set(0xffffff);
       w.ambient.intensity = 0.5;
+      setSky(paper.clone().lerp(new THREE.Color(isDark ? 0x0e1420 : 0x565f6e), 0.45));
       w.render();
       return;
     }
@@ -611,12 +773,21 @@ export function YardModel({
     const D = 4000;
     w.sunLight.position.set((dx / len) * D, (dy / len) * D, (dz / len) * D);
     w.sunLight.castShadow = true;
-    // Lower sun, weaker direct light and a warmer floor, like the end of a day.
+    // Lower sun: weaker and warmer direct light under a cooler sky — the end
+    // of a day, computed from her numbers exactly as the shadows are, and
+    // only gently: the chrome stays paper, the warmth stays in the light.
     const alt = pos.altitude;
-    w.sunLight.intensity = 0.5 + 0.9 * Math.min(1, alt / 50);
+    w.sunLight.color.copy(
+      new THREE.Color(0xf3d9ab).lerp(new THREE.Color(0xffffff), Math.min(1, alt / 28)),
+    );
+    w.ambient.color.copy(
+      new THREE.Color(0xdfe4ec).lerp(new THREE.Color(0xffffff), Math.min(1, alt / 40)),
+    );
+    w.sunLight.intensity = (0.5 + 0.9 * Math.min(1, alt / 50)) * boost;
     w.ambient.intensity = 0.7 + 0.3 * Math.min(1, alt / 50);
+    setSky(paper);
     w.render();
-  }, [sun, yard.north]);
+  }, [sun, yard.north, themeTick]);
 
   /* ---- walk in: eye level at the sheet's edge -------------------------- */
 
