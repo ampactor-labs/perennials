@@ -23,6 +23,7 @@ import { ACCESS } from "./query";
 import { decodeConstraints, encodeConstraints } from "./constraints";
 import { seenSlots } from "./seen";
 import { sanitizeSpot } from "./spots";
+import { inBloomNow } from "./today";
 import { sceneOf } from "./yardViews";
 import {
   commitStroke,
@@ -735,6 +736,30 @@ test("no recorded period claims nothing, whatever she marked", () => {
 test("no marks claim nothing", () => {
   assert.equal(phenologyLine([], "Late Spring"), null, "nothing witnessed is nothing to say");
   assert.deepEqual(outsideRecord([], ["Late Spring"]), []);
+});
+
+/* ---- today: the garden as it stands, recorded or hers, never guessed ---- */
+
+test("in bloom now counts the printed band, her mark, and never silence", () => {
+  const plants = [
+    { id: 1, bloomPeriod: "Mid Summer" } as never as Plant, // the record's
+    { id: 2 } as never as Plant, // her mark alone, below
+    { id: 3 } as never as Plant, // neither: not "quiet", just unrecorded
+  ];
+  const seen = [{ id: 2, at: day(2026, 7, 14) }]; // Mid Summer, by her hand
+  const { recorded, byHer } = inBloomNow(plants, seen, "Mid Summer");
+  assert.deepEqual(recorded.map((p) => p.id), [1], "the band answers for USDA");
+  assert.deepEqual(byHer.map((p) => p.id), [2], "her mark answers for her, in her ink");
+  const winter = inBloomNow(plants, seen, "Winter");
+  assert.equal(winter.recorded.length + winter.byHer.length, 0, "no record, no claim");
+});
+
+test("a plant both recorded and marked counts once, on the record's side", () => {
+  const plants = [{ id: 1, bloomPeriod: "Fall" } as never as Plant];
+  const seen = [{ id: 1, at: day(2026, 10, 2) }];
+  const { recorded, byHer } = inBloomNow(plants, seen, "Fall");
+  assert.equal(recorded.length, 1);
+  assert.equal(byHer.length, 0, "two records of one fact must not read as two plants");
 });
 
 /* ---- the pollinator famine, coverage first ----------------------------- */

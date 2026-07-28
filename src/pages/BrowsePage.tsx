@@ -3,6 +3,7 @@ import { useNavigationType } from "react-router-dom";
 import { useHomeZone } from "@/lib/homeZone";
 import { useSearch } from "@/state/search";
 import { Omnibox } from "@/components/Omnibox";
+import { Today } from "@/components/Today";
 import { Trail } from "@/components/Trail";
 import { SpotBar } from "@/components/SpotBar";
 import { FacetRail } from "@/components/FacetRail";
@@ -121,6 +122,7 @@ export function BrowsePage() {
     <div className="page wrap">
       <div className="browse-top">
         <h1 className="sr-only">Find a plant by its conditions</h1>
+        <Today />
         <Omnibox />
         <SpotBar />
         <Trail />

@@ -585,6 +585,42 @@
 /* ===================================================================== *
  * Starters (first-run seeds)
  * ===================================================================== */
+/* The garden today: a strip above the search, not a dashboard. Chrome stays
+   ink; the only colour is a bloom ptag's, and her marks wear their sepia. */
+.today {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.today-season {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ink);
+}
+.today-names {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  align-items: center;
+}
+.today-more {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+.today-yards {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-left: auto;
+}
+
 .starters {
   margin-top: var(--sp-4);
   padding: var(--sp-3);
