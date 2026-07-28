@@ -1,20 +1,14 @@
 import { useState } from "react";
 import type { Plant } from "@/data/model";
+import { LAYER_ORDER, stratumOf } from "@/lib/elevation";
+import { NO_MINE } from "@/lib/mine";
+import { ACCESS } from "@/lib/query";
 import { PAGE, useSearch } from "@/state/search";
 import { PlantCard } from "./PlantCard";
 import { ResultGrid } from "./ResultGrid";
 
 // Results grouped as the forest garden stacks them, canopy down to root, so
 // "fill my guild" reads as: pick your site, then shop each layer.
-const LAYER_ORDER = [
-  "Tall trees",
-  "Trees",
-  "Shrubs",
-  "Vines",
-  "Herbs",
-  "Ground cover",
-  "Roots",
-] as const;
 
 // Vertical position of each stratum on the spine glyph (0 = sky, ground at 0.72).
 const SPINE_Y: Record<string, number> = {
@@ -123,18 +117,20 @@ export function GuildView({ results }: { results: Plant[] }) {
   const s = useSearch();
   const byLayer = new Map<string, Plant[]>(LAYER_ORDER.map((l) => [l, []]));
   const unplaced: Plant[] = [];
+  // Through ACCESS, so a layer she filled stacks the plant. This view used to
+  // read p.layer raw — the one room where her answers went silent: a layer
+  // she recorded filtered the grid and never shelved the plant here.
+  const asList = (v: readonly string[] | string | null): readonly string[] =>
+    v === null ? [] : typeof v === "string" ? [v] : v;
+  const herIndex = s.data?.mine ?? NO_MINE;
   for (const p of results) {
-    if (p.layer && byLayer.has(p.layer)) {
-      byLayer.get(p.layer)!.push(p);
-    } else if (!p.layer && p.functions.includes("Ground cover")) {
-      // The guide records a "Ground cover" LAYER for 8 plants and a "Ground cover"
-      // FUNCTION for 496. Keying the stratum off the layer alone meant the section
-      // she most wants to fill was reading the emptier of the two columns, while
-      // the plants she was after sat one facet over.
-      byLayer.get("Ground cover")!.push(p);
-    } else {
-      unplaced.push(p);
-    }
+    const hers = herIndex.get(p.id);
+    const stratum = stratumOf(
+      asList(ACCESS.layer(p, hers)),
+      asList(ACCESS.functions(p, hers)),
+    );
+    if (stratum) byLayer.get(stratum)!.push(p);
+    else unplaced.push(p);
   }
 
   // How many plants carry each layer in the entire catalogue, regardless of what

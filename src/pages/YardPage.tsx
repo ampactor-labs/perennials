@@ -11,6 +11,7 @@ import { ACCESS } from "@/lib/query";
 import { seenSlots, useSeen } from "@/lib/seen";
 import { outsideRecord, visitorGaps } from "@/lib/phenology";
 import { useSpots } from "@/lib/spots";
+import { layerGapsOf } from "@/lib/elevation";
 import { parseLevel } from "@/lib/ground";
 import { growthBand } from "@/lib/growth";
 import {
@@ -261,6 +262,15 @@ export function YardPage() {
       }).toString()}`,
     );
 
+  // A missing stratum's name opens that shelf of the guide, stacked the way
+  // the forest garden stacks it.
+  const layerTo = (l: string) =>
+    `/?${encodeConstraints({
+      atoms: [{ kind: "facet", key: "layer", value: l }],
+      text: "",
+      view: "guild",
+    }).toString()}`;
+
   // The asked point saves like a bed does, named by the nearest label when
   // one is close enough to be its name.
   const saveAskSpot = () => {
@@ -365,6 +375,16 @@ export function YardPage() {
     if (vg.covered === 0 || vg.gaps.length === 0) return cover;
     return `${cover} In ${joinLower(vg.gaps)}, nothing recorded in bloom here has a recorded flower visitor.`;
   })();
+
+  // Which strata nobody here carries, and how many placed plants carry no
+  // layer at all: two different silences, never merged. Each missing layer's
+  // name opens that shelf of the guide.
+  const layerGaps =
+    almanacPlants.length > 0
+      ? layerGapsOf(
+          almanacPlants.map((p) => asList(ACCESS.layer(p, herIndex.get(p.id)))),
+        )
+      : null;
 
   // Her marks against the record, over the whole yard: neither side wrong,
   // same bargain as the per-plant line, said once.
@@ -1027,6 +1047,33 @@ export function YardPage() {
           </select>
           {showLine && <p className="yard-coverage">{showLine}</p>}
         </div>
+      )}
+
+      {/* The guild's marginalia: which strata nobody here carries. A plant
+          with no recorded layer is its own count, never evidence of a gap. */}
+      {layerGaps && (
+        <p className="yard-coverage">
+          {layerGaps.missing.length === 0
+            ? "Every guild layer has a plant recorded for it here."
+            : [
+                "No placed plant is recorded as ",
+                ...layerGaps.missing.map((l, i) => (
+                  <span key={l}>
+                    {i > 0 &&
+                      (i === layerGaps.missing.length - 1
+                        ? layerGaps.missing.length > 2
+                          ? ", or "
+                          : " or "
+                        : ", ")}
+                    <Link to={layerTo(l)}>{l}</Link>
+                  </span>
+                )),
+                " — each name opens that layer of the guide",
+              ]}
+          {layerGaps.unrecorded > 0 &&
+            `; ${layerGaps.unrecorded} placed ${layerGaps.unrecorded === 1 ? "plant carries" : "plants carry"} no layer in our data`}
+          .
+        </p>
       )}
 
       {selected && (

@@ -63,6 +63,57 @@ export function tickStep(maxM: number): number {
   return 10;
 }
 
+// The forest garden's strata, canopy down to root: the order GuildView
+// stacks, the vocabulary the figures draw from, and the checklist the yard's
+// layer line reads.
+export const LAYER_ORDER = [
+  "Tall trees",
+  "Trees",
+  "Shrubs",
+  "Vines",
+  "Herbs",
+  "Ground cover",
+  "Roots",
+] as const;
+
+/**
+ * The guild section a plant stacks into, from its layer values (the record's
+ * and hers, already merged by ACCESS) and its functions. The record speaks
+ * first: the first value naming a real stratum wins. With no layer at all, a
+ * "Ground cover" function stands in — the guide records that layer for 8
+ * plants and the function for ~500, and keying the stratum off the emptier
+ * column hid the section she most wants to fill. Null is "no layer in our
+ * data", which is its own honest shelf, never a stratum picked on a guess.
+ */
+export function stratumOf(
+  layers: readonly string[],
+  functions: readonly string[],
+): string | null {
+  const hit = layers.find((l) => (LAYER_ORDER as readonly string[]).includes(l));
+  if (hit) return hit;
+  if (layers.length === 0 && functions.includes("Ground cover")) return "Ground cover";
+  return null;
+}
+
+/**
+ * Which strata nobody here carries, and how many plants carry no layer at
+ * all — two different silences, kept apart. A plant with no recorded layer
+ * is counted as unrecorded, never as evidence a layer is missing: absence of
+ * the record is not absence of the plant.
+ */
+export function layerGapsOf(layersPerPlant: readonly (readonly string[])[]): {
+  missing: string[];
+  unrecorded: number;
+} {
+  const have = new Set<string>();
+  let unrecorded = 0;
+  for (const layers of layersPerPlant) {
+    if (layers.length === 0) unrecorded += 1;
+    for (const l of layers) have.add(l);
+  }
+  return { missing: LAYER_ORDER.filter((l) => !have.has(l)), unrecorded };
+}
+
 export type Archetype =
   | "tall-tree"
   | "tree"

@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 import { mergeById, photoKeys } from "./backup";
 import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
-import { archetypeOf, figurePaths, parseMetres, standing, tickStep, type Archetype } from "./elevation";
+import { archetypeOf, figurePaths, layerGapsOf, parseMetres, standing, stratumOf, tickStep, type Archetype } from "./elevation";
 import { earthPathD, groundAt, groundRange, groundSkyline, parseLevel, sectionOf } from "./ground";
 import { growthBand } from "./growth";
 import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit, tierWord, type Terrain } from "./sun";
@@ -284,6 +284,34 @@ test("every archetype draws, and only trees carry trunks, only roots reach down"
     assert.equal(fig.trunk !== undefined, k === "tall-tree" || k === "tree", `${k}: trunk`);
     assert.equal(fig.taproot !== undefined, k === "root", `${k}: taproot`);
   }
+});
+
+/* ---- the guild's shelves: her layer stacks, and silence stays silence --- */
+
+test("a layer only she recorded shelves the plant in that guild section", () => {
+  const p = { ...plant(null), id: 1, layer: null, functions: [] } as never as Plant;
+  const hers = indexMine([mine(1, "layer", "shrubs")], {
+    layer: [{ value: "Shrubs", count: 1 }],
+  }).get(1);
+  const asList = (v: readonly string[] | string | null): readonly string[] =>
+    v === null ? [] : typeof v === "string" ? [v] : v;
+  assert.equal(stratumOf(asList(ACCESS.layer(p, undefined)), []), null, "no record, no shelf");
+  assert.equal(stratumOf(asList(ACCESS.layer(p, hers)), []), "Shrubs", "her answer shelves it");
+});
+
+test("the record's layer speaks first, and the ground-cover function stands in only for silence", () => {
+  assert.equal(stratumOf(["Herbs", "Shrubs"], []), "Herbs");
+  assert.equal(stratumOf([], ["Ground cover", "Dye"]), "Ground cover");
+  assert.equal(stratumOf(["Herbs"], ["Ground cover"]), "Herbs", "a recorded layer is not overridden");
+  assert.equal(stratumOf(["something odd"], []), null, "a value naming no stratum shelves nothing");
+});
+
+test("a missing layer and an unrecorded layer are two different silences", () => {
+  const gaps = layerGapsOf([["Trees"], ["Herbs"], []]);
+  assert.equal(gaps.unrecorded, 1, "the unrecorded plant is counted, not read as absence");
+  assert.ok(!gaps.missing.includes("Trees") && !gaps.missing.includes("Herbs"));
+  assert.ok(gaps.missing.includes("Roots"), "nobody carries Roots, and that is a real gap");
+  assert.equal(layerGapsOf([]).missing.length, 7, "an empty yard is missing every stratum");
 });
 
 test("the height rule stays readable at any yard's scale", () => {
