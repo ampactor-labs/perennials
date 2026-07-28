@@ -24,7 +24,7 @@ import { decodeConstraints, encodeConstraints } from "./constraints";
 import { seenSlots } from "./seen";
 import { sanitizeSpot } from "./spots";
 import { inBloomNow } from "./today";
-import { scaleBarFor, sceneOf, shadeCells, SHADE_COLS, SHADE_ROWS } from "./yardViews";
+import { labelRowsFor, scaleBarFor, sceneOf, shadeCells, SHADE_COLS, SHADE_ROWS } from "./yardViews";
 import {
   commitStroke,
   MAX_GROUND,
@@ -414,6 +414,20 @@ test("the shade wash draws only what the sun leaves, and never the night", () =>
   assert.equal(at(900, 1300), 0, "open ground keeps its sun");
   assert.ok(cells.litFrac > 0 && cells.litFrac < 1, "a bank shades some of the sheet, never all of it");
   assert.equal(shadeCells(scene, 0, 23), null, "night is not shade; nothing is washed");
+});
+
+test("crowded elevation names stagger onto a second row; spaced ones stay put", () => {
+  const at = (uid: string, x: number) => ({ uid, x });
+  const spaced = labelRowsFor([at("a", 100), at("b", 500), at("c", 900)]);
+  assert.deepEqual([...spaced.values()], [0, 0, 0], "room enough needs no stagger");
+  const crowd = labelRowsFor([at("a", 100), at("b", 180), at("c", 260), at("d", 900)]);
+  assert.equal(crowd.get("a"), 0);
+  assert.equal(crowd.get("b"), 1, "a name crowding its neighbour steps down");
+  assert.equal(crowd.get("c"), 0, "and the chain alternates");
+  assert.equal(crowd.get("d"), 0, "distance resets the row");
+  // Order of the input never matters; only where the figures stand.
+  const shuffled = labelRowsFor([at("c", 260), at("a", 100), at("b", 180)]);
+  assert.deepEqual([shuffled.get("a"), shuffled.get("b"), shuffled.get("c")], [0, 1, 0]);
 });
 
 test("the scale bar is a round number of metres and stays a bar, not a banner", () => {

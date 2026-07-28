@@ -647,6 +647,15 @@ export function YardPage() {
               placedPlants,
               figs,
               yardFile: yardFileText(await buildYardFile(yard)),
+              // The sheet exports what it shows: the wash rides only while
+              // she has it drawn, with the hour and the basis in the footer.
+              shade:
+                shade !== null
+                  ? {
+                      url: shade.url,
+                      line: `Shade at ${Math.floor(hour)}:${hour % 1 ? "30" : "00"}, ${(slot ?? "Early Summer").toLowerCase()} — from your latitude, span, crowns and land.`,
+                    }
+                  : null,
             })
           }
         >

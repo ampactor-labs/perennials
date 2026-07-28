@@ -9,7 +9,7 @@ import {
 } from "@/lib/elevation";
 import { earthPathD, sectionOf } from "@/lib/ground";
 import { GRAIN } from "@/lib/paper";
-import { grownM, type Fig } from "@/lib/yardViews";
+import { grownM, labelRowsFor, type Fig } from "@/lib/yardViews";
 import { SHEET_H, type GroundMark } from "@/lib/yards";
 
 /**
@@ -123,6 +123,8 @@ export function ElevationView({
       : [];
   // Far first: low on the sheet reads as near, so it paints last and in front.
   const ordered = [...figs].sort((a, b) => a.depth - b.depth);
+  // Crowded names stagger onto a second row, as a section's dimension text does.
+  const labelRow = labelRowsFor(figs);
 
   const pick = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -245,7 +247,11 @@ export function ElevationView({
                 fill={fill}
                 className={f.gone ? "yard-mark yard-mark--gone" : "yard-mark"}
               />
-              <text x={f.x} y={gy + TOKEN_R + 24} className="yard-name">
+              <text
+                x={f.x}
+                y={gy + TOKEN_R + 24 + (labelRow.get(f.uid) ?? 0) * 24}
+                className="yard-name"
+              >
                 {f.label}
               </text>
             </g>

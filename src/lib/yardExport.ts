@@ -5,7 +5,7 @@ import type { Fig } from "./yardViews";
 import { archetypeOf, CROWN_RATIO, ELEV_H, figurePaths, GROUND_Y, tickStep } from "./elevation";
 import { earthPathD, levelLabel, sectionOf } from "./ground";
 import { GRAIN } from "./paper";
-import { scaleBarFor } from "./yardViews";
+import { labelRowsFor, scaleBarFor } from "./yardViews";
 import { blobToDataUrl, getPhoto } from "./photos";
 import { SHEET_H, SHEET_W, pathD, type GroundMark, type Yard } from "./yards";
 import { shareFiles } from "./share";
@@ -47,7 +47,7 @@ const SERIF = "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif"
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function tokenSvg(t: TokenView): string {
+function tokenSvg(t: TokenView, labelDy = 0): string {
   const fill =
     t.state === "fill" && t.fill
       ? t.fill
@@ -76,7 +76,7 @@ function tokenSvg(t: TokenView): string {
     `<circle cx="${t.x}" cy="${t.y}" r="16" fill="${fill}" stroke="${C.inkSoft}" stroke-width="2"${t.gone ? ' stroke-dasharray="4 4"' : ""}${t.show === "other" ? ' opacity="0.35"' : ""}/>`,
   );
   parts.push(
-    `<text x="${t.x}" y="${t.y + 40}" text-anchor="middle" font-family="${SANS}" font-size="22" fill="${C.inkSoft}"${t.show === "other" ? ' opacity="0.5"' : ""}>${esc(t.label)}</text>`,
+    `<text x="${t.x}" y="${t.y + 40 + labelDy}" text-anchor="middle" font-family="${SANS}" font-size="22" fill="${C.inkSoft}"${t.show === "other" ? ' opacity="0.5"' : ""}>${esc(t.label)}</text>`,
   );
   return parts.join("");
 }
@@ -99,6 +99,8 @@ function elevationBand(
   );
   const step = K > 0 ? tickStep(Math.max(top, -bottom)) : 0;
   const g0 = y0 + GROUND_Y;
+  // The same stagger the screen's elevation applies to crowded names.
+  const labelRow = labelRowsFor(figs);
   const parts: string[] = [];
 
   parts.push(
@@ -157,7 +159,7 @@ function elevationBand(
     }
     // The same mark it is on the plan, standing on its footing; the spacing
     // ring stays with the plan, where its units mean something.
-    parts.push(tokenSvg({ ...f, y: gy, ring: undefined }));
+    parts.push(tokenSvg({ ...f, y: gy, ring: undefined }, (labelRow.get(f.uid) ?? 0) * 24));
     parts.push(`</g>`);
   }
 
@@ -186,6 +188,9 @@ export function sheetSvg(
   slot: BloomSlot | null,
   bloomLine: string | null,
   ground: string | null,
+  /** The shade wash she is looking at, when she is: the sheet exports what
+   *  it shows, and the footer line carries the hour and the basis. */
+  shade: { url: string; line: string } | null = null,
 ): { svg: string; height: number } {
   const strokes = yard.strokes
     .map((s) => {
@@ -244,8 +249,26 @@ export function sheetSvg(
     year: "numeric",
   });
   const title = `${yard.name} · ${date} · Diagram, not to scale${slot ? ` · ${slot}` : ""}`;
-  const rows = [bloomLine, band?.standLine ?? null, band?.groundLine ?? null].filter(
-    (s): s is string => !!s,
+  // A footer line that outruns the sheet wraps instead of clipping — the
+  // ground line always did, on any yard with a shaped ground. 78 characters
+  // is what 22px actually holds across the printable width.
+  const wrapRows = (xs: string[]): string[] =>
+    xs.flatMap((r) => {
+      const out: string[] = [];
+      let rest = r;
+      while (rest.length > 78) {
+        const cut = rest.lastIndexOf(" ", 78);
+        if (cut <= 0) break;
+        out.push(rest.slice(0, cut));
+        rest = rest.slice(cut + 1);
+      }
+      out.push(rest);
+      return out;
+    });
+  const rows = wrapRows(
+    [bloomLine, shade?.line ?? null, band?.standLine ?? null, band?.groundLine ?? null].filter(
+      (s): s is string => !!s,
+    ),
   );
   const attrY = base + 104 + 38 * rows.length;
   const height = attrY + 40;
@@ -270,14 +293,16 @@ export function sheetSvg(
         <feTurbulence type="fractalNoise" baseFrequency="${GRAIN.frequency}" numOctaves="${GRAIN.octaves}" stitchTiles="stitch"/>
         <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.55 0.55 0.55 0 0"/>
       </filter>
+      <filter id="soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="7"/></filter>
     </defs>
     <rect width="${SHEET_W}" height="${height}" fill="${C.paper}"/>
     <rect width="${SHEET_W}" height="${height}" filter="url(#grain)" opacity="${GRAIN.opacity}"/>
     ${ground ? `<image href="${ground}" xlink:href="${ground}" x="0" y="0" width="${SHEET_W}" height="${SHEET_H}" preserveAspectRatio="xMidYMid meet" opacity="0.5" filter="url(#wash)"/>` : ""}
     <rect x="1" y="1" width="${SHEET_W - 2}" height="${SHEET_H - 2}" fill="none" stroke="${C.line}" stroke-width="2"/>
     ${strokes}
+    ${shade ? `<image href="${shade.url}" xlink:href="${shade.url}" x="0" y="0" width="${SHEET_W}" height="${SHEET_H}" preserveAspectRatio="none" opacity="0.16" filter="url(#soft)"/>` : ""}
     ${benches}
-    ${tokens.map(tokenSvg).join("")}
+    ${tokens.map((t) => tokenSvg(t)).join("")}
     ${rose}
     ${scalebar}
     ${band?.svg ?? ""}
@@ -326,6 +351,9 @@ export async function exportYard(
     /** The importable yard, as JSON text. Rides alongside the picture and the
      *  list so one Share hands a client a sheet to read and a file to open. */
     yardFile?: string;
+    /** The shade wash the sheet is showing, if it is: url plus the one-line
+     *  basis for the footer. The sheet exports what it shows. */
+    shade?: { url: string; line: string } | null;
   },
 ): Promise<void> {
   const stamp = new Date().toISOString().slice(0, 10);
@@ -351,7 +379,15 @@ export async function exportYard(
   }
 
   try {
-    const { svg, height } = sheetSvg(yard, tokens, extra.figs, extra.slot, extra.bloomLine, ground);
+    const { svg, height } = sheetSvg(
+      yard,
+      tokens,
+      extra.figs,
+      extra.slot,
+      extra.bloomLine,
+      ground,
+      extra.shade ?? null,
+    );
     const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
     const img = new Image();
     await new Promise((res, rej) => {

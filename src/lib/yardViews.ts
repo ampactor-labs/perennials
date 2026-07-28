@@ -273,6 +273,29 @@ export function shadeImage(
 }
 
 /**
+ * Which of two text rows each elevation label takes: left to right, a label
+ * crowding its neighbour steps to the other row, drafting-style, so two
+ * names stop printing on top of each other. Pure, so the screen's elevation
+ * and the exported band stagger identically.
+ */
+export function labelRowsFor(
+  figs: readonly { uid: string; x: number }[],
+  gap = 150,
+): Map<string, number> {
+  const rows = new Map<string, number>();
+  const sorted = [...figs].sort((a, b) => a.x - b.x);
+  let prevX = -Infinity;
+  let prevRow = 1;
+  for (const f of sorted) {
+    const row = f.x - prevX < gap ? 1 - prevRow : 0;
+    rows.set(f.uid, row);
+    prevX = f.x;
+    prevRow = row;
+  }
+  return rows;
+}
+
+/**
  * The scale bar her span earns: a round length (1·2·5 × 10ⁿ metres) near a
  * fifth of the sheet, and its width in sheet units. Nothing draws without a
  * span, because a bar on an unscaled napkin would be a claim.
