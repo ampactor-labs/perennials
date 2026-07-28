@@ -73,7 +73,13 @@ async function render(id, w) {
 }
 
 async function fetchAndEncode(url, id, w) {
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  // A hung origin would keep this id:w's inFlight entry live forever, and every
+  // later request for it would await a promise that never settles. 15s: image
+  // bytes are bigger than the JSON lookups.
+  const res = await fetch(url, {
+    headers: { "User-Agent": UA },
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!res.ok) throw new Error(`origin ${url}: HTTP ${res.status}`);
   const origin = Buffer.from(await res.arrayBuffer());
 

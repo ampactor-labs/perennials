@@ -21,6 +21,8 @@ export async function companionsFor(plantId) {
       Accept: "application/json",
       "User-Agent": "perennials-data-service/1.0 (+https://ampactor.dev/perennials)",
     },
+    // No default timeout in Node's fetch; a hung call must not wedge the sweep.
+    signal: AbortSignal.timeout(10_000),
   });
   // A plant with no companion page is a legitimate empty, not a failure.
   if (res.status === 404) return [];

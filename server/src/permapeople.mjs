@@ -25,7 +25,8 @@ export async function pullAll() {
   for (let guard = 0; guard < 500; guard++) {
     const res = await fetch(
       `https://permapeople.org/api/plants?last_id=${lastId}&per_page=100`,
-      { headers },
+      // No default timeout in Node's fetch; a hung page must not wedge the pull.
+      { headers, signal: AbortSignal.timeout(10_000) },
     );
     if (!res.ok) throw new Error(`Permapeople HTTP ${res.status} at last_id=${lastId}`);
     const body = await res.json();

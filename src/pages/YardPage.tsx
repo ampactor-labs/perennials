@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
@@ -8,29 +8,25 @@ import { latFromDevice, useLat, writeLat } from "@/lib/latitude";
 import { mineFor, useMine } from "@/lib/mine";
 import { deletePhoto, putPhoto, useMinePhoto } from "@/lib/photos";
 import { ACCESS } from "@/lib/query";
-import { seenSlots, useSeen } from "@/lib/seen";
+import { useSeen } from "@/lib/seen";
 import { useSpots } from "@/lib/spots";
-import { blockerOf, dayForSlot, directHours, lightTier } from "@/lib/sun";
-import { archetypeOf } from "@/lib/elevation";
-import { groundAt, groundRange, parseLevel } from "@/lib/ground";
+import { parseLevel } from "@/lib/ground";
 import { growthBand } from "@/lib/growth";
 import {
   MAX_GROUND,
   MAX_LABEL,
   MAX_PLANTS,
   MAX_STROKES,
-  SHEET_H,
-  SHEET_W,
   type Pt,
   type Yard,
   useYards,
 } from "@/lib/yards";
 import { exportYard } from "@/lib/yardExport";
 import { buildYardFile, yardFileText } from "@/lib/yardFile";
-import { standing } from "@/lib/elevation";
+import { bedLinesOf, figsOf, sceneOf, tokensOf } from "@/lib/yardViews";
 import { AddMine } from "@/components/AddMine";
-import { ElevationView, grownM, type Fig } from "@/components/ElevationView";
-import { YardCanvas, type Mode, type TokenView } from "@/components/YardCanvas";
+import { ElevationView } from "@/components/ElevationView";
+import { YardCanvas, type Mode } from "@/components/YardCanvas";
 import { YearScrubber } from "@/components/YearScrubber";
 import { Thumb } from "@/components/Thumb";
 import { IconChevronLeft, IconX } from "@/components/icons";
@@ -91,11 +87,69 @@ export function YardPage() {
 
   const yard = yards.find((y) => y.id === id);
   const underlayUrl = useMinePhoto(yard?.underlay);
+  const ready = state.status === "ready" ? state.data : null;
+
+  /* ---- the derived views, memoized on their real inputs ----------------
+     Identity is behaviour here: YardModel's scene effect keys on `figs`, so
+     rebuilding these arrays on every render made a 4-second toast tear the
+     whole three.js scene down twice, and the hour slider re-marched every
+     bed's day for nothing. lib/yardViews.ts holds the work; these live above
+     the early return so the hooks stay unconditional. */
+
+  // Her kept plants, resolved once: the Place tray's default, and what the
+  // sun checks each bed's light against.
+  const keptPlants = useMemo(
+    () =>
+      ready
+        ? kept.map((k) => ready.byId.get(k.id)).filter((p): p is Plant => p !== undefined)
+        : [],
+    [ready, kept],
+  );
+  const tokens = useMemo(
+    () => (ready && yard ? tokensOf(yard, ready.byId, ready.mine, seen, slot, show) : []),
+    [ready, yard, seen, slot, show],
+  );
+  const figs = useMemo(
+    () => (ready && yard ? figsOf(yard, ready.byId, ready.mine, mine, tokens) : []),
+    [ready, yard, mine, tokens],
+  );
+  // Null without her latitude and her span: the sun is never guessed.
+  const scene = useMemo(
+    () => (yard ? sceneOf(yard, figs, lat, slot, years) : null),
+    [yard, figs, lat, slot, years],
+  );
+
+  // An empty yard has no side to see; the toggle appears once anything
+  // stands — a plant, or ground she has shaped — and losing the last of
+  // both lands her back on the paper. Shaping the land before planting it
+  // is the honest order of the work, so the land alone earns the views.
+  const standable = !!yard && (yard.plants.length > 0 || (yard.ground ?? []).length > 0);
+  const projection = standable ? view : "sheet";
+
+  const bedLines = useMemo(
+    () =>
+      ready && yard && projection === "model" && scene
+        ? bedLinesOf(
+            yard,
+            scene,
+            keptPlants,
+            ready.mine,
+            (ready.facets.light ?? []).map((v) => v.value),
+          )
+        : [],
+    [ready, yard, projection, scene, keptPlants],
+  );
+  // The model's sun effect keys on this object; a fresh literal per render
+  // made even the cheap light move fire on every unrelated state change.
+  const sun = useMemo(
+    () => (scene ? { lat: scene.lat, day: scene.day, hour } : null),
+    [scene, hour],
+  );
 
   // ACCESS values come back bare, one-valued or absent; the yard wants lists.
   const asList = (v: readonly string[] | string | null): readonly string[] =>
     v === null ? [] : typeof v === "string" ? [v] : v;
-  if (state.status !== "ready" || !yard) {
+  if (!ready || !yard) {
     return (
       <div className="page wrap">
         <div className="empty">
@@ -112,18 +166,11 @@ export function YardPage() {
   // raw, which made it the one room in the house where her answers went
   // silent: a bloom colour she recorded filtered the browse grid and never
   // painted her own sheet. Every read below goes through ACCESS now.
-  const { byId, mine: herIndex } = state.data;
+  const { byId, mine: herIndex } = ready;
 
   // The land she shaped, read once here so every projection stands each
   // plant on the same footing (lib/ground.ts is the one interpolator).
   const marks = yard.ground ?? [];
-
-  // Her kept plants, resolved once: the Place tray's default, and what the sun
-  // checks each bed's light against. Declared here because the bed-shade lines
-  // read it well before the tray does.
-  const keptPlants = kept
-    .map((k) => byId.get(k.id))
-    .filter((p): p is Plant => p !== undefined);
 
   const commit = (next: Yard) => {
     setPast((p) => [...p.slice(-49), yard]);
@@ -141,81 +188,6 @@ export function YardPage() {
     // The mark that question was about may just have been un-drawn.
     setPendingGround(null);
   };
-
-  /* ---- how each placed plant draws ----------------------------------- */
-
-  const showKind = show ? show.slice(0, show.indexOf(":")) : null;
-  const showValue = show ? show.slice(show.indexOf(":") + 1) : null;
-
-  const tokens: TokenView[] = yard.plants.map((pl) => {
-    const p = byId.get(pl.id);
-    const her = herIndex.get(pl.id);
-    const slots = p ? bloomSlots(p.bloomPeriod) : [];
-    // The first colour with a swatch paints the mark. Hers arrives through
-    // ACCESS in the catalogue's spelling, so her "purple" finds its hex; a
-    // colour of her own coinage ("cream") is true and unpaintable, and the
-    // mark stays with the states that claim nothing they can't show.
-    const colours = p ? asList(ACCESS.bloomColor(p, her)) : [];
-    const hex = colours.map((c) => BLOOM_HEX[c]).find((c): c is string => !!c);
-
-    let tokenState: TokenView["state"];
-    if (slot === null) {
-      tokenState = hex ? "fill" : "hollow";
-    } else if (slots.includes(slot)) {
-      tokenState = hex ? "fill" : "ink";
-    } else if (p?.bloomPeriod) {
-      tokenState = "hollow";
-    } else {
-      tokenState = "hatch";
-    }
-
-    const mine = seenSlots(seen, pl.id);
-    const witness = slot === null ? mine.length > 0 : mine.includes(slot);
-
-    let showState: TokenView["show"] = null;
-    if (p && showKind && showValue) {
-      const have = asList(ACCESS[showKind](p, her));
-      showState = have.length === 0 ? "unrecorded" : have.includes(showValue) ? "match" : "other";
-    }
-
-    return {
-      uid: pl.uid,
-      x: pl.x,
-      y: pl.y,
-      label: short(p?.name ?? pl.name),
-      state: tokenState,
-      fill: hex,
-      witness,
-      ring: pl.r,
-      show: showState,
-      gone: !p,
-    };
-  });
-
-  /* ---- the same plants, standing: what elevation draws ----------------- */
-
-  // Height and width resolve by the lane rule in metres: the record's value
-  // is never overwritten, hers counts exactly where the record is silent, and
-  // a plant with neither stays a mark on the line rather than growing a shape.
-  const figs: Fig[] = yard.plants.map((pl, i) => {
-    const p = byId.get(pl.id);
-    const her = herIndex.get(pl.id);
-    const h = standing(p?.height ?? null, mineFor(mine, pl.id, "height")?.text);
-    const w = standing(p?.width ?? null, mineFor(mine, pl.id, "width")?.text);
-    return {
-      ...tokens[i],
-      depth: pl.y,
-      footing: groundAt(marks, pl.x, pl.y),
-      // Through ACCESS, so a layer or pace she filled shapes the figure where
-      // the record is silent; the record's own value always speaks first.
-      layer: p ? (asList(ACCESS.layer(p, her))[0] ?? null) : null,
-      height: h?.m ?? null,
-      hers: h?.hers ?? false,
-      width: w?.m ?? null,
-      growth: p ? (asList(ACCESS.growth(p, her))[0] ?? null) : null,
-      ...(her?.photo ? { photo: her.photo } : {}),
-    };
-  });
 
   /* ---- coverage, printed because a partial facet must ----------------- */
 
@@ -235,84 +207,15 @@ export function YardPage() {
 
   const showLine = (() => {
     if (!show || placed === 0) return null;
+    const showValue = show.slice(show.indexOf(":") + 1);
     const m = tokens.filter((t) => t.show === "match").length;
     const u = tokens.filter((t) => t.show === "unrecorded").length;
     return `${m} of ${placed} recorded as ${showValue}${u > 0 ? `; ${u} not in our data` : ""}.`;
   })();
 
-  // An empty yard has no side to see; the toggle appears once anything
-  // stands — a plant, or ground she has shaped — and losing the last of
-  // both lands her back on the paper. Shaping the land before planting it
-  // is the honest order of the work, so the land alone earns the views.
-  const standable = placed > 0 || marks.length > 0;
-  const projection = standable ? view : "sheet";
-
   /* ---- the sun: derived shade, only from numbers that are hers --------- */
 
   const sunReady = lat !== null && !!yard.span;
-
-  // The catalogue's own spellings for the three tiers, so a derived value
-  // lands in the bucket the sources already use and filters like one.
-  const lightWord = (tier: "full" | "part" | "shade"): string => {
-    const values = (state.data.facets.light ?? []).map((v) => v.value);
-    if (tier === "full")
-      return values.find((v) => v.toLowerCase().includes("full sun")) ?? "Full sun";
-    if (tier === "part")
-      return values.find((v) => v.toLowerCase().includes("part")) ?? "Partial sun/shade";
-    return (
-      values.find((v) => {
-        const t = v.toLowerCase();
-        return t.includes("shade") && !t.includes("part") && !t.includes("sun");
-      }) ?? "Full shade"
-    );
-  };
-
-  const bedLines = (() => {
-    if (projection !== "model" || lat === null || !yard.span) return [];
-    const upm = 1000 / yard.span;
-    const day = dayForSlot(slot, lat);
-    // What stands casts: the year-scrubbed heights, hers and the record's,
-    // each crown starting from the ground under its plant — and the land
-    // itself, when she has shaped it, in the same units.
-    const blockers = figs
-      .filter((f) => f.height !== null)
-      .map((f) =>
-        blockerOf(archetypeOf(f.layer), f.x, f.depth, grownM(f, years), f.width, upm, f.footing),
-      );
-    const terrain =
-      marks.length > 0
-        ? {
-            at: (x: number, z: number) => groundAt(marks, x, z) * upm,
-            maxY: groundRange(marks).max * upm,
-            w: SHEET_W,
-            h: SHEET_H,
-          }
-        : undefined;
-    const labels = yard.strokes.filter((s) => s.k === "label");
-    return yard.strokes
-      .filter((s) => s.k === "area")
-      .slice(0, 8)
-      .map((bed, i) => {
-        const cx = bed.pts.reduce((a, p) => a + p[0], 0) / bed.pts.length;
-        const cz = bed.pts.reduce((a, p) => a + p[1], 0) / bed.pts.length;
-        let name = `Bed ${i + 1}`;
-        let best = 300;
-        for (const l of labels) {
-          if (l.k !== "label") continue;
-          const d = Math.hypot(l.at[0] - cx, l.at[1] - cz);
-          if (d < best) {
-            best = d;
-            name = l.text;
-          }
-        }
-        const hours = directHours(cx, cz, lat, day, yard.north, blockers, terrain);
-        const word = lightWord(lightTier(hours));
-        const fit = keptPlants.filter((p) =>
-          asList(ACCESS.light(p, herIndex.get(p.id))).includes(word),
-        ).length;
-        return { id: bed.id, name, hours, word, fit };
-      });
-  })();
 
   const saveBedSpot = (b: { name: string; word: string }) => {
     saveSpot(`${b.name} (${(slot ?? "Early Summer").toLowerCase()} sun)`, {
@@ -523,7 +426,7 @@ export function YardPage() {
   // ever the tray's source, and now it is the tray's default instead.
   const finding = findText.trim().length >= 2;
   const found: Plant[] = finding
-    ? state.data.index
+    ? ready.index
         .search(findText, { prefix: true, fuzzy: 0.15, combineWith: "AND" })
         .slice(0, 12)
         .map((r) => byId.get(r.id as number))
@@ -636,7 +539,7 @@ export function YardPage() {
             underlay={underlayUrl}
             sel={sel}
             years={years}
-            sun={lat !== null && yard.span ? { lat, day: dayForSlot(slot, lat), hour } : null}
+            sun={sun}
             walk={walk}
             onSelect={setSel}
           />

@@ -1,4 +1,3 @@
-import type { TokenView } from "./YardCanvas";
 import {
   archetypeOf,
   CROWN_RATIO,
@@ -9,7 +8,7 @@ import {
   tickStep,
 } from "@/lib/elevation";
 import { earthPathD, sectionOf } from "@/lib/ground";
-import { growthBand } from "@/lib/growth";
+import { grownM, type Fig } from "@/lib/yardViews";
 import type { GroundMark } from "@/lib/yards";
 
 /**
@@ -28,35 +27,6 @@ import type { GroundMark } from "@/lib/yards";
  * footing, so a tree in a dip starts low and a bed on a bank starts high.
  * The horizon line stays put as the zero the rule measures from.
  */
-
-export type Fig = TokenView & {
-  /** Sheet y, for painter's order: low on the sheet is near the viewer. */
-  depth: number;
-  layer: string | null;
-  /** Metres, or null: not in our data, and the plant stays a mark on the line. */
-  height: number | null;
-  /** The height is her measurement, so the figure wears her ink. */
-  hers: boolean;
-  width: number | null;
-  /** The record's pace word (or hers), for the years axis; null bands nothing. */
-  growth: string | null;
-  /** The ground under the plant, metres from the level she calls zero: her
-   *  shaped land read at this spot, 0 on a sheet she never shaped. The page
-   *  computes it once (lib/ground.ts) so every projection stands the plant
-   *  on the same footing. */
-  footing: number;
-  /** Her photo of this plant, by key, for the model to stand up. */
-  photo?: string;
-};
-
-/** Height standing at year N: the band's middle when a pace is recorded,
- *  mature when none is (the coverage line owns that gap), mature when the
- *  years axis is off. */
-export function grownM(f: Fig, years: number | null): number {
-  if (f.height === null || years === null) return f.height ?? 0;
-  const band = growthBand(f.growth, years);
-  return band ? f.height * ((band.lo + band.hi) / 2) : f.height;
-}
 
 const TOKEN_R = 16;
 

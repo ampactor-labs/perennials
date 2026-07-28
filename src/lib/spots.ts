@@ -14,8 +14,28 @@ export type Spot = {
 
 export const SITE_KEYS = ["light", "water", "soil"] as const;
 
+/** One spot, checked shape by shape. Every other store validates each entry;
+ *  this one blind-cast, so a hand-edited entry with no `facets` reached
+ *  spotAtoms and threw. Exported for lib/backup.ts, which admits spots from
+ *  a file and must bounce a malformed one exactly as a load does. */
+export function sanitizeSpot(raw: unknown): Spot | null {
+  const s = raw as Spot;
+  if (typeof s?.id !== "string" || typeof s?.name !== "string") return null;
+  if (typeof s.facets !== "object" || s.facets === null || Array.isArray(s.facets)) return null;
+  const facets: Record<string, string[]> = {};
+  for (const [key, values] of Object.entries(s.facets)) {
+    if (!Array.isArray(values)) return null;
+    facets[key] = values.filter((v): v is string => typeof v === "string");
+  }
+  const zone =
+    typeof s.zone === "number" && Number.isInteger(s.zone) && s.zone >= 1 && s.zone <= 13
+      ? s.zone
+      : null;
+  return { id: s.id, name: s.name, zone, facets };
+}
+
 const store = createLocalStore<Spot[]>("perennials.spots.v1", [], (raw) =>
-  Array.isArray(raw) ? (raw as Spot[]) : null,
+  Array.isArray(raw) ? raw.map(sanitizeSpot).filter((s): s is Spot => s !== null) : null,
 );
 
 /** Read and replace the whole store, for lib/backup.ts. It goes through the

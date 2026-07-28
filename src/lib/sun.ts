@@ -190,3 +190,24 @@ export function directHours(
 export function lightTier(hours: number): "full" | "part" | "shade" {
   return hours >= 6 ? "full" : hours >= 3 ? "part" : "shade";
 }
+
+/**
+ * A tier in the catalogue's own spelling, given the light facet's values, so
+ * a derived word always filters like one of theirs. The fallbacks are the
+ * spellings the sources ship today; live values win whenever present.
+ */
+export function tierWord(
+  lightValues: readonly string[],
+  tier: "full" | "part" | "shade",
+): string {
+  if (tier === "full")
+    return lightValues.find((v) => v.toLowerCase().includes("full sun")) ?? "Full sun";
+  if (tier === "part")
+    return lightValues.find((v) => v.toLowerCase().includes("part")) ?? "Partial sun/shade";
+  return (
+    lightValues.find((v) => {
+      const t = v.toLowerCase();
+      return t.includes("shade") && !t.includes("part") && !t.includes("sun");
+    }) ?? "Full shade"
+  );
+}

@@ -1,7 +1,7 @@
 import type { Plant } from "@/data/model";
 import type { BloomSlot } from "./bloom";
 import type { TokenView } from "@/components/YardCanvas";
-import type { Fig } from "@/components/ElevationView";
+import type { Fig } from "./yardViews";
 import { archetypeOf, CROWN_RATIO, ELEV_H, figurePaths, GROUND_Y, tickStep } from "./elevation";
 import { earthPathD, levelLabel, sectionOf } from "./ground";
 import { blobToDataUrl, getPhoto } from "./photos";

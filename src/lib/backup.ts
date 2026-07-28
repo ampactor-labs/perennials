@@ -23,7 +23,7 @@ import { noteDate, readNotes, writeNotes, type Note } from "./notes";
 import { blobToDataUrl, getPhoto, restorePhoto } from "./photos";
 import { readSeen, writeSeen, type Seen } from "./seen";
 import { readTheme, writeTheme, type ThemePref } from "./settings";
-import { readSpots, writeSpots, type Spot } from "./spots";
+import { readSpots, sanitizeSpot, writeSpots, type Spot } from "./spots";
 import { readYards, writeYards, type Yard } from "./yards";
 
 export const BACKUP_FORMAT = "perennials-backup";
@@ -145,7 +145,9 @@ export function parseBackup(text: string): Backup | null {
     seen: asArray<Seen>(b.seen).filter(
       (s) => typeof s?.id === "number" && typeof s?.at === "number",
     ),
-    spots: asArray<Spot>(b.spots).filter((s) => typeof s?.id === "string"),
+    spots: asArray<Spot>(b.spots)
+      .map(sanitizeSpot)
+      .filter((s): s is Spot => s !== null),
     yards: asArray<Yard>(b.yards).filter((y) => typeof y?.id === "string"),
     mine: asArray<Mine>(b.mine).filter(
       (m) =>

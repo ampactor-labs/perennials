@@ -22,7 +22,11 @@ function binomial(name) {
 }
 
 async function getJson(url) {
-  const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+  const res = await fetch(url, {
+    headers: { "User-Agent": UA, Accept: "application/json" },
+    // No default timeout in Node's fetch; a hung call must not wedge the sweep.
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) throw new Error(`USDA HTTP ${res.status}`);
   return res.json();
 }

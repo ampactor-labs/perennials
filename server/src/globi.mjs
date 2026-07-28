@@ -54,6 +54,9 @@ async function pathsFor(scientificName, type) {
     `&interactionType=${type}&fields=target_taxon_path&type=json&limit=800`;
   const res = await fetch(url, {
     headers: { "User-Agent": UA, Accept: "application/json" },
+    // Node's fetch never times out on its own; one hung connection would wedge
+    // a sweep worker forever, so every outbound call carries a deadline.
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`GloBI HTTP ${res.status} (${scientificName}/${type})`);
   const body = await res.json();

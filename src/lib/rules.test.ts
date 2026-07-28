@@ -21,6 +21,7 @@ import { outsideRecord, phenologyLine } from "./phenology";
 import { admitYard, parseYardFile, YARD_FORMAT } from "./yardFile";
 import { ACCESS } from "./query";
 import { seenSlots } from "./seen";
+import { sanitizeSpot } from "./spots";
 import {
   commitStroke,
   MAX_GROUND,
@@ -423,6 +424,30 @@ test("a yard admits only well-formed ground marks, capped, and old yards stay un
   assert.equal(many?.ground?.length, MAX_GROUND);
   const flat = sanitizeYard(base);
   assert.ok(flat && !("ground" in flat), "a yard that never shaped its ground gains no key");
+});
+
+/* ---- her spots load shape-checked, like every other store -------------- */
+
+// Spots was the one store that blind-cast its JSON: an entry with no `facets`
+// loaded fine and then threw inside spotAtoms the first time she tapped it.
+test("a spots list admits only well-formed entries and repairs what it can", () => {
+  assert.deepEqual(
+    sanitizeSpot({ id: "s1", name: "North bed", zone: 6, facets: { light: ["Full shade"] } }),
+    { id: "s1", name: "North bed", zone: 6, facets: { light: ["Full shade"] } },
+  );
+  assert.equal(sanitizeSpot({ id: "s1", name: "no facets", zone: null }), null);
+  assert.equal(sanitizeSpot({ id: "s1", name: "bad facets", zone: null, facets: 7 }), null);
+  assert.equal(sanitizeSpot({ name: "no id", zone: null, facets: {} }), null);
+  assert.deepEqual(
+    sanitizeSpot({ id: "s2", name: "odd zone", zone: 99, facets: {} }),
+    { id: "s2", name: "odd zone", zone: null, facets: {} },
+    "a zone that is not a zone drops; the spot's site words survive",
+  );
+  assert.deepEqual(
+    sanitizeSpot({ id: "s3", name: "mixed", zone: null, facets: { light: ["Full sun", 4] } }),
+    { id: "s3", name: "mixed", zone: null, facets: { light: ["Full sun"] } },
+    "a stray non-string value drops without costing the rest of the list",
+  );
 });
 
 test("a bank between the winter sun and a bed shades it; the flat sheet does not", () => {

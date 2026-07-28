@@ -6,7 +6,7 @@ import { groundAt, groundRange, levelLabel } from "@/lib/ground";
 import { getPhoto } from "@/lib/photos";
 import { sunAt } from "@/lib/sun";
 import { pathD, SHEET_H, SHEET_W, type Yard } from "@/lib/yards";
-import { grownM, type Fig } from "./ElevationView";
+import { grownM, type Fig } from "@/lib/yardViews";
 
 /**
  * The model: the sheet laid over her land and the record standing on it, in

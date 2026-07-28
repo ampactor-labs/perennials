@@ -191,7 +191,7 @@ export async function enrichAttracts({ concurrency = 6, onProgress } = {}) {
 }
 
 export async function seedFromUrl(url = SEED_URL) {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new Error(`seed fetch ${url}: HTTP ${res.status}`);
   const plants = await res.json(); // already transformed Plant[]
   if (!Array.isArray(plants) || plants.length === 0) throw new Error("seed payload empty");

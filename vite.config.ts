@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
@@ -7,9 +7,20 @@ import { fileURLToPath, URL } from "node:url";
 // chrome. Was #3f6b3f, a colour that existed nowhere but the old icon.
 const THEME = "#33503a";
 
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Served from ampactor.dev/perennials/ (org GitHub Pages), so everything hangs
 // off this base path — assets, router, service-worker scope, manifest.
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // The same value DATA_BASE reads (src/data/store.tsx). The service-worker
+  // routes used to pin the host separately, so overriding VITE_DATA_API moved
+  // the fetch but not the cache rule and silently broke offline.
+  const DATA_API =
+    loadEnv(mode, process.cwd()).VITE_DATA_API ||
+    "https://api-production-5338.up.railway.app/data";
+  const API_ORIGIN = escapeRe(new URL(DATA_API).origin);
+
+  return {
   base: "/perennials/",
   resolve: {
     alias: {
@@ -64,7 +75,7 @@ export default defineConfig({
           {
             // Hosted data API (cross-origin): cache for offline. Workbox applies a
             // cross-origin RegExp route only when it matches from the start of the URL.
-            urlPattern: /^https:\/\/api-production-5338\.up\.railway\.app\/data\/[^/]+\.json$/,
+            urlPattern: new RegExp(`^${API_ORIGIN}/data/[^/]+\\.json$`),
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "perennials-data",
@@ -89,7 +100,7 @@ export default defineConfig({
             // The cache is renamed because the old one ("perennials-images") is full
             // of opaque entries that this route must never match again — see
             // public/sw-purge.js, which deletes it on activate.
-            urlPattern: /^https:\/\/api-production-5338\.up\.railway\.app\/img\//,
+            urlPattern: new RegExp(`^${API_ORIGIN}/img/`),
             handler: "CacheFirst",
             options: {
               cacheName: "perennials-photos",
@@ -116,4 +127,5 @@ export default defineConfig({
       },
     }),
   ],
+  };
 });
