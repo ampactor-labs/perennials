@@ -24,7 +24,7 @@ import { decodeConstraints, encodeConstraints } from "./constraints";
 import { seenSlots } from "./seen";
 import { sanitizeSpot } from "./spots";
 import { inBloomNow } from "./today";
-import { sceneOf } from "./yardViews";
+import { scaleBarFor, sceneOf, shadeCells, SHADE_COLS, SHADE_ROWS } from "./yardViews";
 import {
   commitStroke,
   MAX_GROUND,
@@ -392,6 +392,42 @@ test("no latitude or no span computes no sun scene; nothing is guessed", () => {
   assert.ok(scene, "both numbers hers, the sun runs");
   assert.equal(scene!.lat, 43);
   assert.equal(scene!.upm, 50, "twenty metres across the 1000-unit sheet is 50 units per metre");
+});
+
+test("the shade wash draws only what the sun leaves, and never the night", () => {
+  // The bank fixture from the sun rules, as a yard: 20m span, a bed pinned
+  // level at (500,700) and a 5m bank just south of it. Winter noon at 40°N
+  // never clears the bank, so the bed's cell is washed; a far corner with
+  // nothing between it and the southern sun is not.
+  const yard = {
+    v: 1, id: "y", name: "y", at: 1, north: 0, strokes: [], plants: [],
+    span: 20,
+    ground: [mark(500, 700, 0), mark(300, 760, 5), mark(500, 760, 5), mark(700, 760, 5)],
+  } as never;
+  const scene = sceneOf(yard, [], 40, "Winter", null)!;
+  const cells = shadeCells(scene, 0, 12)!;
+  const at = (x: number, z: number) =>
+    cells.shaded[
+      Math.floor((z / SHEET_H) * SHADE_ROWS) * SHADE_COLS + Math.floor((x / SHEET_W) * SHADE_COLS)
+    ];
+  assert.equal(at(500, 700), 1, "behind the bank the wash falls");
+  assert.equal(at(900, 1300), 0, "open ground keeps its sun");
+  assert.ok(cells.litFrac > 0 && cells.litFrac < 1, "a bank shades some of the sheet, never all of it");
+  assert.equal(shadeCells(scene, 0, 23), null, "night is not shade; nothing is washed");
+});
+
+test("the scale bar is a round number of metres and stays a bar, not a banner", () => {
+  assert.deepEqual(scaleBarFor(20), { m: 5, units: 250 });
+  assert.deepEqual(scaleBarFor(10), { m: 2, units: 200 });
+  for (const span of [2, 3, 8, 14, 30, 55, 120, 400, 2000]) {
+    const { m, units } = scaleBarFor(span);
+    const mant = m / 10 ** Math.floor(Math.log10(m) + 1e-9);
+    assert.ok(
+      [1, 2, 5].some((k) => Math.abs(mant - k) < 1e-9),
+      `span ${span}: ${m} m is not a 1·2·5 length`,
+    );
+    assert.ok(units >= 100 && units <= 500, `span ${span}: ${units} units is not a readable bar`);
+  }
 });
 
 test("an ask-derived light atom survives the URL round trip", () => {

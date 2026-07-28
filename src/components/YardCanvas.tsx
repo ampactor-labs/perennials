@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { levelLabel } from "@/lib/ground";
+import { GRAIN } from "@/lib/paper";
+import { scaleBarFor } from "@/lib/yardViews";
 import { SHEET_H, SHEET_W, commitStroke, pathD, type Pt, type Yard } from "@/lib/yards";
 
 /**
@@ -69,6 +71,7 @@ export function YardCanvas({
   onGroundMove,
   askAt,
   onAsk,
+  shade,
 }: {
   yard: Yard;
   /** A live URL for her photo of the ground, or null. The page resolves the
@@ -98,6 +101,10 @@ export function YardCanvas({
   askAt: Pt | null;
   /** A tap in Ask mode: this place becomes a question. */
   onAsk: (p: Pt) => void;
+  /** The hour's computed shade as an image, or null. The page owns the
+   *  computation (lib/yardViews.ts shadeImage); the canvas only lays the
+   *  wash on the paper. */
+  shade: string | null;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -332,9 +339,35 @@ export function YardCanvas({
           <rect width="7" height="7" fill="var(--paper)" />
           <line x1="0" y1="0" x2="0" y2="7" stroke="var(--ink-faint)" strokeWidth="1.6" />
         </pattern>
+        {/* Paper tooth: turbulence rasterized once, opacity set by lib/paper. */}
+        <filter id="yard-grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency={GRAIN.frequency}
+            numOctaves={GRAIN.octaves}
+            stitchTiles="stitch"
+          />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.55 0.55 0.55 0 0"
+          />
+        </filter>
+        {/* The shade wash's softening; the image itself is a coarse cell grid. */}
+        <filter id="yard-soft" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="7" />
+        </filter>
       </defs>
 
       <rect x="0" y="0" width={SHEET_W} height={SHEET_H} className="yard-paper" />
+      <rect
+        x="0"
+        y="0"
+        width={SHEET_W}
+        height={SHEET_H}
+        filter="url(#yard-grain)"
+        opacity={GRAIN.opacity}
+        pointerEvents="none"
+      />
 
       {/* her photo of the ground, washed toward the paper. The wash is the
           tokens.css rule doing double duty: saturated colour only ever encodes
@@ -351,24 +384,45 @@ export function YardCanvas({
         />
       )}
 
-      {/* her hand: beds, lines, labels, all sepia */}
-      {yard.strokes.map((s) =>
-        s.k === "label" ? (
-          <text key={s.id} x={s.at[0]} y={s.at[1]} className="yard-label">
-            {s.text}
-          </text>
+      {/* her hand: beds, lines, labels, all sepia. A bed's wash pools at its
+          edge the way a real wash does: one soft wide stroke under the pen. */}
+      {yard.strokes.map((s) => {
+        if (s.k === "label") {
+          return (
+            <text key={s.id} x={s.at[0]} y={s.at[1]} className="yard-label">
+              {s.text}
+            </text>
+          );
+        }
+        const d = pathD(s.pts, s.k === "area");
+        return s.k === "area" ? (
+          <g key={s.id}>
+            <path d={d} className="yard-area-under" />
+            <path d={d} className="yard-area" />
+          </g>
         ) : (
-          <path
-            key={s.id}
-            d={pathD(s.pts, s.k === "area")}
-            className={s.k === "area" ? "yard-area" : "yard-line"}
-          />
-        ),
-      )}
+          <path key={s.id} d={d} className="yard-line" />
+        );
+      })}
       {live.stroke && (
         <path
           d={pathD(live.stroke, mode === "area")}
           className={mode === "area" ? "yard-area" : "yard-line"}
+        />
+      )}
+
+      {/* this hour's computed shade, washed over the ink and under the marks:
+          a light phenomenon, so it darkens whatever it falls on */}
+      {shade && (
+        <image
+          href={shade}
+          x="0"
+          y="0"
+          width={SHEET_W}
+          height={SHEET_H}
+          preserveAspectRatio="none"
+          filter="url(#yard-soft)"
+          className="yard-shade"
         />
       )}
 
@@ -438,6 +492,24 @@ export function YardCanvas({
           </g>
         );
       })}
+
+      {/* the bar her span earns: a round length in the drawing's own units */}
+      {yard.span &&
+        (() => {
+          const { m, units } = scaleBarFor(yard.span);
+          const x0 = 44;
+          const y0 = SHEET_H - 44;
+          return (
+            <g className="yard-scalebar" aria-hidden="true">
+              <line x1={x0} x2={x0 + units} y1={y0} y2={y0} />
+              <line x1={x0} x2={x0} y1={y0 - 8} y2={y0 + 8} />
+              <line x1={x0 + units} x2={x0 + units} y1={y0 - 8} y2={y0 + 8} />
+              <text x={x0 + units / 2} y={y0 - 12}>
+                {m} m
+              </text>
+            </g>
+          );
+        })()}
 
       {/* the asked point: a surveyor's cross where the sun was last read */}
       {askAt && (

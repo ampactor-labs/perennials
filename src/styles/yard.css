@@ -89,6 +89,31 @@
 .yard-canvas--ask {
   cursor: crosshair;
 }
+/* this hour's computed shade: a light phenomenon, so it only ever darkens */
+.yard-shade {
+  opacity: 0.16;
+  pointer-events: none;
+}
+/* a bed's wash pools at its edge, the way a real wash does */
+.yard-area-under {
+  fill: none;
+  stroke: var(--sepia);
+  stroke-width: 9;
+  opacity: 0.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* the bar her span earns */
+.yard-scalebar line {
+  stroke: var(--ink-soft);
+  stroke-width: 2.5;
+}
+.yard-scalebar text {
+  fill: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 19px;
+  text-anchor: middle;
+}
 /* the Ask tool's cross: where the sun was last read. Ink, not a mark of
    hers — a question is chrome, so it stays monochrome. */
 .yard-askmark line {
@@ -291,6 +316,24 @@
   font-family: var(--font-sans);
   font-size: 20px;
   text-anchor: middle;
+}
+
+/* The year breathes instead of strobing: when the scrubber plays, a token's
+   bloom state crossfades. Only where motion is welcome, and never layout. */
+@media (prefers-reduced-motion: no-preference) {
+  .yard-mark {
+    transition: fill 0.25s ease;
+  }
+  .yard-token,
+  .yard-fig {
+    transition: opacity 0.25s ease;
+  }
+  .yard-fig path {
+    transition: fill 0.25s ease;
+  }
+  .yard-shade {
+    transition: opacity 0.2s ease;
+  }
 }
 
 /* the year scrubber — the calendar's axis as a control */

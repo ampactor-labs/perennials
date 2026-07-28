@@ -24,6 +24,8 @@ import {
   dayForSlot,
   directHours,
   lightTier,
+  sunAt,
+  sunlit,
   tierWord,
   type Blocker,
   type Terrain,
@@ -205,6 +207,84 @@ export function sceneOf(
  *  and the bed lines both read the sky through this one call. */
 export function hoursAt(x: number, z: number, scene: Scene, north: number): number {
   return directHours(x, z, scene.lat, scene.day, north, scene.blockers, scene.terrain);
+}
+
+/* ---- the plan's shade wash -------------------------------------------- */
+
+// One ray per cell at one hour: coarse enough to recompute as she drags the
+// hour, fine enough that a bank's shadow has a shape.
+export const SHADE_COLS = 40;
+export const SHADE_ROWS = 56;
+
+/**
+ * The cells of the sheet this hour's sun cannot reach, against the same
+ * crowns and land the bed lines march. Null when the sun is below the
+ * horizon: night is not shade, and the caller says which. `litFrac` rides
+ * along so the caller can print what fraction of the sheet still gets sun.
+ */
+export function shadeCells(
+  scene: Scene,
+  north: number,
+  hour: number,
+  cols = SHADE_COLS,
+  rows = SHADE_ROWS,
+): { shaded: Uint8Array; cols: number; rows: number; litFrac: number } | null {
+  const sun = sunAt(scene.lat, scene.day, hour);
+  if (sun.altitude <= 0) return null;
+  const shaded = new Uint8Array(cols * rows);
+  let lit = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = ((c + 0.5) * SHEET_W) / cols;
+      const z = ((r + 0.5) * SHEET_H) / rows;
+      if (sunlit(x, z, sun, north, scene.blockers, scene.terrain)) lit += 1;
+      else shaded[r * cols + c] = 1;
+    }
+  }
+  return { shaded, cols, rows, litFrac: lit / (cols * rows) };
+}
+
+/**
+ * The wash as an image the sheet can lay over itself: shaded cells painted
+ * black into a cell-sized canvas, left to the browser's bilinear upscale and
+ * the sheet's blur filter to soften. Black on purpose, not ink — ink flips
+ * light in the dark theme, and shade darkens in either. Null when the sun
+ * is down, and the caller says so instead of washing the night.
+ */
+export function shadeImage(
+  scene: Scene,
+  north: number,
+  hour: number,
+): { url: string; litFrac: number } | null {
+  const cells = shadeCells(scene, north, hour);
+  if (!cells) return null;
+  const c = document.createElement("canvas");
+  c.width = cells.cols;
+  c.height = cells.rows;
+  const g = c.getContext("2d");
+  if (!g) return null;
+  g.fillStyle = "#000";
+  for (let r = 0; r < cells.rows; r++) {
+    for (let col = 0; col < cells.cols; col++) {
+      if (cells.shaded[r * cells.cols + col]) g.fillRect(col, r, 1, 1);
+    }
+  }
+  return { url: c.toDataURL(), litFrac: cells.litFrac };
+}
+
+/**
+ * The scale bar her span earns: a round length (1·2·5 × 10ⁿ metres) near a
+ * fifth of the sheet, and its width in sheet units. Nothing draws without a
+ * span, because a bar on an unscaled napkin would be a claim.
+ */
+export function scaleBarFor(span: number): { m: number; units: number } {
+  const target = span / 5;
+  const pow = 10 ** Math.floor(Math.log10(target));
+  let m = pow;
+  for (const k of [2 * pow, 5 * pow, 10 * pow]) {
+    if (Math.abs(k - target) < Math.abs(m - target)) m = k;
+  }
+  return { m, units: (m / span) * 1000 };
 }
 
 export type BedLine = {

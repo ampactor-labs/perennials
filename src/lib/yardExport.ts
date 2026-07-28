@@ -4,6 +4,8 @@ import type { TokenView } from "@/components/YardCanvas";
 import type { Fig } from "./yardViews";
 import { archetypeOf, CROWN_RATIO, ELEV_H, figurePaths, GROUND_Y, tickStep } from "./elevation";
 import { earthPathD, levelLabel, sectionOf } from "./ground";
+import { GRAIN } from "./paper";
+import { scaleBarFor } from "./yardViews";
 import { blobToDataUrl, getPhoto } from "./photos";
 import { SHEET_H, SHEET_W, pathD, type GroundMark, type Yard } from "./yards";
 import { shareFiles } from "./share";
@@ -120,6 +122,9 @@ function elevationBand(
 
   for (const f of [...figs].sort((a, b) => a.depth - b.depth)) {
     const gy = g0 - f.footing * K;
+    // Near the cut draws full-weight, beyond it steps back: the same
+    // convention the screen's elevation keeps, so the handed sheet matches.
+    parts.push(`<g opacity="${(0.62 + 0.38 * (f.depth / SHEET_H)).toFixed(2)}">`);
     if (f.height !== null) {
       const kind = archetypeOf(f.layer);
       const h = f.height * K;
@@ -153,6 +158,7 @@ function elevationBand(
     // The same mark it is on the plan, standing on its footing; the spacing
     // ring stays with the plan, where its units mean something.
     parts.push(tokenSvg({ ...f, y: gy, ring: undefined }));
+    parts.push(`</g>`);
   }
 
   const withH = measured.length;
@@ -182,12 +188,36 @@ export function sheetSvg(
   ground: string | null,
 ): { svg: string; height: number } {
   const strokes = yard.strokes
-    .map((s) =>
-      s.k === "label"
-        ? `<text x="${s.at[0]}" y="${s.at[1]}" font-family="${SERIF}" font-style="italic" font-size="26" fill="${C.sepia}">${esc(s.text)}</text>`
-        : `<path d="${pathD(s.pts, s.k === "area")}" fill="${s.k === "area" ? C.sepia + "22" : "none"}" stroke="${C.sepia}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`,
-    )
+    .map((s) => {
+      if (s.k === "label")
+        return `<text x="${s.at[0]}" y="${s.at[1]}" font-family="${SERIF}" font-style="italic" font-size="26" fill="${C.sepia}">${esc(s.text)}</text>`;
+      const d = pathD(s.pts, s.k === "area");
+      // A bed's wash pools at its edge, as on screen: one wide soft stroke
+      // under the pen line.
+      const under =
+        s.k === "area"
+          ? `<path d="${d}" fill="none" stroke="${C.sepia}" stroke-opacity="0.1" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`
+          : "";
+      return `${under}<path d="${d}" fill="${s.k === "area" ? C.sepia + "22" : "none"}" stroke="${C.sepia}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    })
     .join("");
+
+  // The bar her span earns, in the drawing's own units; nothing without one.
+  const scalebar = yard.span
+    ? (() => {
+        const { m, units } = scaleBarFor(yard.span);
+        const x0 = 44;
+        const y0 = SHEET_H - 44;
+        return (
+          `<g stroke="${C.inkSoft}" stroke-width="2.5">` +
+          `<line x1="${x0}" x2="${x0 + units}" y1="${y0}" y2="${y0}"/>` +
+          `<line x1="${x0}" x2="${x0}" y1="${y0 - 8}" y2="${y0 + 8}"/>` +
+          `<line x1="${x0 + units}" x2="${x0 + units}" y1="${y0 - 8}" y2="${y0 + 8}"/>` +
+          `</g>` +
+          `<text x="${x0 + units / 2}" y="${y0 - 12}" text-anchor="middle" font-family="${SANS}" font-size="20" fill="${C.inkFaint}">${m} m</text>`
+        );
+      })()
+    : "";
 
   const rose = `<g transform="translate(${SHEET_W - 80} 90) rotate(${yard.north})">
     <circle r="48" fill="${C.paper}" stroke="${C.line}" stroke-width="2"/>
@@ -236,14 +266,20 @@ export function sheetSvg(
         <line x1="0" y1="0" x2="0" y2="7" stroke="${C.inkFaint}" stroke-width="1.6"/>
       </pattern>
       <filter id="wash"><feColorMatrix type="saturate" values="0.2"/></filter>
+      <filter id="grain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="${GRAIN.frequency}" numOctaves="${GRAIN.octaves}" stitchTiles="stitch"/>
+        <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.55 0.55 0.55 0 0"/>
+      </filter>
     </defs>
     <rect width="${SHEET_W}" height="${height}" fill="${C.paper}"/>
+    <rect width="${SHEET_W}" height="${height}" filter="url(#grain)" opacity="${GRAIN.opacity}"/>
     ${ground ? `<image href="${ground}" xlink:href="${ground}" x="0" y="0" width="${SHEET_W}" height="${SHEET_H}" preserveAspectRatio="xMidYMid meet" opacity="0.5" filter="url(#wash)"/>` : ""}
     <rect x="1" y="1" width="${SHEET_W - 2}" height="${SHEET_H - 2}" fill="none" stroke="${C.line}" stroke-width="2"/>
     ${strokes}
     ${benches}
     ${tokens.map(tokenSvg).join("")}
     ${rose}
+    ${scalebar}
     ${band?.svg ?? ""}
     ${foot}
   </svg>`;

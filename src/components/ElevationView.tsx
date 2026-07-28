@@ -8,8 +8,9 @@ import {
   tickStep,
 } from "@/lib/elevation";
 import { earthPathD, sectionOf } from "@/lib/ground";
+import { GRAIN } from "@/lib/paper";
 import { grownM, type Fig } from "@/lib/yardViews";
-import type { GroundMark } from "@/lib/yards";
+import { SHEET_H, type GroundMark } from "@/lib/yards";
 
 /**
  * The elevation: the same placed plants, standing — a section through the
@@ -157,9 +158,31 @@ export function ElevationView({
           <rect width="7" height="7" fill="var(--paper)" />
           <line x1="0" y1="0" x2="0" y2="7" stroke="var(--ink-faint)" strokeWidth="1.6" />
         </pattern>
+        {/* the same paper tooth the plan carries */}
+        <filter id="elev-grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency={GRAIN.frequency}
+            numOctaves={GRAIN.octaves}
+            stitchTiles="stitch"
+          />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.55 0.55 0.55 0 0"
+          />
+        </filter>
       </defs>
 
       <rect x="0" y="0" width={ELEV_W} height={ELEV_H} className="yard-paper" />
+      <rect
+        x="0"
+        y="0"
+        width={ELEV_W}
+        height={ELEV_H}
+        filter="url(#elev-grain)"
+        opacity={GRAIN.opacity}
+        pointerEvents="none"
+      />
       {/* the spine glyph's below-ground wash — the flat band she never shaped,
           or the skyline of the land she did */}
       {skyline ? (
@@ -198,28 +221,34 @@ export function ElevationView({
               : f.state === "hatch"
                 ? "url(#elev-hatch)"
                 : "var(--paper)";
+        // The section drawing's own convention: what stands near the cut
+        // draws full-weight, what stands beyond it steps back. Depth is the
+        // sheet's y, so near the viewer is low on the sheet.
+        const depthOp = 0.62 + 0.38 * (f.depth / SHEET_H);
         return (
           <g key={f.uid} className={f.show === "other" ? "yard-token yard-token--dim" : "yard-token"}>
-            <Silhouette f={f} gy={gy} scale={scale} years={years} />
-            {f.show === "match" && (
-              <circle cx={f.x} cy={gy} r={TOKEN_R + 11} className="yard-show" />
-            )}
-            {f.witness && (
-              <circle cx={f.x} cy={gy} r={TOKEN_R + 6} className="yard-witness" />
-            )}
-            {sel === f.uid && (
-              <circle cx={f.x} cy={gy} r={TOKEN_R + 17} className="yard-sel" />
-            )}
-            <circle
-              cx={f.x}
-              cy={gy}
-              r={TOKEN_R}
-              fill={fill}
-              className={f.gone ? "yard-mark yard-mark--gone" : "yard-mark"}
-            />
-            <text x={f.x} y={gy + TOKEN_R + 24} className="yard-name">
-              {f.label}
-            </text>
+            <g opacity={depthOp}>
+              <Silhouette f={f} gy={gy} scale={scale} years={years} />
+              {f.show === "match" && (
+                <circle cx={f.x} cy={gy} r={TOKEN_R + 11} className="yard-show" />
+              )}
+              {f.witness && (
+                <circle cx={f.x} cy={gy} r={TOKEN_R + 6} className="yard-witness" />
+              )}
+              {sel === f.uid && (
+                <circle cx={f.x} cy={gy} r={TOKEN_R + 17} className="yard-sel" />
+              )}
+              <circle
+                cx={f.x}
+                cy={gy}
+                r={TOKEN_R}
+                fill={fill}
+                className={f.gone ? "yard-mark yard-mark--gone" : "yard-mark"}
+              />
+              <text x={f.x} y={gy + TOKEN_R + 24} className="yard-name">
+                {f.label}
+              </text>
+            </g>
           </g>
         );
       })}

@@ -25,7 +25,7 @@ import {
 } from "@/lib/yards";
 import { exportYard } from "@/lib/yardExport";
 import { buildYardFile, yardFileText } from "@/lib/yardFile";
-import { bedLinesOf, figsOf, hoursAt, sceneOf, tokensOf } from "@/lib/yardViews";
+import { bedLinesOf, figsOf, hoursAt, sceneOf, shadeImage, tokensOf } from "@/lib/yardViews";
 import { lightTier, tierWord } from "@/lib/sun";
 import { encodeConstraints } from "@/lib/constraints";
 import { AddMine } from "@/components/AddMine";
@@ -79,6 +79,8 @@ export function YardPage() {
   // The Ask tool's tapped point. Transient on purpose: a question is not a
   // mark, so it never touches the yard record.
   const [asked, setAsked] = useState<Pt | null>(null);
+  // The plan's shade wash, off until she asks for it.
+  const [sunSheet, setSunSheet] = useState(false);
   const [saved, setSaved] = useState(true);
   const [findText, setFindText] = useState("");
   const [years, setYears] = useState<number | null>(null);
@@ -152,6 +154,17 @@ export function YardPage() {
   const sun = useMemo(
     () => (scene ? { lat: scene.lat, day: scene.day, hour } : null),
     [scene, hour],
+  );
+
+  // The plan's shade wash: this hour's sun over the whole sheet, one ray per
+  // cell against the same crowns and land the bed lines march. Null while
+  // the toggle is off, the scene is missing a number, or the sun is down.
+  const shade = useMemo(
+    () =>
+      projection === "sheet" && sunSheet && scene && yard
+        ? shadeImage(scene, yard.north, hour)
+        : null,
+    [projection, sunSheet, scene, yard, hour],
   );
 
   // The Ask tool's answer: the sun read at her tapped point, in the
@@ -691,6 +704,7 @@ export function YardPage() {
           onGroundMove={onGroundMove}
           askAt={mode === "ask" ? asked : null}
           onAsk={setAsked}
+          shade={shade?.url ?? null}
         />
       ) : projection === "elevation" ? (
         <ElevationView figs={figs} ground={marks} sel={sel} years={years} onSelect={setSel} />
@@ -899,6 +913,47 @@ export function YardPage() {
               </>
             )}
           </div>
+
+          {/* The shade wash: the model's sun, read flat onto the plan. Only
+              offered once both her numbers exist; the Ask tool teaches what
+              the sun needs before then. */}
+          {sunReady && (
+            <>
+              <div className="yard-sun-row">
+                <button
+                  className={sunSheet ? "btn btn--sm" : "btn btn--ghost btn--sm"}
+                  aria-pressed={sunSheet}
+                  onClick={() => setSunSheet((v) => !v)}
+                >
+                  {sunSheet ? "Hide the shade" : "Draw the shade"}
+                </button>
+                {sunSheet && (
+                  <>
+                    <input
+                      className="yard-slider"
+                      type="range"
+                      min={5}
+                      max={21}
+                      step={0.5}
+                      value={hour}
+                      aria-label="Hour of the day, solar time"
+                      onChange={(e) => setHour(Number(e.target.value))}
+                    />
+                    <span className="yard-coverage yard-years-label">
+                      {`${Math.floor(hour)}:${hour % 1 ? "30" : "00"} · ${slot ?? "Early Summer"}`}
+                    </span>
+                  </>
+                )}
+              </div>
+              {sunSheet && (
+                <p className="yard-coverage">
+                  {shade
+                    ? `Shade washed where this hour's sun doesn't reach — about ${Math.round((1 - shade.litFrac) * 100)}% of the sheet. Computed from yours: latitude, span, crowns and land as recorded.`
+                    : "The sun is down at this hour; nothing is washed."}
+                </p>
+              )}
+            </>
+          )}
         </>
       )}
 
