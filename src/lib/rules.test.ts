@@ -17,7 +17,7 @@ import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit, tierWord,
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
-import { outsideRecord, phenologyLine } from "./phenology";
+import { outsideRecord, phenologyLine, visitorGaps } from "./phenology";
 import { admitYard, parseYardFile, YARD_FORMAT } from "./yardFile";
 import { ACCESS } from "./query";
 import { decodeConstraints, encodeConstraints } from "./constraints";
@@ -707,4 +707,45 @@ test("no recorded period claims nothing, whatever she marked", () => {
 test("no marks claim nothing", () => {
   assert.equal(phenologyLine([], "Late Spring"), null, "nothing witnessed is nothing to say");
   assert.deepEqual(outsideRecord([], ["Late Spring"]), []);
+});
+
+/* ---- the pollinator famine, coverage first ----------------------------- */
+
+// A famine slot is one where something is recorded in bloom and none of the
+// blooming plants has a recorded visitor. A slot where nothing blooms is the
+// calendar's own verdict, not a second claim here; and a plant with neither
+// band nor mark never counts as blooming anywhere.
+const vplant = (id: number, period: string | null, attracts?: string[]) =>
+  ({ id, bloomPeriod: period ?? undefined, attracts }) as never as Plant;
+
+test("a famine slot needs bloom without any recorded visitor, and only that", () => {
+  const plants = [
+    vplant(1, "Late Spring", ["Bees"]),
+    vplant(2, "Fall"), // blooms, no visitor recorded
+    vplant(3, null), // no record, no marks: blooms nowhere here
+  ];
+  const vg = visitorGaps(plants, new Map(), []);
+  assert.deepEqual(vg.gaps, ["Fall"], "spring is fed, fall is not, unbloomed slots claim nothing");
+  assert.equal(vg.covered, 1);
+  assert.equal(vg.of, 3);
+});
+
+test("her mark alone brings a plant's recorded visitors into a slot", () => {
+  const plants = [vplant(1, null, ["Bees"]), vplant(2, "Winter")];
+  const seen = [{ id: 1, at: day(2026, 1, 10) }]; // Winter, by her hand
+  const vg = visitorGaps(plants, new Map(), seen);
+  assert.deepEqual(vg.gaps, [], "her witnessed bloom feeds the slot the record left empty");
+});
+
+test("visitors recorded for nobody reads as coverage, never as a famine list", () => {
+  const vg = visitorGaps([vplant(1, "Spring"), vplant(2, "Fall")], new Map(), []);
+  assert.equal(vg.covered, 0, "the caller must print coverage alone on this answer");
+  assert.ok(vg.gaps.length > 0, "the gaps exist but mean only 'no visitor data'");
+});
+
+test("her recorded visitors count through ACCESS like a source's", () => {
+  const hers = indexMine([mine(2, "attracts", "hoverflies")], FACETS_FIXTURE);
+  const plants = [vplant(1, "Late Spring", ["Bees"]), vplant(2, "Fall")];
+  assert.deepEqual(visitorGaps(plants, new Map(), []).gaps, ["Fall"]);
+  assert.deepEqual(visitorGaps(plants, hers, []).gaps, [], "her answer feeds the fall like any other");
 });

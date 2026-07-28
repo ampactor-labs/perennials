@@ -52,8 +52,19 @@ function joinLower(slots: readonly BloomSlot[]): string {
  * the printed record. It earns a plant its row even when the printed
  * period is blank, which on her kept list is most of them.
  */
-export function BloomCalendar({ plants }: { plants: Plant[] }) {
+export function BloomCalendar({
+  plants,
+  context = "kept",
+}: {
+  plants: Plant[];
+  /** Whose plants the copy names: her kept list, or the ones placed in a
+   *  yard. Only the words change; the records draw identically. */
+  context?: "kept" | "yard";
+}) {
   const { seen } = useSeen();
+  // The copy's subject, everywhere a sentence names the set.
+  const subject = context === "kept" ? "you've kept" : "placed here";
+  const setWord = context === "kept" ? "kept" : "placed";
   if (plants.length === 0) return null;
 
   const handSlots = (id: number) => seenSlots(seen, id);
@@ -162,8 +173,8 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
 
           <p className="bcal-verdict">
             {gaps.length === 0
-              ? "Something you've kept is recorded in bloom in every part of the year."
-              : `Nothing you've kept is recorded in bloom in ${joinLower(gaps)}.`}
+              ? `Something ${subject} is recorded in bloom in every part of the year.`
+              : `Nothing ${subject} is recorded in bloom in ${joinLower(gaps)}.`}
           </p>
         </>
       )}
@@ -171,8 +182,8 @@ export function BloomCalendar({ plants }: { plants: Plant[] }) {
       {/* Coverage, always: a partial facet has to say how partial. */}
       <p className="bcal-coverage">
         {printed === 0
-          ? `No bloom period is recorded for any of the ${plants.length === 1 ? "plant" : `${plants.length} plants`} you've kept.`
-          : `${printed} of ${plants.length} kept ${plants.length === 1 ? "plant has" : "plants have"} a bloom period recorded.`}{" "}
+          ? `No bloom period is recorded for any of the ${plants.length === 1 ? "plant" : `${plants.length} plants`} ${subject}.`
+          : `${printed} of ${plants.length} ${setWord} ${plants.length === 1 ? "plant has" : "plants have"} a bloom period recorded.`}{" "}
         {marked > 0 &&
           `You've marked ${marked} ${marked === 1 ? "plant" : "plants"} in bloom yourself. `}
         Bloom comes from USDA PLANTS, which covers North-American species, so a blank is a

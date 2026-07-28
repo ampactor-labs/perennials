@@ -8,7 +8,8 @@ import { latFromDevice, useLat, writeLat } from "@/lib/latitude";
 import { mineFor, useMine } from "@/lib/mine";
 import { deletePhoto, putPhoto, useMinePhoto } from "@/lib/photos";
 import { ACCESS } from "@/lib/query";
-import { useSeen } from "@/lib/seen";
+import { seenSlots, useSeen } from "@/lib/seen";
+import { outsideRecord, visitorGaps } from "@/lib/phenology";
 import { useSpots } from "@/lib/spots";
 import { parseLevel } from "@/lib/ground";
 import { growthBand } from "@/lib/growth";
@@ -27,6 +28,7 @@ import { bedLinesOf, figsOf, hoursAt, sceneOf, tokensOf } from "@/lib/yardViews"
 import { lightTier, tierWord } from "@/lib/sun";
 import { encodeConstraints } from "@/lib/constraints";
 import { AddMine } from "@/components/AddMine";
+import { BloomCalendar } from "@/components/BloomCalendar";
 import { ElevationView } from "@/components/ElevationView";
 import { YardCanvas, type Mode } from "@/components/YardCanvas";
 import { YearScrubber } from "@/components/YearScrubber";
@@ -340,6 +342,40 @@ export function YardPage() {
     .map((pl) => byId.get(pl.id))
     .filter((p): p is Plant => !!p);
   const uniq = (xs: string[]) => [...new Set(xs)].sort();
+
+  /* ---- the almanac: this yard's year, on the calendar's own axis -------- */
+
+  // A plant placed twice is one row of the year, not two.
+  const almanacPlants = [...new Map(placedPlants.map((p) => [p.id, p])).values()];
+
+  const joinLower = (xs: readonly string[]): string => {
+    const w = xs.map((s) => s.toLowerCase());
+    if (w.length === 1) return w[0];
+    if (w.length === 2) return `${w[0]} and ${w[1]}`;
+    return `${w.slice(0, -1).join(", ")}, and ${w[w.length - 1]}`;
+  };
+
+  // The pollinator famine, coverage first. With visitors recorded for nobody
+  // the gaps list means only "no visitor data", so the coverage sentence
+  // stands alone rather than dressing that silence up as a famine.
+  const visitorLine = (() => {
+    if (almanacPlants.length === 0) return null;
+    const vg = visitorGaps(almanacPlants, herIndex, seen);
+    const cover = `Visitors are recorded for ${vg.covered} of ${vg.of} placed ${vg.of === 1 ? "plant" : "plants"}.`;
+    if (vg.covered === 0 || vg.gaps.length === 0) return cover;
+    return `${cover} In ${joinLower(vg.gaps)}, nothing recorded in bloom here has a recorded flower visitor.`;
+  })();
+
+  // Her marks against the record, over the whole yard: neither side wrong,
+  // same bargain as the per-plant line, said once.
+  const outranLine = (() => {
+    const n = almanacPlants.filter(
+      (p) => outsideRecord(seenSlots(seen, p.id), bloomSlots(p.bloomPeriod)).length > 0,
+    ).length;
+    return n > 0
+      ? `Your marks put ${n === 1 ? "one plant" : `${n} plants`} in bloom outside the printed band — your yard teaching the record.`
+      : null;
+  })();
   const askFunctions = uniq(placedPlants.flatMap((p) => [...asList(ACCESS.functions(p, herIndex.get(p.id)))]));
   const askVisitors = uniq(placedPlants.flatMap((p) => [...asList(ACCESS.attracts(p, herIndex.get(p.id)))]));
   const askLayers = uniq(placedPlants.flatMap((p) => [...asList(ACCESS.layer(p, herIndex.get(p.id)))]));
@@ -939,6 +975,18 @@ export function YardPage() {
 
       {placed > 0 && <YearScrubber slot={slot} onSlot={setSlot} />}
       {bloomLine && <p className="yard-coverage">{bloomLine}</p>}
+
+      {/* The almanac: the same wheel the kept list reads, over what stands
+          here — the printed bands, her marks above them, and the year's gaps
+          named. The famine and divergence lines ride under it, each scoped
+          to what our data can actually claim. */}
+      {almanacPlants.length > 0 && (
+        <>
+          <BloomCalendar plants={almanacPlants} context="yard" />
+          {visitorLine && <p className="yard-coverage">{visitorLine}</p>}
+          {outranLine && <p className="yard-coverage">{outranLine}</p>}
+        </>
+      )}
 
       {placed > 0 && (askFunctions.length > 0 || askVisitors.length > 0 || askLayers.length > 0) && (
         <div className="yard-ask">
