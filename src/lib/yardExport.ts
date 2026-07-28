@@ -169,7 +169,11 @@ function elevationBand(
   return { svg: parts.join(""), standLine, groundLine };
 }
 
-function sheetSvg(
+/** The whole sheet — plan, elevation band, footer, licence line — as one SVG
+ *  string. Exported so the annual can lay a yard on its page from the same
+ *  geometry the Share sheet rasterizes; the light-paper palette is baked in
+ *  as literals either way, a specimen sheet rather than a screenshot. */
+export function sheetSvg(
   yard: Yard,
   tokens: TokenView[],
   figs: Fig[],

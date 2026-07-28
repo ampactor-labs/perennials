@@ -1,0 +1,162 @@
+/* The annual: one year of her record, typeset to be printed. On screen it is
+   the year in review in either theme; under print it is always the specimen
+   sheet's light paper, because a printed page has no theme toggle. */
+
+.annual {
+  max-width: 860px;
+}
+.annual-head {
+  margin-top: var(--sp-3);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--sp-3);
+}
+.annual-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  color: var(--ink);
+  margin: 0;
+}
+.annual-sub {
+  margin-top: var(--sp-1);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.annual-yearnav {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--sp-2);
+}
+.annual-head .btn {
+  margin-top: var(--sp-2);
+}
+
+.annual-sec {
+  margin-top: var(--sp-6);
+  break-inside: avoid;
+}
+.annual-sec > h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line-strong);
+  padding-bottom: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+.annual-month {
+  break-inside: avoid;
+}
+.annual-month > h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  color: var(--ink-soft);
+  margin: var(--sp-3) 0 var(--sp-1);
+}
+.annual-month ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.annual-month li {
+  padding: 2px 0;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+}
+.annual-plant {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.annual-note {
+  margin-bottom: var(--sp-3);
+  break-inside: avoid;
+}
+.annual-note-head {
+  font-family: var(--font-display);
+  color: var(--ink);
+}
+.annual-note-text {
+  margin-top: 2px;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+
+.annual-sheet {
+  margin: var(--sp-4) 0;
+  break-inside: avoid;
+}
+.annual-sheet svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.annual-caption {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin-top: var(--sp-1);
+}
+
+.annual-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--sp-3);
+}
+.annual-photo {
+  margin: 0;
+  break-inside: avoid;
+}
+.annual-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.annual-foot {
+  margin-top: var(--sp-8);
+  border-top: 1px solid var(--line-strong);
+  padding-top: var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+@media print {
+  /* Always the light paper. The dark palette lives on two selectors of
+     specificity (0,2,0), so both are matched here and this sheet, imported
+     last, wins the cascade in either theme. */
+  :root,
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    --paper: #e7e4d3;
+    --paper-raised: #f1eee2;
+    --paper-sunk: #dcd8c6;
+    --ink: #23291f;
+    --ink-soft: #4b5142;
+    --ink-faint: #5c5e4c;
+    --line: #cac6b0;
+    --line-strong: #b1ac92;
+    --line-control: #847f69;
+    --green: #33503a;
+    --green-bright: #4f7a44;
+    --on-green: #f4f1e4;
+    --sepia: #6f5f45;
+    --danger: #9a3b34;
+    --shadow-card: none;
+    --shadow-pop: none;
+    color-scheme: light;
+  }
+  /* The app's chrome stays on the screen: the header, the tab bar, the
+     back link, the year links and the Print button itself. */
+  .app-header,
+  .app-nav,
+  .annual-chrome {
+    display: none !important;
+  }
+  .annual {
+    max-width: none;
+  }
+  .annual-sec {
+    page-break-inside: avoid;
+  }
+}

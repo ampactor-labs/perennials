@@ -10,6 +10,7 @@ import {
 import { DataProvider } from "./data/store";
 import { SearchProvider } from "./state/search";
 import { Layout } from "./components/Layout";
+import { AnnualPage } from "./pages/AnnualPage";
 import { BrowsePage } from "./pages/BrowsePage";
 import { PlantPage } from "./pages/PlantPage";
 import { KeptPage } from "./pages/KeptPage";
@@ -42,6 +43,9 @@ export function App() {
                 <Route index element={<BrowsePage />} />
                 <Route path="plant/:slug" element={<PlantPage />} />
                 <Route path="kept" element={<KeptPage />} />
+                {/* Two routes, not an optional segment: v6 dropped `:year?`. */}
+                <Route path="annual" element={<AnnualPage />} />
+                <Route path="annual/:year" element={<AnnualPage />} />
                 <Route path="yards" element={<YardsPage />} />
                 <Route path="yard/:id" element={<YardPage />} />
                 <Route path="about" element={<AboutPage />} />

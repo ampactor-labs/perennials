@@ -302,3 +302,10 @@
     grid-template-columns: minmax(8rem, 12rem) repeat(9, 1fr);
   }
 }
+
+/* The header's two quiet actions: the year in print, the copy that travels. */
+.kept-actions {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+}

@@ -103,9 +103,14 @@ export function KeptPage() {
             yards, spots, zone, filled-in blanks and photos too, which is more than
             this page is about; it moved to Field notes, with the rest of what the
             guide knows about itself. */}
-        <Link className="linkish" to="/about">
-          Save a copy
-        </Link>
+        <div className="kept-actions">
+          <Link className="linkish" to="/annual">
+            Print the year
+          </Link>
+          <Link className="linkish" to="/about">
+            Save a copy
+          </Link>
+        </div>
       </header>
 
       {plants.length > 0 && (

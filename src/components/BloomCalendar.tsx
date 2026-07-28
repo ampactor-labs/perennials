@@ -57,14 +57,16 @@ export function BloomCalendar({
   context = "kept",
 }: {
   plants: Plant[];
-  /** Whose plants the copy names: her kept list, or the ones placed in a
-   *  yard. Only the words change; the records draw identically. */
-  context?: "kept" | "yard";
+  /** Whose plants the copy names: her kept list, the ones placed in a yard,
+   *  or the whole garden (the annual's union of both). Only the words
+   *  change; the records draw identically. */
+  context?: "kept" | "yard" | "garden";
 }) {
   const { seen } = useSeen();
   // The copy's subject, everywhere a sentence names the set.
-  const subject = context === "kept" ? "you've kept" : "placed here";
-  const setWord = context === "kept" ? "kept" : "placed";
+  const subject =
+    context === "kept" ? "you've kept" : context === "yard" ? "placed here" : "in your garden";
+  const setWord = context === "kept" ? "kept" : context === "yard" ? "placed" : "garden";
   if (plants.length === 0) return null;
 
   const handSlots = (id: number) => seenSlots(seen, id);
