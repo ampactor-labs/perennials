@@ -61,6 +61,16 @@ model drapes over, each figure carries one footing, and the computed sun climbs 
 same field the eye sees. The exported sheet re-renders plan and elevation from the
 same geometry with the licence line baked in.
 
+The query loop runs the other way too. A drawn bed or any point tapped with the sheet's
+Ask tool reads its computed sun and can open the guide on it — the derived light word is
+always one of the catalogue's own spellings (`tierWord`), applied as an ordinary Light
+ask, never written onto a plant — or save as a spot. The yard mounts the kept list's
+bloom wheel over its placed plants (`BloomCalendar context="yard"`), with the
+visitor-famine and layer-gap lines under it, both scoped to coverage. A Today strip
+opens Browse onto the season and her plants recorded in bloom (`lib/today.ts`), and
+`/annual` typesets a year of her record — marks, notes, wheel, yard sheets, photos —
+for the browser's print-to-PDF, reading every store and writing none.
+
 ## Layout
 
 - `src/` the app: `components/`, `pages/`, `state/`, `lib/`, `data/`, `styles/`
@@ -90,6 +100,10 @@ the sky, that the ground passes exactly through the heights she set and settles 
 beyond them (a bank costs the bed behind it its winter sun; a distant molehill costs
 nothing), that her witnessed bloom dates are compared to the record without either being
 called wrong, and that importing a yard file can never overwrite a yard she already has.
+The ask loop and the almanac add theirs: a derived light tier always lands on a value
+the light facet actually carries and no sun scene exists without her latitude and her
+span, a pollinator famine or a missing guild layer is never read out of missing records,
+and "in bloom now" counts the printed band or her mark and never silence.
 They exist because "a lone hardiness number is a floor, not a one-zone window" was wrong for
 months and dropped Red mulberry and hardy kiwi out of a zone-6 search, and nothing was
 watching. Put a rule here the day you rely on it.
