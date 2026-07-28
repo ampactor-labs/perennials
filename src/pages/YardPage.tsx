@@ -23,7 +23,9 @@ import {
 } from "@/lib/yards";
 import { exportYard } from "@/lib/yardExport";
 import { buildYardFile, yardFileText } from "@/lib/yardFile";
-import { bedLinesOf, figsOf, sceneOf, tokensOf } from "@/lib/yardViews";
+import { bedLinesOf, figsOf, hoursAt, sceneOf, tokensOf } from "@/lib/yardViews";
+import { lightTier, tierWord } from "@/lib/sun";
+import { encodeConstraints } from "@/lib/constraints";
 import { AddMine } from "@/components/AddMine";
 import { ElevationView } from "@/components/ElevationView";
 import { YardCanvas, type Mode } from "@/components/YardCanvas";
@@ -71,6 +73,9 @@ export function YardPage() {
   const [labelText, setLabelText] = useState("");
   const [pendingGround, setPendingGround] = useState<{ at: Pt; id: string | null } | null>(null);
   const [groundText, setGroundText] = useState("");
+  // The Ask tool's tapped point. Transient on purpose: a question is not a
+  // mark, so it never touches the yard record.
+  const [asked, setAsked] = useState<Pt | null>(null);
   const [saved, setSaved] = useState(true);
   const [findText, setFindText] = useState("");
   const [years, setYears] = useState<number | null>(null);
@@ -145,6 +150,20 @@ export function YardPage() {
     () => (scene ? { lat: scene.lat, day: scene.day, hour } : null),
     [scene, hour],
   );
+
+  // The Ask tool's answer: the sun read at her tapped point, in the
+  // catalogue's own light vocabulary. It follows the season scrub, because
+  // the scene carries the slot's day. Null without a tap or without the two
+  // numbers the sun needs; nothing is guessed.
+  const askAnswer = useMemo(() => {
+    if (!ready || !yard || !scene || !asked) return null;
+    const hours = hoursAt(asked[0], asked[1], scene, yard.north);
+    const word = tierWord(
+      (ready.facets.light ?? []).map((v) => v.value),
+      lightTier(hours),
+    );
+    return { hours, word };
+  }, [ready, yard, scene, asked]);
 
   // ACCESS values come back bare, one-valued or absent; the yard wants lists.
   const asList = (v: readonly string[] | string | null): readonly string[] =>
@@ -224,6 +243,42 @@ export function YardPage() {
       view: "list",
     });
     say(`Saved "${b.name}" to your spots; it applies like any site.`);
+  };
+
+  // The place itself becomes the search: the derived word applies as an
+  // ordinary Light ask, so the trail shows it like any constraint of hers.
+  // Her zone deliberately does not ride along — homeZone starts at 6 without
+  // her ever saying so, and a filter is a stronger claim than a sort; the
+  // rail offers her zone one tap away.
+  const openInGuide = (word: string) =>
+    navigate(
+      `/?${encodeConstraints({
+        atoms: [{ kind: "facet", key: "light", value: word }],
+        text: "",
+        view: "list",
+      }).toString()}`,
+    );
+
+  // The asked point saves like a bed does, named by the nearest label when
+  // one is close enough to be its name.
+  const saveAskSpot = () => {
+    if (!asked || !askAnswer) return;
+    let name = "Asked point";
+    let best = 300;
+    for (const l of yard.strokes) {
+      if (l.k !== "label") continue;
+      const d = Math.hypot(l.at[0] - asked[0], l.at[1] - asked[1]);
+      if (d < best) {
+        best = d;
+        name = l.text;
+      }
+    }
+    saveSpot(`${name} (${(slot ?? "Early Summer").toLowerCase()} sun)`, {
+      atoms: [{ kind: "facet", key: "light", value: askAnswer.word }],
+      text: "",
+      view: "list",
+    });
+    say(`Saved "${name}" to your spots; it applies like any site.`);
   };
 
   const askLat = async () => {
@@ -447,6 +502,56 @@ export function YardPage() {
     </button>
   );
 
+  // The two numbers the sun needs, asked for wherever the sun is wanted: the
+  // model's sun section and the sheet's Ask tool share this one form.
+  const sunNeeds = (
+    <>
+      <p className="yard-coverage">
+        The sun needs two numbers of yours: your latitude, and about how many metres this
+        sheet spans. Nothing is cast without them, and nothing is guessed.
+      </p>
+      {lat === null ? (
+        <div className="yard-sun-row">
+          <button className="btn btn--ghost btn--sm" disabled={latBusy} onClick={() => void askLat()}>
+            {latBusy ? "Asking…" : "Use where I'm standing"}
+          </button>
+          <input
+            className="note-input yard-sun-input"
+            inputMode="numeric"
+            value={latDraft}
+            placeholder="or latitude, e.g. 43"
+            aria-label="Your latitude in degrees"
+            onChange={(e) => setLatDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && setLatManual()}
+          />
+          <button className="btn btn--sm" onClick={setLatManual}>
+            Set
+          </button>
+          <span className="yard-coverage">Kept to the whole degree; the sun can't tell finer.</span>
+        </div>
+      ) : (
+        <p className="yard-coverage">Latitude {lat}°.</p>
+      )}
+      {!yard.span && (
+        <div className="yard-sun-row">
+          <input
+            className="note-input yard-sun-input"
+            inputMode="numeric"
+            value={spanDraft}
+            placeholder="sheet width in metres"
+            aria-label="About how many metres across is this sheet"
+            onChange={(e) => setSpanDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && setSpanManual()}
+          />
+          <button className="btn btn--sm" onClick={setSpanManual}>
+            Set
+          </button>
+          <span className="yard-coverage">Your estimate; it also puts the model to scale.</span>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="page wrap yard">
       <div className="detail-top">
@@ -528,6 +633,8 @@ export function YardPage() {
           groundSel={pendingGround?.id ?? null}
           onGround={onGroundAt}
           onGroundMove={onGroundMove}
+          askAt={mode === "ask" ? asked : null}
+          onAsk={setAsked}
         />
       ) : projection === "elevation" ? (
         <ElevationView figs={figs} ground={marks} sel={sel} years={years} onSelect={setSel} />
@@ -563,6 +670,7 @@ export function YardPage() {
                   ["area", "Bed"],
                   ["label", "Label"],
                   ["ground", "Ground"],
+                  ["ask", "Ask"],
                   ["place", "Place"],
                 ] as [Mode, string][]
               ).map(([m, label]) => (
@@ -574,6 +682,7 @@ export function YardPage() {
                     setMode(m);
                     setPendingLabel(null);
                     setPendingGround(null);
+                    setAsked(null);
                   }}
                 >
                   {label}
@@ -638,6 +747,39 @@ export function YardPage() {
                 : "Tap paper for a new height, a triangle to change or remove one, or drag it to move it."}
             </p>
           )}
+
+          {mode === "ask" &&
+            (!sunReady ? (
+              sunNeeds
+            ) : asked && askAnswer ? (
+              <>
+                <p className="yard-coverage">
+                  About {askAnswer.hours}h direct here in{" "}
+                  {(slot ?? "Early Summer").toLowerCase()} — reads as {askAnswer.word}. Computed
+                  from your sheet: your latitude, your span, crowns and land as recorded.
+                </p>
+                <div className="yard-labelrow">
+                  <button
+                    className="btn btn--primary btn--sm"
+                    onClick={() => openInGuide(askAnswer.word)}
+                  >
+                    Open in the guide
+                  </button>
+                  <button className="btn btn--sm" onClick={saveAskSpot}>
+                    Save as spot
+                  </button>
+                  <button className="btn btn--ghost btn--sm" onClick={() => setAsked(null)}>
+                    Clear
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="yard-coverage">
+                Tap any spot and the sun reads it: hours of direct light in{" "}
+                {(slot ?? "Early Summer").toLowerCase()}, in the guide's own words, ready to
+                search with. Scrub the year and the answer follows.
+              </p>
+            ))}
 
           {mode === "place" && (
             <>
@@ -752,51 +894,7 @@ export function YardPage() {
       {projection === "model" && (
         <section className="yard-sun">
           {!sunReady ? (
-            <>
-              <p className="yard-coverage">
-                The sun needs two numbers of yours: your latitude, and about how many metres this
-                sheet spans. Nothing is cast without them, and nothing is guessed.
-              </p>
-              {lat === null ? (
-                <div className="yard-sun-row">
-                  <button className="btn btn--ghost btn--sm" disabled={latBusy} onClick={() => void askLat()}>
-                    {latBusy ? "Asking…" : "Use where I'm standing"}
-                  </button>
-                  <input
-                    className="note-input yard-sun-input"
-                    inputMode="numeric"
-                    value={latDraft}
-                    placeholder="or latitude, e.g. 43"
-                    aria-label="Your latitude in degrees"
-                    onChange={(e) => setLatDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && setLatManual()}
-                  />
-                  <button className="btn btn--sm" onClick={setLatManual}>
-                    Set
-                  </button>
-                  <span className="yard-coverage">Kept to the whole degree; the sun can't tell finer.</span>
-                </div>
-              ) : (
-                <p className="yard-coverage">Latitude {lat}°.</p>
-              )}
-              {!yard.span && (
-                <div className="yard-sun-row">
-                  <input
-                    className="note-input yard-sun-input"
-                    inputMode="numeric"
-                    value={spanDraft}
-                    placeholder="sheet width in metres"
-                    aria-label="About how many metres across is this sheet"
-                    onChange={(e) => setSpanDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && setSpanManual()}
-                  />
-                  <button className="btn btn--sm" onClick={setSpanManual}>
-                    Set
-                  </button>
-                  <span className="yard-coverage">Your estimate; it also puts the model to scale.</span>
-                </div>
-              )}
-            </>
+            sunNeeds
           ) : (
             <>
               <div className="yard-sun-row">
@@ -818,6 +916,9 @@ export function YardPage() {
                 <p key={b.id} className="yard-coverage yard-bed-line">
                   <b>{b.name}</b>: about {b.hours}h direct — {b.word}.
                   {keptPlants.length > 0 && ` ${b.fit} of your kept plants are recorded for it.`}{" "}
+                  <button className="linkish" onClick={() => openInGuide(b.word)}>
+                    Open in the guide
+                  </button>{" "}
                   <button className="linkish" onClick={() => saveBedSpot(b)}>
                     Save as spot
                   </button>

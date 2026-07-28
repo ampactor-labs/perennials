@@ -86,6 +86,20 @@
 .yard-canvas--ground {
   cursor: crosshair;
 }
+.yard-canvas--ask {
+  cursor: crosshair;
+}
+/* the Ask tool's cross: where the sun was last read. Ink, not a mark of
+   hers — a question is chrome, so it stays monochrome. */
+.yard-askmark line {
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+}
+.yard-askmark circle {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+}
 
 /* the placed plants */
 .yard-mark {

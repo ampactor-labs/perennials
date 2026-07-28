@@ -13,15 +13,17 @@ import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
 import { archetypeOf, figurePaths, parseMetres, standing, tickStep, type Archetype } from "./elevation";
 import { earthPathD, groundAt, groundRange, groundSkyline, parseLevel, sectionOf } from "./ground";
 import { growthBand } from "./growth";
-import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit, type Terrain } from "./sun";
+import { blockerOf, dayForSlot, directHours, lightTier, sunAt, sunlit, tierWord, type Terrain } from "./sun";
 import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
 import { outsideRecord, phenologyLine } from "./phenology";
 import { admitYard, parseYardFile, YARD_FORMAT } from "./yardFile";
 import { ACCESS } from "./query";
+import { decodeConstraints, encodeConstraints } from "./constraints";
 import { seenSlots } from "./seen";
 import { sanitizeSpot } from "./spots";
+import { sceneOf } from "./yardViews";
 import {
   commitStroke,
   MAX_GROUND,
@@ -334,6 +336,43 @@ test("open ground reads full sun; a June day at 40N carries it easily", () => {
   assert.equal(lightTier(5.5), "part");
   assert.equal(lightTier(3), "part");
   assert.equal(lightTier(2.5), "shade");
+});
+
+/* ---- the place asks the guide ----------------------------------------- */
+
+// A derived light word must land in the bucket the sources already use, or
+// applying it filters for a value no plant carries and quietly finds nothing.
+test("a derived tier speaks the catalogue's own spelling, live values first", () => {
+  const values = ["Full sun", "Partial sun/shade", "Full shade"];
+  assert.equal(tierWord(values, "full"), "Full sun");
+  assert.equal(tierWord(values, "part"), "Partial sun/shade");
+  assert.equal(tierWord(values, "shade"), "Full shade");
+  for (const tier of ["full", "part", "shade"] as const)
+    assert.ok(values.includes(tierWord(values, tier)), `${tier} must be a value the facet carries`);
+  // A differently-spelled catalogue still answers with its own words.
+  assert.equal(tierWord(["full sun (6+ hours)", "part shade"], "full"), "full sun (6+ hours)");
+  assert.equal(tierWord([], "part"), "Partial sun/shade", "the canonical fallback holds");
+});
+
+test("no latitude or no span computes no sun scene; nothing is guessed", () => {
+  const yard = { v: 1, id: "y1", name: "y", at: 1, north: 0, strokes: [], plants: [] } as never;
+  const spanned = { ...(yard as object), span: 20 } as never;
+  assert.equal(sceneOf(yard, [], 43, null, null), null, "no span, no scene");
+  assert.equal(sceneOf(spanned, [], null, null, null), null, "no latitude, no scene");
+  const scene = sceneOf(spanned, [], 43, null, null);
+  assert.ok(scene, "both numbers hers, the sun runs");
+  assert.equal(scene!.lat, 43);
+  assert.equal(scene!.upm, 50, "twenty metres across the 1000-unit sheet is 50 units per metre");
+});
+
+test("an ask-derived light atom survives the URL round trip", () => {
+  const c = {
+    atoms: [{ kind: "facet", key: "light", value: "Partial sun/shade" } as const],
+    text: "",
+    view: "list" as const,
+  };
+  const back = decodeConstraints(encodeConstraints(c));
+  assert.deepEqual(back.atoms, c.atoms, "the guide must open on exactly the asked condition");
 });
 
 /* ---- the ground: her heights become a surface, honestly ---------------- */

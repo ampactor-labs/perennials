@@ -33,7 +33,7 @@ export type TokenView = {
   gone: boolean;
 };
 
-export type Mode = "move" | "draw" | "area" | "label" | "place" | "ground";
+export type Mode = "move" | "draw" | "area" | "label" | "place" | "ground" | "ask";
 
 const ROSE = { x: SHEET_W - 80, y: 90, r: 48 };
 const TOKEN_R = 16;
@@ -67,6 +67,8 @@ export function YardCanvas({
   groundSel,
   onGround,
   onGroundMove,
+  askAt,
+  onAsk,
 }: {
   yard: Yard;
   /** A live URL for her photo of the ground, or null. The page resolves the
@@ -91,6 +93,11 @@ export function YardCanvas({
    *  an existing mark (asking to change it). */
   onGround: (p: Pt, id: string | null) => void;
   onGroundMove: (id: string, p: Pt) => void;
+  /** The point the Ask tool last read the sun at, so the sheet shows which
+   *  spot the answer belongs to. */
+  askAt: Pt | null;
+  /** A tap in Ask mode: this place becomes a question. */
+  onAsk: (p: Pt) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -139,6 +146,10 @@ export function YardCanvas({
     }
     if (mode === "place") {
       if (armed) onPlace([Math.round(p[0]), Math.round(p[1])]);
+      return;
+    }
+    if (mode === "ask") {
+      onAsk([Math.round(p[0]), Math.round(p[1])]);
       return;
     }
     if (mode === "ground") {
@@ -427,6 +438,15 @@ export function YardCanvas({
           </g>
         );
       })}
+
+      {/* the asked point: a surveyor's cross where the sun was last read */}
+      {askAt && (
+        <g className="yard-askmark">
+          <line x1={askAt[0] - 14} x2={askAt[0] + 14} y1={askAt[1]} y2={askAt[1]} />
+          <line x1={askAt[0]} x2={askAt[0]} y1={askAt[1] - 14} y2={askAt[1] + 14} />
+          <circle cx={askAt[0]} cy={askAt[1]} r={8} />
+        </g>
+      )}
 
       {/* the compass: hers, an annotation, so the drawing never rotates */}
       <g
