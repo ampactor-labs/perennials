@@ -9,7 +9,7 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 
 import { mergeById, photoKeys } from "./backup";
-import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, slotForDate } from "./bloom";
+import { BLOOM_SLOTS, BLOOM_SEASONS, bloomSlots, periodsFor, slotForDate } from "./bloom";
 import { archetypeOf, figurePaths, layerGapsOf, parseMetres, standing, stratumOf, tickStep, type Archetype } from "./elevation";
 import { earthPathD, groundAt, groundRange, groundSkyline, parseLevel, sectionOf } from "./ground";
 import { growthBand } from "./growth";
@@ -116,6 +116,16 @@ test("an unrecorded period covers no slots, which is not 'does not flower'", () 
   assert.deepEqual(bloomSlots(undefined), []);
   assert.deepEqual(bloomSlots(""), []);
   assert.deepEqual(bloomSlots("Nonsense"), []);
+});
+
+test("asking a slot summons every period that covers it, and only those", () => {
+  const late = periodsFor("Late Spring");
+  assert.ok(late.includes("Late Spring") && late.includes("Spring") && late.includes("Indeterminate"),
+    "the unqualified season and the continuous bloomers belong to the question");
+  assert.ok(!late.includes("Early Summer"), "a period that misses the slot is not summoned");
+  for (const slot of BLOOM_SLOTS)
+    for (const p of periodsFor(slot))
+      assert.ok(bloomSlots(p).includes(slot), `${p} must actually cover ${slot}`);
 });
 
 test("an unqualified season covers its whole band, never a picked slot", () => {

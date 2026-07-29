@@ -13,6 +13,7 @@ import { sheetSvg } from "@/lib/yardExport";
 import { figsOf, tokensOf } from "@/lib/yardViews";
 import { useYards, type Yard } from "@/lib/yards";
 import { BloomCalendar } from "@/components/BloomCalendar";
+import { SlotLinks } from "@/components/SlotLinks";
 import { IconChevronLeft } from "@/components/icons";
 
 /**
@@ -252,9 +253,13 @@ export function AnnualPage() {
           {vg && (
             <p className="annual-caption">
               {`Visitors are recorded for ${vg.covered} of ${vg.of} garden ${vg.of === 1 ? "plant" : "plants"}.`}
-              {vg.covered > 0 &&
-                vg.gaps.length > 0 &&
-                ` In ${vg.gaps.map((g) => g.toLowerCase()).join(", ")}, nothing recorded in bloom has a recorded flower visitor.`}
+              {vg.covered > 0 && vg.gaps.length > 0 && (
+                <>
+                  {" "}
+                  In <SlotLinks slots={vg.gaps} />, nothing recorded in bloom has a recorded
+                  flower visitor.
+                </>
+              )}
             </p>
           )}
         </section>

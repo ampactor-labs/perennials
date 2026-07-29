@@ -83,6 +83,16 @@ export const bloomSlots = (period: string | null | undefined): readonly BloomSlo
   period ? PERIOD_SLOTS[period] ?? [] : [];
 
 /**
+ * Every recorded period that covers a slot — the honest way to ask the guide
+ * "who blooms then". Filtering on the slot's own name alone would miss the
+ * plant recorded "Spring" when she asks about late spring, and every plant
+ * recorded as blooming continuously; applied together as one facet step they
+ * OR, which is exactly the union the question means.
+ */
+export const periodsFor = (slot: BloomSlot): string[] =>
+  Object.keys(PERIOD_SLOTS).filter((p) => PERIOD_SLOTS[p].includes(slot));
+
+/**
  * Her date onto the nine-word axis.
  *
  * This looks like the sin described above (pinning the season words to a
@@ -116,15 +126,6 @@ export const BLOOM_SEASONS: { name: string; span: number }[] = [
   { name: "Summer", span: 3 },
   { name: "Fall", span: 1 },
 ];
-
-/** "late winter, and fall": a list said as words, lowercased — the shape
- *  every verdict sentence uses, so two copies stop drifting apart. */
-export function joinLower(xs: readonly string[]): string {
-  const w = xs.map((s) => s.toLowerCase());
-  if (w.length === 1) return w[0];
-  if (w.length === 2) return `${w[0]} and ${w[1]}`;
-  return `${w.slice(0, -1).join(", ")}, and ${w[w.length - 1]}`;
-}
 
 /** The qualifier alone, for the tick row: "Winter · Late", "Early · Mid · Late".
  *  The season above it already carries the noun. */

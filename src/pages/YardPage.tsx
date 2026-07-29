@@ -1,8 +1,8 @@
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
-import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, joinLower, type BloomSlot } from "@/lib/bloom";
+import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, type BloomSlot } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
 import { latFromDevice, useLat, writeLat } from "@/lib/latitude";
 import { mineFor, useMine } from "@/lib/mine";
@@ -31,6 +31,7 @@ import { encodeConstraints } from "@/lib/constraints";
 import { AddMine } from "@/components/AddMine";
 import { BloomCalendar } from "@/components/BloomCalendar";
 import { ElevationView } from "@/components/ElevationView";
+import { SlotLinks } from "@/components/SlotLinks";
 import { YardCanvas, type Mode } from "@/components/YardCanvas";
 import { YearScrubber } from "@/components/YearScrubber";
 import { Thumb } from "@/components/Thumb";
@@ -82,8 +83,10 @@ export function YardPage() {
   // The Ask tool's tapped point. Transient on purpose: a question is not a
   // mark, so it never touches the yard record.
   const [asked, setAsked] = useState<Pt | null>(null);
-  // The plan's shade wash, off until she asks for it.
+  // The plan's shade wash, off until she asks for it; play sweeps the hour
+  // across the day so the shadow walks the sheet on its own.
   const [sunSheet, setSunSheet] = useState(false);
+  const [hourPlay, setHourPlay] = useState(false);
   const [saved, setSaved] = useState(true);
   const [findText, setFindText] = useState("");
   const [years, setYears] = useState<number | null>(null);
@@ -159,6 +162,14 @@ export function YardPage() {
     [scene, hour],
   );
 
+  // Play walks the hour across the day while the wash is on screen; the
+  // interval dies with the toggle, the projection, or the button itself.
+  useEffect(() => {
+    if (!hourPlay || !sunSheet || projection !== "sheet") return;
+    const t = window.setInterval(() => setHour((h) => (h >= 21 ? 5 : h + 0.5)), 450);
+    return () => window.clearInterval(t);
+  }, [hourPlay, sunSheet, projection]);
+
   // The plan's shade wash: this hour's sun over the whole sheet, one ray per
   // cell against the same crowns and land the bed lines march. Null while
   // the toggle is off, the scene is missing a number, or the sun is down.
@@ -169,6 +180,21 @@ export function YardPage() {
         : null,
     [projection, sunSheet, scene, yard, hour],
   );
+
+  // The selected plant's spot, read by the same sun: computed hours beside
+  // the recorded preference, neither called wrong — placement as feedback.
+  const selFit = useMemo(() => {
+    if (!ready || !yard || !scene || !sel) return null;
+    const pl = yard.plants.find((x) => x.uid === sel);
+    const p = pl && ready.byId.get(pl.id);
+    if (!pl || !p) return null;
+    const hours = hoursAt(pl.x, pl.y, scene, yard.north);
+    const word = tierWord(
+      (ready.facets.light ?? []).map((v) => v.value),
+      lightTier(hours),
+    );
+    return { hours, word, recorded: asList(ACCESS.light(p, ready.mine.get(p.id))) };
+  }, [ready, yard, scene, sel]);
 
   // The Ask tool's answer: the sun read at her tapped point, in the
   // catalogue's own light vocabulary. It follows the season scrub, because
@@ -373,13 +399,19 @@ export function YardPage() {
 
   // The pollinator famine, coverage first. With visitors recorded for nobody
   // the gaps list means only "no visitor data", so the coverage sentence
-  // stands alone rather than dressing that silence up as a famine.
+  // stands alone rather than dressing that silence up as a famine. Each
+  // famine slot links into the guide: a named gap becomes a gap to shop.
   const visitorLine = (() => {
     if (almanacPlants.length === 0) return null;
     const vg = visitorGaps(almanacPlants, herIndex, seen);
     const cover = `Visitors are recorded for ${vg.covered} of ${vg.of} placed ${vg.of === 1 ? "plant" : "plants"}.`;
     if (vg.covered === 0 || vg.gaps.length === 0) return cover;
-    return `${cover} In ${joinLower(vg.gaps)}, nothing recorded in bloom here has a recorded flower visitor.`;
+    return (
+      <>
+        {cover} In <SlotLinks slots={vg.gaps} />, nothing recorded in bloom here has a
+        recorded flower visitor.
+      </>
+    );
   })();
 
   // Which strata nobody here carries, and how many placed plants carry no
@@ -940,11 +972,22 @@ export function YardPage() {
                       step={0.5}
                       value={hour}
                       aria-label="Hour of the day, solar time"
-                      onChange={(e) => setHour(Number(e.target.value))}
+                      onChange={(e) => {
+                        setHourPlay(false);
+                        setHour(Number(e.target.value));
+                      }}
                     />
                     <span className="yard-coverage yard-years-label">
                       {`${hourLabel(hour)} · ${slot ?? "Early Summer"}`}
                     </span>
+                    <button
+                      className={hourPlay ? "scrub-play on" : "scrub-play"}
+                      onClick={() => setHourPlay((p) => !p)}
+                      aria-pressed={hourPlay}
+                      aria-label={hourPlay ? "Stop the day" : "Play the day"}
+                    >
+                      {hourPlay ? "◼" : "▶"}
+                    </button>
                   </>
                 )}
               </div>
@@ -1235,6 +1278,16 @@ export function YardPage() {
                   </span>
                 )}
               </div>
+              {selFit && (
+                <p className="yard-coverage" style={{ marginTop: "var(--sp-2)" }}>
+                  About {selFit.hours}h direct at this mark in{" "}
+                  {(slot ?? "Early Summer").toLowerCase()}, computed from your sheet — reads as{" "}
+                  {selFit.word}.{" "}
+                  {selFit.recorded.length > 0
+                    ? `The record lists ${selFit.recorded.join(", ")}.`
+                    : "No light preference in our sources."}
+                </p>
+              )}
               {selPlant.functions.length > 0 && (
                 <div className="attr-row">
                   <span className="attr-label">Functions</span>

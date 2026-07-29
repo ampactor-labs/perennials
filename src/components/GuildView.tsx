@@ -51,6 +51,7 @@ const SEED = 6;
 /** Reveals SEED, then a page at a time. "Show all" used to mean exactly that:
  *  one tap mounted 1,986 cards in a single commit and froze the tab. */
 function Deck({ plants }: { plants: Plant[] }) {
+  const s = useSearch();
   const [shown, setShown] = useState(SEED);
   const visible = plants.slice(0, shown);
   const left = plants.length - visible.length;
@@ -58,7 +59,7 @@ function Deck({ plants }: { plants: Plant[] }) {
     <>
       <div className="pgrid">
         {visible.map((p) => (
-          <PlantCard key={p.slug} plant={p} />
+          <PlantCard key={p.slug} plant={p} hers={s.data?.mine.get(p.id)} />
         ))}
       </div>
       {left > 0 && (

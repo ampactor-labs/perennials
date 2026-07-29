@@ -53,6 +53,24 @@ type Dress = {
   billboards: { group: THREE.Group; at: THREE.Vector3 }[];
   /** w/h are the sprite's authored size; the render pass scales from them. */
   labels: { sprite: THREE.Sprite; at: THREE.Vector3; w: number; h: number }[];
+  /** Per-figure selection dressing: a pre-built hidden ring and the outline
+   *  shells whose material swaps to selMat. Selecting used to rebuild the
+   *  whole scene; now it is a visibility-and-material pass. */
+  selectable: Map<string, { outlines: THREE.Mesh[]; ring: THREE.Object3D }>;
+  selMat: THREE.Material | null;
+};
+
+/** Dress the current selection: the chosen figure's ring shows and its
+ *  shells wear full ink; everything else returns to its base line. Called
+ *  from the sel effect and at the end of every rebuild. */
+const applySelection = (dress: Dress, sel: string | null) => {
+  for (const [uid, s] of dress.selectable) {
+    const on = uid === sel;
+    s.ring.visible = on;
+    for (const o of s.outlines) {
+      o.material = on && dress.selMat ? dress.selMat : (o.userData.base as THREE.Material);
+    }
+  }
 };
 
 type World = {
@@ -172,7 +190,7 @@ export function YardModel({
     // On-demand rendering: a continuous loop would idle her battery flat.
     // The dressing pass rides inside it: photo standees turn to face the
     // eye, and far names step back relative to how far she is looking.
-    const dress: Dress = { billboards: [], labels: [] };
+    const dress: Dress = { billboards: [], labels: [], selectable: new Map(), selMat: null };
     const render = () => {
       const cam = camera.position;
       const camDist = cam.distanceTo(controls.target) || 1;
@@ -299,6 +317,7 @@ export function YardModel({
     // Fresh dressing per build; render() reads these live.
     w.dress.billboards.length = 0;
     w.dress.labels.length = 0;
+    w.dress.selectable.clear();
 
     /* the ground is her sheet: paper, washed photo, her ink, as a texture */
     const sheet = document.createElement("canvas");
@@ -453,12 +472,15 @@ export function YardModel({
 
     // The ink line the elevation strokes around every figure, in the round:
     // a back-face shell — no post-processing, so it survives the on-demand
-    // renderer. Sepia when the measurement is hers, full ink when selected.
+    // renderer. Sepia when the measurement is hers; selection swaps a shell
+    // to dress.selMat without touching the scene.
     const outlineMats = {
       ink: keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(inkSoft), side: THREE.BackSide })),
       hers: keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(sepia), side: THREE.BackSide })),
-      sel: keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(ink), side: THREE.BackSide })),
     };
+    w.dress.selMat = keep(
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(ink), side: THREE.BackSide }),
+    );
     const outlineOf = (m: THREE.Mesh, mat: THREE.Material, grow: number) => {
       const o = new THREE.Mesh(m.geometry, mat);
       o.position.copy(m.position);
@@ -549,6 +571,7 @@ export function YardModel({
       // the two projections cannot disagree about where a plant's feet are.
       spot.position.set(f.x - HALF_W, f.footing * K, f.depth - HALF_H);
       spot.userData.uid = f.uid;
+      const outs: THREE.Mesh[] = [];
 
       let top = 0;
       if (f.height !== null && K > 0) {
@@ -627,11 +650,13 @@ export function YardModel({
               gradientMap: ramp,
             }),
           );
-          const oMat = sel === f.uid ? outlineMats.sel : f.hers ? outlineMats.hers : outlineMats.ink;
-          const grow = sel === f.uid ? 1.05 : 1.035;
+          const oMat = f.hers ? outlineMats.hers : outlineMats.ink;
           for (const m of buildBody(kind, h, wUnits, stateMaterial(f), strokeMat)) {
             spot.add(m);
-            spot.add(outlineOf(m as THREE.Mesh, oMat, grow));
+            const o = outlineOf(m as THREE.Mesh, oMat, 1.035);
+            o.userData.base = oMat;
+            outs.push(o);
+            spot.add(o);
           }
         }
 
@@ -668,7 +693,12 @@ export function YardModel({
 
       if (f.witness) spot.add(flatRing(22, 24.5, sepia, 1.2));
       if (f.show === "match") spot.add(flatRing(27, 30.5, green, 1.0));
-      if (sel === f.uid) spot.add(flatRing(33, 35.5, ink, 1.4));
+      // Every figure carries its selection ring hidden; picking one is a
+      // visibility flip, never a rebuild.
+      const selRing = flatRing(33, 35.5, ink, 1.4);
+      selRing.visible = false;
+      spot.add(selRing);
+      w.dress.selectable.set(f.uid, { outlines: outs, ring: selRing });
 
       const name = nameSprite(f.label);
       name.position.y = top + 34;
@@ -711,16 +741,33 @@ export function YardModel({
       w.content.add(post);
     }
 
+    // A rebuild starts everything unselected; re-dress with the selection
+    // this render already knows before the first paint.
+    applySelection(w.dress, sel);
     w.render();
     return () => {
       dead = true;
       w.dress.billboards.length = 0;
       w.dress.labels.length = 0;
+      w.dress.selectable.clear();
       w.content.clear();
       junk.forEach((d) => d.dispose());
       urls.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [figs, underlay, sel, years, yard, themeTick]);
+    // `sel` is deliberately not a dependency: selection is the cheap effect
+    // below, and the closure reads the fresh value whenever a real input
+    // rebuilds the scene.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [figs, underlay, years, yard, themeTick]);
+
+  /* ---- selection: a dressing pass, never a rebuild --------------------- */
+
+  useEffect(() => {
+    const w = world.current;
+    if (!w) return;
+    applySelection(w.dress, sel);
+    w.render();
+  }, [sel]);
 
   /* ---- the sun: her latitude cast as light, or an even day ------------- */
 

@@ -8,9 +8,9 @@ import {
   SLOT_TICK,
   bloomPeriodLabel,
   bloomSlots,
-  joinLower,
   type BloomSlot,
 } from "@/lib/bloom";
+import { SlotLinks } from "./SlotLinks";
 import { phenologyLine } from "@/lib/phenology";
 import { seenSlots, useSeen } from "@/lib/seen";
 
@@ -167,9 +167,14 @@ export function BloomCalendar({
           )}
 
           <p className="bcal-verdict">
-            {gaps.length === 0
-              ? `Something ${subject} is recorded in bloom in every part of the year.`
-              : `Nothing ${subject} is recorded in bloom in ${joinLower(gaps)}.`}
+            {gaps.length === 0 ? (
+              `Something ${subject} is recorded in bloom in every part of the year.`
+            ) : (
+              <>
+                Nothing {subject} is recorded in bloom in <SlotLinks slots={gaps} /> — each a
+                gap the guide can be opened on.
+              </>
+            )}
           </p>
         </>
       )}

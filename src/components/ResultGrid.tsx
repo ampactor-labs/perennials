@@ -27,7 +27,7 @@ export function ResultGrid({ results }: { results: Plant[] }) {
     <>
       <div className="pgrid">
         {results.slice(0, s.limit).map((p) => (
-          <PlantCard key={p.slug} plant={p} />
+          <PlantCard key={p.slug} plant={p} hers={s.data?.mine.get(p.id)} />
         ))}
       </div>
       {s.limit < results.length && (

@@ -5,6 +5,7 @@ import { useKept } from "@/lib/kept";
 import { useSeen } from "@/lib/seen";
 import { inBloomNow, todaySlot } from "@/lib/today";
 import { useYards } from "@/lib/yards";
+import { bloomAskUrl } from "./SlotLinks";
 
 /**
  * The garden as it stands when she opens the guide: today's season, who is
@@ -39,7 +40,11 @@ export function Today() {
 
   return (
     <section className="today" aria-label="The garden today">
-      <span className="today-season">{slot}.</span>{" "}
+      {/* The season itself is a question: tap it and the guide opens on
+          every period recorded as blooming now. */}
+      <Link to={bloomAskUrl(slot)} className="today-season">
+        {slot}.
+      </Link>{" "}
       {plants.length > 0 && (
         <span className="today-line">
           {inBloom === 0

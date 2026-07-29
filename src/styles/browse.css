@@ -603,6 +603,9 @@
   font-family: var(--font-display);
   font-weight: 600;
   color: var(--ink);
+  /* a quiet link: the season is a question, not a banner */
+  text-decoration: none;
+  border-bottom: 1px dotted var(--line-strong);
 }
 .today-names {
   display: inline-flex;
