@@ -171,8 +171,7 @@ export function BloomCalendar({
               `Something ${subject} is recorded in bloom in every part of the year.`
             ) : (
               <>
-                Nothing {subject} is recorded in bloom in <SlotLinks slots={gaps} /> — each a
-                gap the guide can be opened on.
+                Nothing {subject} is recorded in bloom in <SlotLinks slots={gaps} />.
               </>
             )}
           </p>
@@ -186,8 +185,8 @@ export function BloomCalendar({
           : `${printed} of ${plants.length} ${setWord} ${plants.length === 1 ? "plant has" : "plants have"} a bloom period recorded.`}{" "}
         {marked > 0 &&
           `You've marked ${marked} ${marked === 1 ? "plant" : "plants"} in bloom yourself. `}
-        Bloom comes from USDA PLANTS, which covers North-American species, so a blank is a
-        gap in our data rather than a plant that doesn't flower.
+        Bloom comes from USDA PLANTS, which covers North-American species; a blank means
+        USDA never recorded it, and says nothing about whether the plant flowers.
       </p>
 
       {unrecorded.length > 0 && (

@@ -50,6 +50,9 @@ const short = (n: string) => (n.length > 16 ? n.slice(0, 15) + "…" : n);
 /** Solar time on the half hour, as the sliders speak it. */
 const hourLabel = (h: number) => `${Math.floor(h)}:${h % 1 ? "30" : "00"}`;
 
+/** One provenance sentence for every computed-sun answer on this page. */
+const SUN_BASIS = "Computed from your latitude, your span, crowns and land.";
+
 /**
  * The yard sketch: her hand on a fixed sheet, the record performing on top.
  *
@@ -431,7 +434,7 @@ export function YardPage() {
       (p) => outsideRecord(seenSlots(seen, p.id), bloomSlots(p.bloomPeriod)).length > 0,
     ).length;
     return n > 0
-      ? `Your marks put ${n === 1 ? "one plant" : `${n} plants`} in bloom outside the printed band — your yard teaching the record.`
+      ? `Your marks put ${n === 1 ? "one plant" : `${n} plants`} in bloom outside the printed band.`
       : null;
   })();
   const askFunctions = uniq(placedPlants.flatMap((p) => [...asList(ACCESS.functions(p, herIndex.get(p.id)))]));
@@ -679,7 +682,7 @@ export function YardPage() {
                 shade !== null
                   ? {
                       url: shade.url,
-                      line: `Shade at ${hourLabel(hour)}, ${(slot ?? "Early Summer").toLowerCase()} — from your latitude, span, crowns and land.`,
+                      line: `Shade at ${hourLabel(hour)} in ${(slot ?? "Early Summer").toLowerCase()}, from your latitude, span, crowns and land.`,
                     }
                   : null,
             })
@@ -859,9 +862,9 @@ export function YardPage() {
             ) : asked && askAnswer ? (
               <>
                 <p className="yard-coverage">
-                  About {askAnswer.hours}h direct here in{" "}
-                  {(slot ?? "Early Summer").toLowerCase()} — reads as {askAnswer.word}. Computed
-                  from your sheet: your latitude, your span, crowns and land as recorded.
+                  About {askAnswer.hours}h of direct sun here in{" "}
+                  {(slot ?? "Early Summer").toLowerCase()}, which reads as {askAnswer.word}.{" "}
+                  {SUN_BASIS}
                 </p>
                 <div className="yard-labelrow">
                   <button
@@ -880,9 +883,9 @@ export function YardPage() {
               </>
             ) : (
               <p className="yard-coverage">
-                Tap any spot and the sun reads it: hours of direct light in{" "}
-                {(slot ?? "Early Summer").toLowerCase()}, in the guide's own words, ready to
-                search with. Scrub the year and the answer follows.
+                Tap any spot for its hours of direct sun in{" "}
+                {(slot ?? "Early Summer").toLowerCase()}, said in the guide's own light words.
+                Scrub the year and the answer follows.
               </p>
             ))}
 
@@ -994,8 +997,8 @@ export function YardPage() {
               {sunSheet && (
                 <p className="yard-coverage">
                   {shade
-                    ? `Shade washed where this hour's sun doesn't reach — about ${Math.round((1 - shade.litFrac) * 100)}% of the sheet. Computed from yours: latitude, span, crowns and land as recorded.`
-                    : "The sun is down at this hour; nothing is washed."}
+                    ? `Shade falls where the ${hourLabel(hour)} sun can't reach: about ${Math.round((1 - shade.litFrac) * 100)}% of the sheet. Computed from your latitude, your span, crowns and land.`
+                    : "The sun is down at this hour."}
                 </p>
               )}
             </>
@@ -1169,7 +1172,6 @@ export function YardPage() {
                     <Link to={layerTo(l)}>{l}</Link>
                   </span>
                 )),
-                " — each name opens that layer of the guide",
               ]}
           {layerGaps.unrecorded > 0 &&
             `; ${layerGaps.unrecorded} placed ${layerGaps.unrecorded === 1 ? "plant carries" : "plants carry"} no layer in our data`}
@@ -1280,12 +1282,12 @@ export function YardPage() {
               </div>
               {selFit && (
                 <p className="yard-coverage" style={{ marginTop: "var(--sp-2)" }}>
-                  About {selFit.hours}h direct at this mark in{" "}
-                  {(slot ?? "Early Summer").toLowerCase()}, computed from your sheet — reads as{" "}
-                  {selFit.word}.{" "}
+                  About {selFit.hours}h of direct sun at this mark in{" "}
+                  {(slot ?? "Early Summer").toLowerCase()}, which reads as {selFit.word}.{" "}
                   {selFit.recorded.length > 0
                     ? `The record lists ${selFit.recorded.join(", ")}.`
-                    : "No light preference in our sources."}
+                    : "No light preference in our sources."}{" "}
+                  {SUN_BASIS}
                 </p>
               )}
               {selPlant.functions.length > 0 && (

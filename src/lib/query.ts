@@ -121,7 +121,7 @@ export const FACETS: FacetMeta[] = [
   { key: "nativeTo", label: "Native to", searchable: true, group: "intent", note: "Where it grows wild." },
   // Not an ask. Selecting "Toxic" finds toxic plants; it does not avoid them, and
   // filing it under "what you want" said the opposite of what she means by it.
-  { key: "warnings", label: "Cautions", searchable: false, group: "caution", note: "Only what a contributor thought to flag. A blank here is silence, not a clean bill of health." },
+  { key: "warnings", label: "Cautions", searchable: false, group: "caution", note: "Only what a contributor thought to flag. A blank only means nobody thought to flag it." },
 ];
 
 /** The key coverageOf reports hardiness under. Not a facet; it has its own control. */

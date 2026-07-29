@@ -72,7 +72,7 @@ function YardSheet({
           through the exporter's escaping. */}
       <div dangerouslySetInnerHTML={{ __html: svg }} />
       <figcaption className="annual-caption">
-        {yard.name} — as it stands today; a yard keeps no history.
+        {yard.name}, as it stands today; a yard keeps no history.
       </figcaption>
     </figure>
   );
@@ -177,7 +177,7 @@ export function AnnualPage() {
             month: "long",
             year: "numeric",
           })}
-          . Her record beside the sources'; neither wears the other's name.
+          . Your record beside the sources', each in its own ink.
         </p>
         <button className="btn btn--sm annual-chrome" onClick={() => window.print()}>
           Print
@@ -186,8 +186,8 @@ export function AnnualPage() {
 
       {empty && (
         <p className="annual-caption">
-          Nothing recorded for {year} yet. Marks, notes, yards and photographs gather here as
-          the year is written.
+          Nothing recorded for {year} yet. Marks, notes, yards and photographs gather here
+          through the year.
         </p>
       )}
 
@@ -294,7 +294,7 @@ export function AnnualPage() {
 
       <footer className="annual-foot">
         <p>{LICENCE}</p>
-        <p>Diagrams not to scale. Her values never wear a source's name.</p>
+        <p>Diagrams not to scale. Your values appear in your own ink.</p>
       </footer>
     </div>
   );

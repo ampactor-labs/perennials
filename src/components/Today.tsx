@@ -48,7 +48,7 @@ export function Today() {
       {plants.length > 0 && (
         <span className="today-line">
           {inBloom === 0
-            ? `Nothing among your ${plants.length} ${plants.length === 1 ? "plant" : "plants"} is recorded in bloom now — a blank is a gap in our data, not a quiet garden.`
+            ? `Nothing among your ${plants.length} ${plants.length === 1 ? "plant" : "plants"} is recorded in bloom right now.`
             : `${inBloom} of your ${plants.length} ${plants.length === 1 ? "plant is" : "plants are"} recorded in bloom now${byHer.length > 0 ? `, ${byHer.length} by your own marks` : ""}.`}
         </span>
       )}
