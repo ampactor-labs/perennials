@@ -12,7 +12,11 @@ Live at [ampactor.dev/perennials](https://ampactor.dev/perennials/).
 
 **Spots.** Name a place's conditions once ("north bed", "wet corner") and re-apply them in a tap.
 
-**Yards.** A napkin sketch with the record performing on top. Draw the beds, lay a photo of the ground under the sheet, tap in the heights you know — the bank +1.5 m, the pond −0.5 — and place any plant in the guide, then scrub the year to watch what is in flower when. The same yard stands up in two more projections: an elevation, a section through the land with each plant at its own footing against a height rule, and a 3D model you can orbit or walk into, the sheet draped over the same ground. Size is a claim in those views, so a plant nobody measured stays a mark on the line rather than growing an invented body, the figures are the guild layer's shape, never the plant's, and the ground bends only through heights you set, settling level where you set none. Share hands a client one PNG carrying the plan and the elevation, plus a plain-text plant list.
+**Yards.** A napkin sketch with the record performing on top. Draw the beds, lay a photo of the ground under the sheet, tap in the heights you know — the bank +1.5 m, the pond −0.5 — and place any plant in the guide, then scrub the year to watch what is in flower when. The same yard stands up in two more projections: an elevation, a section through the land with each plant at its own footing against a height rule, and a 3D model you can orbit or walk into, the sheet draped over the same ground. Size is a claim in those views, so a plant nobody measured stays a mark on the line rather than growing an invented body, the figures are the guild layer's shape, never the plant's, and the ground bends only through heights you set, settling level where you set none. Share hands a client one PNG carrying the plan — the hour's shade included when you have it drawn — and the elevation, plus a plant list in plain text and a yard file another phone can open without ever overwriting a yard it already holds.
+
+**The ground asks the guide.** Give the sheet your latitude and a span in metres and the sun is computed rather than claimed: each drawn bed reports its hours of direct light, the Ask tool reads any tapped point, and Draw the shade washes the hour's shadow over the plan itself, crowns and land included. Every answer lands in the catalogue's own light words, so one tap opens the guide filtered to what would live in that spot — the yard querying the catalogue instead of the other way round.
+
+**The yard's year.** The bloom wheel from the Kept list mounts over a yard's placed plants too, gaps named; under it, one line says which blooming months have no recorded flower visitor and another which guild strata nobody has placed — both scoped to coverage, never read out of missing records. Browse opens under a Today strip: the season, and who among your plants is recorded in bloom right now, your own marks in your own ink. And `/annual` typesets a year of your record — blooms witnessed, notes, the wheel, every yard's sheet, your photographs — for the browser's own print-to-PDF.
 
 **A page per plant.** Photo, description, the attribute sheet, hardiness, native range, where it has naturalised, functions, edible parts and edible uses, flower visitors, bloom, companions, and any caution the source recorded, in the source's own words.
 
@@ -47,7 +51,7 @@ The real way to lose local data is the browser reclaiming storage — iOS especi
 
 ## Stack
 
-Vite, React, TypeScript. MiniSearch for the name index, built on idle rather than on load. Faceted filtering and the live counts are plain in-memory JS, one pass over the catalogue per interaction. `vite-plugin-pwa` (Workbox) precaches the shell and runtime-caches the data and photos. three.js draws the yard's 3D model and rides in a lazy 139KB-gzipped chunk that loads only when a Model view mounts; the service worker precaches it, so the model still raises offline, and the guide's own bundle stays near 100KB gzipped without it. The look is a hand-rolled CSS design system, a herbarium specimen catalog in light and dark, whose one rule is that saturated colour only ever encodes plant data; the chrome stays ink on paper.
+Vite, React, TypeScript. MiniSearch for the name index, built on idle rather than on load. Faceted filtering and the live counts are plain in-memory JS, one pass over the catalogue per interaction. `vite-plugin-pwa` (Workbox) precaches the shell and runtime-caches the data and photos. three.js draws the yard's 3D model and rides in a lazy 140KB-gzipped chunk that loads only when a Model view mounts; the service worker precaches it, so the model still raises offline, and the guide's own bundle stays around 110KB gzipped without it. The look is a hand-rolled CSS design system, a herbarium specimen catalog in light and dark, whose one rule is that saturated colour only ever encodes plant data; the chrome stays ink on paper.
 
 ## Run
 
@@ -71,16 +75,17 @@ src/data/       model (types), store (fetch, cache, lazy name index, her
                 values folded into the dataset)
 src/lib/        query (facets, one-pass evaluation, live counts), constraints
                 (the atom model + URL codec), suggest (the omnibox grammar),
-                spots, bloom, img, hardiness, homeZone; hers: mine, notes,
-                seen, kept, photos, backup, latitude, phenology; the yard:
-                yards, elevation, growth, sun, yardExport, yardFile
+                spots, bloom, img, hardiness, homeZone, today, paper; hers:
+                mine, notes, seen, kept, photos, backup, latitude, phenology;
+                the yard: yards, elevation, growth, sun, yardViews,
+                yardExport, yardFile
 src/state/      search (constraints in; results, counts and trail out)
 src/components/ Omnibox, Trail, FacetRail, SpotBar, ResultGrid, PlantCard,
-                GuildView, Thumb, Layout, InstallHint; the yard: YardCanvas,
-                ElevationView, YardModel, YearScrubber; hers: AddMine,
-                NotePanel, BloomCalendar, SeenMark, BackupPanel
-src/pages/      Browse, Plant, Kept, Yards, Yard, About
-src/styles/     tokens, base, app, browse, detail, kept, yard
+                GuildView, Today, Thumb, Layout, InstallHint; the yard:
+                YardCanvas, ElevationView, YardModel, YearScrubber; hers:
+                AddMine, NotePanel, BloomCalendar, SeenMark, BackupPanel
+src/pages/      Browse, Plant, Kept, Yards, Yard, Annual, About
+src/styles/     tokens, base, app, browse, detail, kept, yard, annual
 server/         the data API: pull, transform, enrich, ingest, resize, serve
 ```
 

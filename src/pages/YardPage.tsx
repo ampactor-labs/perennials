@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Plant } from "@/data/model";
 import { useDataState } from "@/data/store";
-import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, type BloomSlot } from "@/lib/bloom";
+import { BLOOM_HEX, bloomPeriodLabel, bloomSlots, joinLower, type BloomSlot } from "@/lib/bloom";
 import { useKept } from "@/lib/kept";
 import { latFromDevice, useLat, writeLat } from "@/lib/latitude";
 import { mineFor, useMine } from "@/lib/mine";
@@ -25,7 +25,7 @@ import {
 } from "@/lib/yards";
 import { exportYard } from "@/lib/yardExport";
 import { buildYardFile, yardFileText } from "@/lib/yardFile";
-import { bedLinesOf, figsOf, hoursAt, sceneOf, shadeImage, tokensOf } from "@/lib/yardViews";
+import { asList, bedLinesOf, figsOf, hoursAt, sceneOf, shadeImage, tokensOf } from "@/lib/yardViews";
 import { lightTier, tierWord } from "@/lib/sun";
 import { encodeConstraints } from "@/lib/constraints";
 import { AddMine } from "@/components/AddMine";
@@ -45,6 +45,9 @@ const YardModel = lazy(() =>
 );
 
 const short = (n: string) => (n.length > 16 ? n.slice(0, 15) + "…" : n);
+
+/** Solar time on the half hour, as the sliders speak it. */
+const hourLabel = (h: number) => `${Math.floor(h)}:${h % 1 ? "30" : "00"}`;
 
 /**
  * The yard sketch: her hand on a fixed sheet, the record performing on top.
@@ -181,9 +184,6 @@ export function YardPage() {
     return { hours, word };
   }, [ready, yard, scene, asked]);
 
-  // ACCESS values come back bare, one-valued or absent; the yard wants lists.
-  const asList = (v: readonly string[] | string | null): readonly string[] =>
-    v === null ? [] : typeof v === "string" ? [v] : v;
   if (!ready || !yard) {
     return (
       <div className="page wrap">
@@ -370,13 +370,6 @@ export function YardPage() {
 
   // A plant placed twice is one row of the year, not two.
   const almanacPlants = [...new Map(placedPlants.map((p) => [p.id, p])).values()];
-
-  const joinLower = (xs: readonly string[]): string => {
-    const w = xs.map((s) => s.toLowerCase());
-    if (w.length === 1) return w[0];
-    if (w.length === 2) return `${w[0]} and ${w[1]}`;
-    return `${w.slice(0, -1).join(", ")}, and ${w[w.length - 1]}`;
-  };
 
   // The pollinator famine, coverage first. With visitors recorded for nobody
   // the gaps list means only "no visitor data", so the coverage sentence
@@ -645,6 +638,7 @@ export function YardPage() {
               slot,
               bloomLine,
               placedPlants,
+              mine: herIndex,
               figs,
               yardFile: yardFileText(await buildYardFile(yard)),
               // The sheet exports what it shows: the wash rides only while
@@ -653,7 +647,7 @@ export function YardPage() {
                 shade !== null
                   ? {
                       url: shade.url,
-                      line: `Shade at ${Math.floor(hour)}:${hour % 1 ? "30" : "00"}, ${(slot ?? "Early Summer").toLowerCase()} — from your latitude, span, crowns and land.`,
+                      line: `Shade at ${hourLabel(hour)}, ${(slot ?? "Early Summer").toLowerCase()} — from your latitude, span, crowns and land.`,
                     }
                   : null,
             })
@@ -949,7 +943,7 @@ export function YardPage() {
                       onChange={(e) => setHour(Number(e.target.value))}
                     />
                     <span className="yard-coverage yard-years-label">
-                      {`${Math.floor(hour)}:${hour % 1 ? "30" : "00"} · ${slot ?? "Early Summer"}`}
+                      {`${hourLabel(hour)} · ${slot ?? "Early Summer"}`}
                     </span>
                   </>
                 )}
@@ -1029,7 +1023,7 @@ export function YardPage() {
                   onChange={(e) => setHour(Number(e.target.value))}
                 />
                 <span className="yard-coverage yard-years-label">
-                  {`${Math.floor(hour)}:${hour % 1 ? "30" : "00"} · ${slot ?? "Early Summer"} sun at ${lat}°`}
+                  {`${hourLabel(hour)} · ${slot ?? "Early Summer"} sun at ${lat}°`}
                 </span>
               </div>
               {bedLines.map((b) => (

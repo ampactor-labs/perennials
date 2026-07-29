@@ -62,8 +62,10 @@ export function grownM(f: Fig, years: number | null): number {
   return band ? f.height * ((band.lo + band.hi) / 2) : f.height;
 }
 
-// ACCESS values come back bare, one-valued or absent; the yard wants lists.
-const asList = (v: readonly string[] | string | null): readonly string[] =>
+/** ACCESS values come back bare, one-valued or absent; a view wants lists.
+ *  Exported because every room that reads through ACCESS needs the same
+ *  unwrapping, and three copies of it had already grown. */
+export const asList = (v: readonly string[] | string | null): readonly string[] =>
   v === null ? [] : typeof v === "string" ? [v] : v;
 
 const short = (n: string) => (n.length > 16 ? n.slice(0, 15) + "…" : n);

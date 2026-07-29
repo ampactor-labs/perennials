@@ -8,6 +8,7 @@ import {
   SLOT_TICK,
   bloomPeriodLabel,
   bloomSlots,
+  joinLower,
   type BloomSlot,
 } from "@/lib/bloom";
 import { phenologyLine } from "@/lib/phenology";
@@ -25,14 +26,6 @@ type Row = {
 /** The first slot either record covers; the grid sorts by it. */
 const firstSlot = (r: Row) =>
   BLOOM_SLOTS.findIndex((s) => r.slots.includes(s) || r.hand.includes(s));
-
-/** "late winter, fall": her words, not an array printed at her. */
-function joinLower(slots: readonly BloomSlot[]): string {
-  const w = slots.map((s) => s.toLowerCase());
-  if (w.length === 1) return w[0];
-  if (w.length === 2) return `${w[0]} and ${w[1]}`;
-  return `${w.slice(0, -1).join(", ")}, and ${w[w.length - 1]}`;
-}
 
 /**
  * Bloom succession over the plants she has kept.

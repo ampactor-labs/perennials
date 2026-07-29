@@ -117,6 +117,15 @@ export const BLOOM_SEASONS: { name: string; span: number }[] = [
   { name: "Fall", span: 1 },
 ];
 
+/** "late winter, and fall": a list said as words, lowercased — the shape
+ *  every verdict sentence uses, so two copies stop drifting apart. */
+export function joinLower(xs: readonly string[]): string {
+  const w = xs.map((s) => s.toLowerCase());
+  if (w.length === 1) return w[0];
+  if (w.length === 2) return `${w[0]} and ${w[1]}`;
+  return `${w.slice(0, -1).join(", ")}, and ${w[w.length - 1]}`;
+}
+
 /** The qualifier alone, for the tick row: "Winter · Late", "Early · Mid · Late".
  *  The season above it already carries the noun. */
 export const SLOT_TICK: Record<BloomSlot, string> = {

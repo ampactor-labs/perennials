@@ -3,6 +3,7 @@ import type { Plant } from "@/data/model";
 import { LAYER_ORDER, stratumOf } from "@/lib/elevation";
 import { NO_MINE } from "@/lib/mine";
 import { ACCESS } from "@/lib/query";
+import { asList } from "@/lib/yardViews";
 import { PAGE, useSearch } from "@/state/search";
 import { PlantCard } from "./PlantCard";
 import { ResultGrid } from "./ResultGrid";
@@ -120,8 +121,6 @@ export function GuildView({ results }: { results: Plant[] }) {
   // Through ACCESS, so a layer she filled stacks the plant. This view used to
   // read p.layer raw — the one room where her answers went silent: a layer
   // she recorded filtered the grid and never shelved the plant here.
-  const asList = (v: readonly string[] | string | null): readonly string[] =>
-    v === null ? [] : typeof v === "string" ? [v] : v;
   const herIndex = s.data?.mine ?? NO_MINE;
   for (const p of results) {
     const hers = herIndex.get(p.id);

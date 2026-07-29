@@ -4,6 +4,7 @@ import type { TokenView } from "@/components/YardCanvas";
 import type { Fig } from "./yardViews";
 import { archetypeOf, CROWN_RATIO, ELEV_H, figurePaths, GROUND_Y, tickStep } from "./elevation";
 import { earthPathD, levelLabel, sectionOf } from "./ground";
+import type { MineIndex } from "./mine";
 import { GRAIN } from "./paper";
 import { labelRowsFor, scaleBarFor } from "./yardViews";
 import { blobToDataUrl, getPhoto } from "./photos";
@@ -311,7 +312,26 @@ export function sheetSvg(
   return { svg, height };
 }
 
-function plantListText(yard: Yard, placedPlants: Plant[]): string {
+/** One field for the handed list: the sources' values, then hers marked as
+ *  hers. The picture above this list paints her values on the marks (tokens
+ *  read through ACCESS), so a list that said "not in our sources" for a
+ *  colour she recorded had the handout disagreeing with itself. "(yours)"
+ *  keeps the lane: her answer travels, and never wears a source's name. */
+const bothLanes = (
+  source: readonly string[],
+  hers: readonly string[] | undefined,
+): string => {
+  const extra = (hers ?? []).filter((v) => !source.includes(v));
+  if (source.length === 0 && extra.length === 0) return "not in our sources";
+  const parts: string[] = [];
+  if (source.length) parts.push(source.join(", "));
+  if (extra.length) parts.push(`${extra.join(", ")} (yours)`);
+  return parts.join("; ");
+};
+
+/** Exported for the rules: her filled value must reach the handed list, and
+ *  only ever marked as hers. */
+export function plantListText(yard: Yard, placedPlants: Plant[], herIndex: MineIndex): string {
   const byId = new Map(placedPlants.map((p) => [p.id, p]));
   const lines: string[] = [
     `${yard.name} · ${new Date().toLocaleDateString()}`,
@@ -325,12 +345,14 @@ function plantListText(yard: Yard, placedPlants: Plant[]): string {
       lines.push(`${pl.name}  (no longer in this copy of the guide)`);
       continue;
     }
+    const hers = herIndex.get(p.id);
     lines.push(`${p.name} — ${p.scientificName}`);
     lines.push(
-      `  Bloom: ${p.bloomColor ?? "not in our sources"}${p.bloomPeriod ? `, ${p.bloomPeriod}` : ""}`,
+      `  Bloom: ${bothLanes(p.bloomColor ? [p.bloomColor] : [], hers?.facets.bloomColor)}${p.bloomPeriod ? `, ${p.bloomPeriod}` : ""}`,
     );
-    lines.push(`  Visitors: ${p.attracts?.length ? p.attracts.join(", ") : "not in our sources"}`);
-    if (p.functions.length) lines.push(`  Functions: ${p.functions.join(", ")}`);
+    lines.push(`  Visitors: ${bothLanes(p.attracts ?? [], hers?.facets.attracts)}`);
+    const fns = bothLanes(p.functions, hers?.facets.functions);
+    if (fns !== "not in our sources") lines.push(`  Functions: ${fns}`);
     if (p.cautions) lines.push(`  Caution: ${p.cautions} (Permapeople's wording)`);
   }
   lines.push(
@@ -347,6 +369,9 @@ export async function exportYard(
     slot: BloomSlot | null;
     bloomLine: string | null;
     placedPlants: Plant[];
+    /** Her side of the plants, so the handed list carries what the drawing
+     *  already shows, marked "(yours)". */
+    mine: MineIndex;
     figs: Fig[];
     /** The importable yard, as JSON text. Rides alongside the picture and the
      *  list so one Share hands a client a sheet to read and a file to open. */
@@ -358,7 +383,7 @@ export async function exportYard(
 ): Promise<void> {
   const stamp = new Date().toISOString().slice(0, 10);
   const base = `yard-${yard.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sketch"}-${stamp}`;
-  const txt = new File([plantListText(yard, extra.placedPlants)], `${base}.txt`, {
+  const txt = new File([plantListText(yard, extra.placedPlants, extra.mine)], `${base}.txt`, {
     type: "text/plain",
   });
   const files: File[] = [txt];

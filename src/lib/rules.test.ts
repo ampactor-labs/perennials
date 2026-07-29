@@ -18,6 +18,7 @@ import { hardyIn, hardinessLabel, parseHardiness } from "./hardiness";
 import { hardyBand } from "./homeZone";
 import { indexMine } from "./mine";
 import { outsideRecord, phenologyLine, visitorGaps } from "./phenology";
+import { plantListText } from "./yardExport";
 import { admitYard, parseYardFile, YARD_FORMAT } from "./yardFile";
 import { ACCESS } from "./query";
 import { decodeConstraints, encodeConstraints } from "./constraints";
@@ -644,7 +645,30 @@ test("the backup collects her plant photos and every yard's ground, once each", 
   );
 });
 
-/* ---- a yard travels as a file, and never costs her one ----------------- */
+/* ---- the handed list agrees with the handed drawing -------------------- */
+
+// The exported sheet paints her values on the marks (tokens read through
+// ACCESS), so the plant list underneath must carry them too — marked as
+// hers, never as a source's, and never displacing what a source said.
+test("her filled value reaches the handed list, marked as hers", () => {
+  const yd = {
+    v: 1, id: "y1", name: "y", at: 1, north: 0, strokes: [],
+    plants: [{ uid: "u1", id: 1, name: "Plant", x: 1, y: 1 }],
+  } as never;
+  const p = {
+    id: 1, name: "Plant", scientificName: "Plantus", functions: [],
+    attracts: ["Bees"],
+  } as never as Plant;
+  const hers = indexMine(
+    [mine(1, "bloomColor", "cream"), mine(1, "attracts", "bees, hoverflies")],
+    FACETS_FIXTURE,
+  );
+  const txt = plantListText(yd, [p], hers);
+  assert.ok(txt.includes("Bloom: cream (yours)"), "her colour travels, wearing her name");
+  assert.ok(txt.includes("Visitors: Bees; Hoverflies (yours)"), "hers joins the source's, never displaces it");
+  const bare = plantListText(yd, [p], new Map());
+  assert.ok(bare.includes("Bloom: not in our sources"), "with nothing of hers the blank stays a blank");
+});
 
 // A client opens a plan on the phone that already holds their own gardens. The
 // one rule this must never break is that the import cannot overwrite a yard she
