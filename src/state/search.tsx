@@ -69,17 +69,32 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const [params, setParams] = useSearchParams();
   const { pathname } = useLocation();
 
-  // URL is the initial source of truth; after that, state drives and the URL
-  // follows via replace (so constraint edits don't spam history).
+  // URL ⇄ state, one effect for both directions. While she edits, state
+  // drives and the URL follows via replace (so constraint edits don't spam
+  // history). But a URL can also *arrive* — a bed's "Open in the guide", a
+  // gap link from the almanac, the browser's own Back — and for a year this
+  // provider only ever read the URL at mount: an in-app link landed on a
+  // stale state, and the write-back then wiped the very params the link
+  // carried. `lastWritten` tells the two apart: an incoming string we never
+  // wrote is someone else's navigation, and state adopts it.
   const [constraints, setConstraints] = useState<Constraints>(() => decodeConstraints(params));
   const lastWritten = useRef<string>("");
 
   useEffect(() => {
     if (pathname !== "/") return;
-    const next = encodeConstraints(constraints).toString();
-    if (next === params.toString() || next === lastWritten.current) return;
-    lastWritten.current = next;
-    setParams(new URLSearchParams(next), { replace: true });
+    const incoming = params.toString();
+    const current = encodeConstraints(constraints).toString();
+    if (incoming === current) {
+      lastWritten.current = incoming;
+      return;
+    }
+    if (incoming !== lastWritten.current) {
+      lastWritten.current = incoming;
+      setConstraints(decodeConstraints(params));
+      return;
+    }
+    lastWritten.current = current;
+    setParams(new URLSearchParams(current), { replace: true });
   }, [constraints, pathname, params, setParams]);
 
   const evaluation = useMemo<Evaluation>(
