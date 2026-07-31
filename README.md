@@ -97,6 +97,12 @@ A negation atom, so "nothing invasive" is expressible and not just "find me the 
 
 Flower colour is the other gap, and it is not ours. Permapeople has no such field. USDA has the plant 58% of the time and records a colour for 13% of those. Wikidata does not have it for yarrow, comfrey, or bee balm. It lives in prose, in floras and in Kew's descriptions, and there is no open structured dataset for it at global scale.
 
+## Verification
+
+76 test cases, run by `npm test` (vitest) and gated in CI on every push (`.github/workflows/ci.yml`), alongside `npm run typecheck`. They cover the constraint solver and the collapse trail, which is the part where a wrong answer is invisible: a filter that silently drops a matching plant looks exactly like a filter that works.
+
+CI does not check the data itself. Upstream records change without notice, and nothing here detects a Permapeople field going empty.
+
 ## Weak spots
 
 None of the data is mine. Records come from Permapeople, flower visitors from GloBI, and bloom color from USDA PLANTS, and they vary in completeness plant by plant; a constraint search is only as good as the tags underneath it, so an unlabeled species is invisible to the filter that should have found it.
