@@ -2,6 +2,8 @@
 
 A field guide to about 8,800 useful plants, searched by constraint. Say what your site is: the light, the moisture, the soil. Then say what you want from it, and watch the set collapse to what fits. Mobile-first, installs as an offline app, works in a garden with no signal.
 
+**Status: shipping.** Live and installable offline. The plant data is community-sourced, not authored or verified here.
+
 Live at [ampactor.dev/perennials](https://ampactor.dev/perennials/).
 
 ## What it does
@@ -94,3 +96,9 @@ server/         the data API: pull, transform, enrich, ingest, resize, serve
 A negation atom, so "nothing invasive" is expressible and not just "find me the invasive ones". I keep deferring it for a reason: cautions are recorded for only 791 of the 8,800 plants, so a "without invasive" filter would quietly certify 8,000 plants that nobody ever assessed. That is exactly the false confidence the rest of this is built to avoid. The honest version needs better data, not a new atom.
 
 Flower colour is the other gap, and it is not ours. Permapeople has no such field. USDA has the plant 58% of the time and records a colour for 13% of those. Wikidata does not have it for yarrow, comfrey, or bee balm. It lives in prose, in floras and in Kew's descriptions, and there is no open structured dataset for it at global scale.
+
+## Weak spots
+
+None of the data is mine. Records come from Permapeople, flower visitors from GloBI, and bloom color from USDA PLANTS, and they vary in completeness plant by plant; a constraint search is only as good as the tags underneath it, so an unlabeled species is invisible to the filter that should have found it.
+
+There is no invasive-species or regional-legality checking. A plant that fits your light, soil, and moisture may still be a bad idea, or illegal to plant, where you live. Check your local extension office before you buy anything.
