@@ -1,110 +1,116 @@
 # Perennials
 
-A field guide to about 8,800 useful plants, searched by constraint. Say what your site is: the light, the moisture, the soil. Then say what you want from it, and watch the set collapse to what fits. Mobile-first, installs as an offline app, works in a garden with no signal.
+[![Deploy](https://img.shields.io/github/actions/workflow/status/ampactor-labs/perennials/deploy.yml?branch=main&label=deploy)](https://github.com/ampactor-labs/perennials/blob/main/.github/workflows/deploy.yml)
 
-**Status: shipping.** Live and installable offline. The plant data is community-sourced, not authored or verified here.
+A field guide to about 8,800 useful plants that you search by site conditions such as light, water and soil. Each condition you add shows how many plants remain, the search lives in the URL, and gaps in the open data (Permapeople, GloBI, USDA PLANTS) show as gaps. A yard sketch places any plant on your own ground and computes the sun from your latitude. It is a React and TypeScript PWA (a web app the browser installs and runs offline) over a Node and Postgres API on Railway.
 
-Live at [ampactor.dev/perennials](https://ampactor.dev/perennials/).
+**Status: shipping.** The plant data is community-sourced and is not verified here, and the repository has no license file yet.
 
-## What it does
+Live: https://ampactor.dev/perennials/
 
-**Constraint-space search.** One bar takes everything: type `wet shade` and it offers both constraints, `zone 6` and it offers the hardiness, `mulberry` and it offers the plant. Each pick becomes a link in a collapse trail (8,800 → Wet 860 → Full shade 58 → Edible 34), and every step is removable. The facet rail splits into *the site, what you have* and *the ask, what you want*, and each option carries a live count of what it would still reach. The whole search lives in the address bar, so a list you build is a link you can send.
-
-**Guild view.** The same results stacked by forest-garden layer, canopy down to roots.
-
-**Spots.** Name a place's conditions once ("north bed", "wet corner") and re-apply them in a tap.
-
-**Yards.** A napkin sketch with the record performing on top. Draw the beds, lay a photo of the ground under the sheet, tap in the heights you know — the bank +1.5 m, the pond −0.5 — and place any plant in the guide, then scrub the year to watch what is in flower when. The same yard stands up in two more projections: an elevation, a section through the land with each plant at its own footing against a height rule, and a 3D model you can orbit or walk into, the sheet draped over the same ground. Size is a claim in those views, so a plant nobody measured stays a mark on the line rather than growing an invented body, the figures are the guild layer's shape, never the plant's, and the ground bends only through heights you set, settling level where you set none. Share hands a client one PNG carrying the plan (the hour's shade included when you have it drawn) and the elevation, plus a plant list in plain text and a yard file another phone can open without ever overwriting a yard it already holds.
-
-**The ground asks the guide.** Give the sheet your latitude and a span in metres and the sun is computed rather than claimed: each drawn bed reports its hours of direct light, the Ask tool reads any tapped point, and Draw the shade washes the hour's shadow over the plan itself, crowns and land included. Every answer lands in the catalogue's own light words, so one tap opens the guide filtered to what would live in that spot. The yard queries the catalogue instead of the other way round.
-
-**The yard's year.** The bloom wheel from the Kept list mounts over a yard's placed plants too, gaps named; under it, one line says which blooming months have no recorded flower visitor and another which guild strata nobody has placed, both scoped to coverage rather than read out of missing records. Browse opens under a Today strip: the season, and who among your plants is recorded in bloom right now, your own marks in your own ink. And `/annual` typesets a year of your record — blooms witnessed, notes, the wheel, every yard's sheet, your photographs — for the browser's own print-to-PDF.
-
-**A page per plant.** Photo, description, the attribute sheet, hardiness, native range, where it has naturalised, functions, edible parts and edible uses, flower visitors, bloom, companions, and any caution the source recorded, in the source's own words.
-
-**The names you'd actually say.** Type "mouse melon" and you get *Melothria scabra*. Nearly two fifths of the catalogue carries common-name synonyms, and all of them are in the index.
-
-**A fourth source: you.** Notes, bloom dates you saw with your own eyes, your photo where the guide has none, and any blank the sources left, filled in your hand. Your values filter, count, sort and draw exactly like the record's, and they always render in your own ink, never under a source's name. Field notes exports everything you have written as one `.json` that restores completely on another phone, beside a plain-text copy that will outlive the app. There is no account and nothing you write leaves the browser.
-
-## The data
-
-Three sources of open data, and the app says which is which — and a fourth that is yours, kept apart from all three.
-
-- **[Permapeople](https://permapeople.org)** (CC BY-SA 4.0). The plants, their descriptions, photos, and most attributes. It serves 65 fields; the transform reads 21. Twice now the thing I went looking for elsewhere was already sitting in a field nobody had read: the 800px photographs, and the alternate names.
-- **[GloBI](https://www.globalbioticinteractions.org)** (CC BY 4.0). Flower visitors, from published field observations. Who *actually* turns up at the blooms, rather than who a gardening book supposes might.
-- **[USDA PLANTS](https://plants.usda.gov)** (public domain). Bloom colour and bloom period.
-- **You.** Notes, bloom dates seen with your own eyes, photos, heights, and any blank the other three left — the fourth source, in your browser only, rendered in your own ink and never attributed to the others. See [Your data](#your-data).
-
-It's real data, so it's uneven, and the interface is built to admit that rather than paper over it. Absence is never dressed up as a fact. A plant with no recorded flower visitors says so, and says that it is not the same as none. Filtering by hardiness quietly excludes the 2,788 plants nobody has recorded a zone for, so the rail says that too. Cautions are shown in the source's exact words, because "Toxic" and "Toxic fruits" are not the same sentence to someone standing over an asparagus bed.
-
-Coverage is reported for the search you are actually running, not for the world. USDA records a bloom colour for 1,038 of 8,800 plants, which reads as 12% and sounds useless. But USDA is a North-American database: once you have said zone 6 and North America it covers 41% of what is in front of you. The catalogue number is true and it misleads, so the facets report the set you are looking at.
-
-The app fetches its dataset from an API of its own (see [`server/`](server/)): a Node service on Postgres, hosted on Railway. It re-pulls Permapeople weekly and re-verifies a few plants an hour against GloBI and USDA, which cycles the whole catalogue in about ten weeks. The catalogue comes down compressed, under a megabyte, once; after that the service worker serves it and the app works with no signal. The Permapeople key lives in the API's environment, never in the browser and never in this repo.
-
-Photos are resized by the API (`/img/<id>/<width>.webp`, 64 to 800). Permapeople's CDN has no image service, so without this every 56-pixel thumbnail was a full-resolution JPEG. It serves two images per plant, a 300px `thumb` and an 800px `title`, and the pipeline read only the small one for a long time; that, not the compression, is why the plant page used to look soft.
-
-## Your data
-
-Everything you write — the kept list, notes, bloom marks, spots, yards, your filled-in values, your photos — lives in this origin's `localStorage` and one IndexedDB database, on your device and nowhere else. There is no account and no server-side copy, which is the privacy property, and it means the backup is the sync: save the `.json` on one phone, open it on another, and the second phone is your guide.
-
-Updates don't touch any of it. The front end is a service-worker PWA (`registerType: "autoUpdate"`): when a new version ships, it downloads in the background and the page reloads itself once to pick it up — no hard refresh, no cache to clear. The service worker only ever manages its own asset caches; it never reads or clears your `localStorage` or IndexedDB, so a deploy is invisible to your data.
-
-The real way to lose local data is the browser reclaiming storage — iOS especially clears a tab's storage after about a week of not visiting. Two things guard against it: **install the app** to your home screen (Field notes offers this; an installed PWA is granted persistent storage and is exempt from that sweep), and **save a copy** now and then (Field notes → Your copy). The app already requests persistent storage the first time you write anything.
-
-## Stack
-
-Vite, React, TypeScript. MiniSearch for the name index, built on idle rather than on load. Faceted filtering and the live counts are plain in-memory JS, one pass over the catalogue per interaction. `vite-plugin-pwa` (Workbox) precaches the shell and runtime-caches the data and photos. three.js draws the yard's 3D model and rides in a lazy 140KB-gzipped chunk that loads only when a Model view mounts; the service worker precaches it, so the model still raises offline, and the guide's own bundle stays around 110KB gzipped without it. The look is a hand-rolled CSS design system, a herbarium specimen catalog in light and dark, whose one rule is that saturated colour only ever encodes plant data; the chrome stays ink on paper.
-
-## Run
+## Quick start
 
 ```sh
 npm install
-npm run dev      # fetches the dataset from the hosted API
-npm run build    # typecheck + production build
-npm run preview  # serve the build
+npm run dev      # http://localhost:5173/perennials/
 ```
 
-Point it at a different backend with `VITE_DATA_API` at build time, and add a matching service-worker cache rule in `vite.config.ts`.
+The dev server fetches the catalogue from the hosted API, so it needs a connection. You should see the browse page listing the whole catalogue (8,858 plants when I checked on 2026-09-27) with one search box above it. Type `wet shade` and it offers both conditions; type `zone 6` and it offers the hardiness zone (a USDA band of average winter minimum temperature; zone 6 is about -23 to -18 °C); type `mulberry` and it offers the plant. Each pick becomes a step in a trail with its count, and any step can be removed. Offline use needs the production build below: its service worker precaches the app shell, and the app writes the three payloads into the worker's cache on first load, so a phone that has opened the built app once keeps working with no signal.
 
-## Deploy
+```sh
+npm run build    # typecheck and production build; copies index.html to 404.html
+npm run preview  # http://localhost:4173/perennials/
+```
 
-The front end ships to GitHub Pages on push to `main`. The API deploys from the **repository root** (`railway up --service api`). The Railway CLI uploads the whole git repo regardless of the working directory, and `railway.json` pins the build to `server/`. See `server/README.md`.
+To use another backend, set `VITE_DATA_API` at build time and add a matching service-worker cache rule in `vite.config.ts`.
+
+## How it works
+
+The front end is Vite, React and TypeScript. The catalogue comes from an API of its own (`server/`, Node and Postgres on Railway). On load `src/data/store.tsx` fetches three JSON payloads (plants, facets, meta), writes them into the service worker's cache itself (the fetch fires before Workbox claims the page, so without this a first visit would not cache the guide) and holds them in memory. A MiniSearch name index is built when the browser next goes idle, because an 8,800-document pass costs about half a second of frozen main thread on a phone.
+
+Faceted search (each attribute is a facet, each value a pick, and each pick shows how many plants it would leave) runs in plain JavaScript. `evaluate()` in `src/lib/query.ts` produces the results, the per-option counts and the trail in one pass over the catalogue: for each plant it collects the constraints it fails, an empty set makes it a result, a single failure makes it count towards that facet's options, and the trail counts are suffix sums of a histogram of earliest failures. The constraints are an ordered list of atoms that round-trips through the URL (`src/lib/constraints.ts`), so a list you build is a link you can send.
+
+Two decisions shape the rest. Absence is never presented as a fact: a field the sources did not fill reads "not in our sources", the facet rail beside the results prints coverage for the set on screen, and a hardiness filter excludes a plant with no record exactly as it excludes one that would die there, which the rail says out loud. And your own values live beside the record: `Plant` (`src/data/model.ts`) is exactly what the API sent, your notes, bloom marks, photos and filled-in blanks ride in `Dataset.mine`, and `ACCESS` in `src/lib/query.ts` is the one place the guide asks what a plant is, so a value you fill in filters, counts and sorts like the record's, renders in its own sepia, and is never attributed to a source.
+
+The yard (`src/pages/YardPage.tsx`) is a sketch with the record drawn on top, in three projections: plan, elevation, and a three.js model you can orbit or walk into. Size is a claim, so a plant with no recorded height draws no figure in the vertical views and stays a mark on the line, and figures are the archetype of the plant's guild layer, its forest-garden storey from canopy down to roots (`src/lib/elevation.ts`). The ground is interpolated from spot heights you tap in (`src/lib/ground.ts`): exact at your marks, level where you set none. Give it your latitude and the sheet's span in metres and `src/lib/sun.ts` computes each bed's hours of direct light and the hour's shadow; every answer is one of the catalogue's own light words, so one tap opens the guide filtered to what would live there. The model's three.js chunk loads only when a Model view mounts (142.83 kB gzipped in this build, against 108.26 kB for the rest of the app), and the service worker precaches it, so the model opens offline.
+
+The full tour of the screens is in [docs/features.md](docs/features.md).
+
+### Your data
+
+Everything you write lives in this origin's `localStorage` (eight `perennials.*.v1` keys plus `perennials.theme`) and one IndexedDB database, `perennials-photos`, because a phone photo would exhaust the roughly 5 MB that localStorage allows. There is no account and no server-side copy, so the backup is the sync: the Field notes page writes a `.json` that restores every store, photos included, and a `.txt` that outlives the app. A restore merges by default with the newest entry winning, because the realistic restore is your second phone. Updates never touch your data: the service worker (`registerType: "autoUpdate"`) swaps its own precache and reloads once, and it only ever clears Cache Storage. The remaining loss vector is the browser evicting storage (iOS clears a tab's script storage after about seven days without a visit), so the app asks for persistent storage on your first write and offers to install to the home screen.
+
+## Data
+
+The dataset is not in this repository. The API in `server/` pulls it, normalises it (`server/src/transform.mjs` reads 22 named fields from each Permapeople record), enriches it and serves it as three JSON files; `plants.json` was 11.5 MB raw and 1.34 MB brotli-compressed when I fetched it on 2026-09-27. The sources:
+
+- [Permapeople](https://permapeople.org) (CC BY-SA 4.0): the plants, descriptions, photos and most attributes.
+- [GloBI](https://www.globalbioticinteractions.org) (CC BY 4.0): flower visitors, from published observation records.
+- [USDA PLANTS](https://plants.usda.gov) (public domain): bloom colour and period, for North American species.
+- You: notes, bloom dates, photos, heights and any blank the other three left, kept in the browser and attributed to nobody but you.
+
+Coverage, counted over the live `plants.json` on 2026-09-27 (8,858 plants):
+
+| Field                   | Plants with a value |
+| ----------------------- | ------------------- |
+| Height                  | 7,896 (89%)         |
+| Edible                  | 6,182 (70%)         |
+| Hardiness zone          | 6,012 (68%)         |
+| Photo                   | 4,784 (54%)         |
+| Guild layer             | 4,651 (53%)         |
+| Flower visitors (GloBI) | 3,787 (43%)         |
+| Alternate names         | 3,465 (39%)         |
+| Bloom colour (USDA)     | 1,043 (12%)         |
+| Cautions                | 794 (9%)            |
+| Companions              | 206 (2%)            |
+
+Coverage is reported for the search on screen, because the catalogue-wide number misleads: USDA records a colour for 12% of the catalogue but for 677 of the 3,740 plants hardy in zone 6 (18%), and the rail prints the figure for whatever set you are looking at. Cautions are shown in the source's exact words, because "Toxic" and "Toxic fruits" are different sentences to someone standing over an asparagus bed.
+
+The API checks its data on boot and hourly, re-pulls Permapeople once the data is 7 days old (`STALE_AFTER_DAYS` in `server/src/api.mjs`), and re-verifies the 5 stalest plants an hour against GloBI and USDA (`RECHECK_PER_HOUR`), which cycles 8,858 plants in about 74 days. Photos are resized by the API to one of 64, 128, 192, 300, 400, 600 or 800 px (`/img/<id>/<width>.webp`), because Permapeople's CDN has no image service. The Permapeople key lives in the API's environment and never reaches the browser or this repository. The rest is in [docs/data.md](docs/data.md).
 
 ## Project layout
 
 ```
-src/data/       model (types), store (fetch, cache, lazy name index, her
-                values folded into the dataset)
-src/lib/        query (facets, one-pass evaluation, live counts), constraints
-                (the atom model + URL codec), suggest (the omnibox grammar),
-                spots, bloom, img, hardiness, homeZone, today, paper; hers:
-                mine, notes, seen, kept, photos, backup, latitude, phenology;
-                the yard: yards, elevation, growth, sun, yardViews,
-                yardExport, yardFile
-src/state/      search (constraints in; results, counts and trail out)
-src/components/ Omnibox, Trail, FacetRail, SpotBar, ResultGrid, PlantCard,
-                GuildView, Today, Thumb, Layout, InstallHint; the yard:
-                YardCanvas, ElevationView, YardModel, YearScrubber; hers:
-                AddMine, NotePanel, BloomCalendar, SeenMark, BackupPanel
-src/pages/      Browse, Plant, Kept, Yards, Yard, Annual, About
-src/styles/     tokens, base, app, browse, detail, kept, yard, annual
-server/         the data API: pull, transform, enrich, ingest, resize, serve
+src/data/        model (the Plant type), store (fetch, cache, lazy name index)
+src/lib/         query, constraints, suggest, hardiness, bloom, spots, today;
+                 yours: mine, notes, seen, kept, photos, backup;
+                 the yard: yards, ground, elevation, growth, sun, yardExport, yardFile
+src/state/       search (constraints in; results, counts and trail out)
+src/components/  Omnibox, Trail, FacetRail, ResultGrid, GuildView, YardCanvas, YardModel
+src/pages/       Browse, Plant, Kept, Yards, Yard, Annual, About
+src/styles/      tokens, base, app, browse, detail, kept, yard, annual
+server/          the data API: pull, transform, enrich, ingest, resize, serve
 ```
 
-## Where it's going
+## Deploy
 
-A negation atom, so "nothing invasive" is expressible and not just "find me the invasive ones". I keep deferring it for a reason: cautions are recorded for only 791 of the 8,800 plants, so a "without invasive" filter would quietly certify 8,000 plants that nobody ever assessed. That is exactly the false confidence the rest of this is built to avoid. The honest version needs better data, not a new atom.
+The front end deploys to GitHub Pages on every push to `main` (`.github/workflows/deploy.yml`: `npm ci`, `npm test`, `npm run build`, upload `dist`). The API runs on Railway and deploys from the repository root with `railway up --service api`; the CLI uploads the whole repository whatever directory you run it from, and `railway.json` pins the build and the start command to `server/`. Environment variables and the seed path are in `server/README.md`.
 
-Flower colour is the other gap, and it is not ours. Permapeople has no such field. USDA has the plant 58% of the time and records a colour for 13% of those. Wikidata does not have it for yarrow, comfrey, or bee balm. It lives in prose, in floras and in Kew's descriptions, and there is no open structured dataset for it at global scale.
+## Testing
 
-## Verification
+`npm test` runs 76 vitest cases in `src/lib/rules.test.ts` (1.8 s here; `npm run typecheck` takes about 26 s). They pin the rules the guide turns on: a lone hardiness number is a floor and a plant with no record never sorts below one the record rules out; every month lands on one of USDA's nine season words; a stroke cannot grow past its cap; your values reach the guide through `ACCESS` without wearing a source's name; only a real measurement stands a figure up; the computed sun behaves like the sky; the ground passes through your marks and settles level beyond them; restoring a backup merges and cannot shrink the phone's own list; importing a yard cannot overwrite one you have; a constraint set survives the URL round trip.
 
-76 test cases, run by `npm test` (vitest) and gated in CI on every push (`.github/workflows/ci.yml`), alongside `npm run typecheck`. They cover the constraint solver and the collapse trail, which is the part where a wrong answer is invisible: a filter that silently drops a matching plant looks exactly like a filter that works.
+`ci.yml` runs the typecheck and the tests on pull requests (as of this writing it has no recorded run); `deploy.yml` runs the tests and the build on every push to `main` and does not deploy a failing one.
 
-CI does not check the data itself. Upstream records change without notice, and nothing here detects a Permapeople field going empty.
+The tests do not cover `evaluate()` itself (the one-pass results, counts and trail), the search box's grammar, the React components, the server, or the data. Upstream records change without notice and nothing here detects a Permapeople field going empty.
 
-## Weak spots
+## Limitations
 
-None of the data is mine. Records come from Permapeople, flower visitors from GloBI, and bloom color from USDA PLANTS, and they vary in completeness plant by plant; a constraint search is only as good as the tags underneath it, so an unlabeled species is invisible to the filter that should have found it.
+None of the data is mine. Records come from Permapeople, flower visitors from GloBI and bloom colour from USDA PLANTS, and their completeness varies plant by plant: a constraint search is only as good as the tags underneath it, so a plant nobody tagged is invisible to the filter that should have found it.
 
-There is no invasive-species or regional-legality checking. A plant that fits your light, soil, and moisture may still be a bad idea, or illegal to plant, where you live. Check your local extension office before you buy anything.
+- There is no invasive-species or regional-legality check. A plant that fits your light, soil and moisture may still be a bad idea, or illegal to plant, where you live; ask your local extension office before you buy anything. Only 10 plants carry the Invasive label.
+- A hardiness filter drops the 2,846 plants with no recorded zone along with the ones that would die there. The rail says so, and the results still do not contain them.
+- Bloom colour and period come from a North American database, so most Old World plants have neither.
+- There is no negation. You can find the toxic plants; you cannot ask for the plants that are not toxic (see Roadmap).
+- The sun is coarse: crowns are ellipsoids, the day is sampled on the half hour, latitude is kept to the whole degree, and every printed number says "about".
+- Everything you write lives in one browser. There is no account and no sync beyond the backup file.
+- The model's three.js chunk is 568 kB minified and the build warns about it; it loads only on the Model view.
+
+## Roadmap
+
+1. A negation atom, so "nothing invasive" is expressible. It is deferred because cautions are recorded for 794 of 8,858 plants and the Invasive label for 10, so a "without invasive" filter would certify about 8,000 plants that nobody assessed. It needs better data before it needs a new atom.
+2. Flower colour beyond USDA. Permapeople has no such field, USDA covers 1,043 plants, and there is no open structured dataset for it at global scale; it lives in prose, in floras and in Kew's descriptions.
+
+## License
+
+No license chosen yet. The data carries its own licences (see Data).
